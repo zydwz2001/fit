@@ -13,7 +13,7 @@ body {
   background-color: #1a1a1a;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   min-height: 100vh;
   margin: 0;
 }
@@ -30,19 +30,24 @@ body {
 
 /* Phone Container - 响应式适配 */
 .phone-container {
-  width: 100%;
-  max-width: 430px;
+  width: 100vw !important;
+  max-width: 100vw !important;
   height: 100vh;
-  max-height: 932px;
   overflow: hidden;
   position: relative;
   background: #f8fafc;
 }
 
-/* 开发环境显示边框 */
-@media (min-width: 431px) {
+/* 开发环境显示边框 - 仅在大屏幕上 */
+@media (min-width: 768px) {
+  body {
+    background-color: #1a1a1a;
+    justify-content: center;
+    align-items: center;
+  }
   .phone-container {
-    width: 375px;
+    width: 375px !important;
+    max-width: 375px !important;
     height: 812px;
     border-radius: 45px;
     border: 8px solid #333;
@@ -95,7 +100,7 @@ body {
   justify-content: space-around;
   padding-top: 10px;
   padding-bottom: env(safe-area-inset-bottom, 0);
-  z-index: 50;
+  z-index: 10;
 }
 
 .nav-item {

@@ -11,6 +11,7 @@ interface AppContextType {
 
 type Action =
   | { type: 'SET_BODY_UNLOCKED'; payload: boolean }
+  | { type: 'SET_WEIGHT_UNIT'; payload: 'kg' | 'lbs' }
   | { type: 'ADD_BODY_METRIC'; payload: { type: any; value: number } }
   | { type: 'SET_METRIC_TARGET'; payload: { type: any; target: number } }
   | { type: 'INIT_DAILY_WORKOUT' }
@@ -22,7 +23,17 @@ type Action =
   | { type: 'UPDATE_SET'; payload: { exerciseId: string; setId: string; updates: Partial<ExerciseSet> } }
   | { type: 'REMOVE_SET'; payload: { exerciseId: string; setId: string } }
   | { type: 'TOGGLE_SET_COMPLETED'; payload: { exerciseId: string; setId: string } }
-  | { type: 'TOGGLE_LEFT_RIGHT_MODE'; payload: { exerciseId: string } };
+  | { type: 'TOGGLE_LEFT_RIGHT_MODE'; payload: { exerciseId: string } }
+  | { type: 'ADD_BODY_PHOTO'; payload: { id: string; uri: string; date: string; timestamp: number } }
+  | { type: 'REMOVE_BODY_PHOTO'; payload: { photoId: string } }
+  | { type: 'ADD_NOTE'; payload: { title: string; content: string; folderId: string | null } }
+  | { type: 'UPDATE_NOTE'; payload: { noteId: string; title?: string; content?: string } }
+  | { type: 'REMOVE_NOTE'; payload: { noteId: string } }
+  | { type: 'ADD_FOLDER'; payload: { name: string; icon: string; color: string } }
+  | { type: 'TOGGLE_FOLDER_EXPANDED'; payload: { folderId: string } }
+  | { type: 'REMOVE_FOLDER'; payload: { folderId: string } }
+  | { type: 'SELECT_FOLDER'; payload: { folderId: string | null } }
+  | { type: 'ARCHIVE_DAILY_WORKOUT' };
 
 // 肌肉群到训练日名称的映射
 function getWorkoutName(firstMuscleGroup: string): string {
@@ -58,10 +69,11 @@ const initialState: AppState = {
   ],
   notes: [],
   selectedFolderId: null,
+  weightUnit: 'kg',
 };
 
-function calculateTotalVolume(exercises: Exercise[]): number {
-  return exercises.reduce((sum, ex) => sum + calculateVolume(ex), 0);
+function calculateTotalVolume(exercises: Exercise[], weightUnit: 'kg' | 'lbs' = 'kg'): number {
+  return exercises.reduce((sum, ex) => sum + calculateVolume(ex, weightUnit), 0);
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -70,6 +82,57 @@ function appReducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'SET_BODY_UNLOCKED':
       return { ...state, bodyUnlocked: action.payload };
+    case 'SET_WEIGHT_UNIT': {
+      const newUnit = action.payload;
+      const oldUnit = state.weightUnit;
+      if (newUnit === oldUnit) return state;
+
+      // 转换系数：1 lbs = 0.45 kg
+      const convertWeight = (w: number | undefined, from: 'kg' | 'lbs', to: 'kg' | 'lbs'): number | undefined => {
+        if (w === undefined) return undefined;
+        if (from === to) return w;
+        if (from === 'lbs' && to === 'kg') {
+          return Math.round(w * 0.45 * 10) / 10;
+        } else {
+          return Math.round(w / 0.45 * 10) / 10;
+        }
+      };
+
+      // 转换今日训练的重量
+      const convertedDailyWorkout = state.dailyWorkout ? {
+        ...state.dailyWorkout,
+        exercises: state.dailyWorkout.exercises.map(ex => ({
+          ...ex,
+          sets: ex.sets.map(set => ({
+            ...set,
+            weight: convertWeight(set.weight, oldUnit, newUnit),
+            leftWeight: convertWeight(set.leftWeight, oldUnit, newUnit),
+            rightWeight: convertWeight(set.rightWeight, oldUnit, newUnit),
+          }))
+        }))
+      } : null;
+
+      // 转换历史记录的重量
+      const convertedHistory = state.workoutHistory.map(workout => ({
+        ...workout,
+        exercises: workout.exercises.map(ex => ({
+          ...ex,
+          sets: ex.sets.map(set => ({
+            ...set,
+            weight: convertWeight(set.weight, oldUnit, newUnit),
+            leftWeight: convertWeight(set.leftWeight, oldUnit, newUnit),
+            rightWeight: convertWeight(set.rightWeight, oldUnit, newUnit),
+          }))
+        }))
+      }));
+
+      return {
+        ...state,
+        weightUnit: newUnit,
+        dailyWorkout: convertedDailyWorkout,
+        workoutHistory: convertedHistory,
+      };
+    }
     case 'ADD_BODY_METRIC': {
       const { type, value } = action.payload;
       const today = getTodayString();
@@ -109,6 +172,78 @@ function appReducer(state: AppState, action: Action): AppState {
         newTargets.push({ type, target });
       }
       return { ...state, metricTargets: newTargets };
+    }
+    case 'ADD_BODY_PHOTO': {
+      const newPhoto = action.payload;
+      return { ...state, bodyPhotos: [...state.bodyPhotos, newPhoto] };
+    }
+    case 'REMOVE_BODY_PHOTO': {
+      return {
+        ...state,
+        bodyPhotos: state.bodyPhotos.filter((p) => p.id !== action.payload.photoId)
+      };
+    }
+    case 'ADD_NOTE': {
+      const newNote = {
+        id: generateId(),
+        title: action.payload.title,
+        content: action.payload.content,
+        folderId: action.payload.folderId,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      return { ...state, notes: [...state.notes, newNote] };
+    }
+    case 'UPDATE_NOTE': {
+      return {
+        ...state,
+        notes: state.notes.map((note) =>
+          note.id === action.payload.noteId
+            ? {
+                ...note,
+                title: action.payload.title ?? note.title,
+                content: action.payload.content ?? note.content,
+                updatedAt: Date.now(),
+              }
+            : note
+        ),
+      };
+    }
+    case 'REMOVE_NOTE': {
+      return {
+        ...state,
+        notes: state.notes.filter((note) => note.id !== action.payload.noteId),
+      };
+    }
+    case 'ADD_FOLDER': {
+      const newFolder = {
+        id: generateId(),
+        name: action.payload.name,
+        icon: action.payload.icon,
+        color: action.payload.color,
+        expanded: false,
+      };
+      return { ...state, folders: [...state.folders, newFolder] };
+    }
+    case 'TOGGLE_FOLDER_EXPANDED': {
+      return {
+        ...state,
+        folders: state.folders.map((folder) =>
+          folder.id === action.payload.folderId
+            ? { ...folder, expanded: !folder.expanded }
+            : folder
+        ),
+      };
+    }
+    case 'SELECT_FOLDER': {
+      return { ...state, selectedFolderId: action.payload.folderId };
+    }
+    case 'REMOVE_FOLDER': {
+      return {
+        ...state,
+        folders: state.folders.filter((folder) => folder.id !== action.payload.folderId),
+        notes: state.notes.filter((note) => note.folderId !== action.payload.folderId),
+      };
     }
     case 'INIT_DAILY_WORKOUT': {
       const workout: DailyWorkout = {
@@ -156,7 +291,7 @@ function appReducer(state: AppState, action: Action): AppState {
             ...state.dailyWorkout,
             exercises: newExercises,
             name,
-            totalVolume: calculateTotalVolume(newExercises),
+            totalVolume: calculateTotalVolume(newExercises, state.weightUnit),
           },
         };
       }
@@ -175,7 +310,7 @@ function appReducer(state: AppState, action: Action): AppState {
           ...state.dailyWorkout,
           exercises: newExercises,
           name: getWorkoutName(newExercises[0].muscleGroup),
-          totalVolume: calculateTotalVolume(newExercises),
+          totalVolume: calculateTotalVolume(newExercises, state.weightUnit),
         },
       };
     }
@@ -191,7 +326,7 @@ function appReducer(state: AppState, action: Action): AppState {
           ...state.dailyWorkout,
           exercises: newExercises,
           name,
-          totalVolume: calculateTotalVolume(newExercises),
+          totalVolume: calculateTotalVolume(newExercises, state.weightUnit),
         },
       };
     }
@@ -234,7 +369,7 @@ function appReducer(state: AppState, action: Action): AppState {
         dailyWorkout: {
           ...state.dailyWorkout,
           exercises: newExercises,
-          totalVolume: calculateTotalVolume(newExercises),
+          totalVolume: calculateTotalVolume(newExercises, state.weightUnit),
         },
       };
     }
@@ -257,7 +392,7 @@ function appReducer(state: AppState, action: Action): AppState {
         dailyWorkout: {
           ...state.dailyWorkout,
           exercises: newExercises,
-          totalVolume: calculateTotalVolume(newExercises),
+          totalVolume: calculateTotalVolume(newExercises, state.weightUnit),
         },
       };
     }
@@ -274,7 +409,7 @@ function appReducer(state: AppState, action: Action): AppState {
         dailyWorkout: {
           ...state.dailyWorkout,
           exercises: newExercises,
-          totalVolume: calculateTotalVolume(newExercises),
+          totalVolume: calculateTotalVolume(newExercises, state.weightUnit),
         },
       };
     }
@@ -297,7 +432,7 @@ function appReducer(state: AppState, action: Action): AppState {
         dailyWorkout: {
           ...state.dailyWorkout,
           exercises: newExercises,
-          totalVolume: calculateTotalVolume(newExercises),
+          totalVolume: calculateTotalVolume(newExercises, state.weightUnit),
         },
       };
     }
@@ -324,7 +459,21 @@ function appReducer(state: AppState, action: Action): AppState {
       });
       return {
         ...state,
-        dailyWorkout: { ...state.dailyWorkout, exercises: newExercises },
+        dailyWorkout: {
+          ...state.dailyWorkout,
+          exercises: newExercises,
+          totalVolume: calculateTotalVolume(newExercises, state.weightUnit),
+        },
+      };
+    }
+    case 'ARCHIVE_DAILY_WORKOUT': {
+      if (!state.dailyWorkout) return state;
+      // 将今日训练归档到历史记录
+      const newWorkoutHistory = [...state.workoutHistory, state.dailyWorkout];
+      return {
+        ...state,
+        dailyWorkout: null,
+        workoutHistory: newWorkoutHistory,
       };
     }
     default:
@@ -336,16 +485,87 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(initialState);
   const [loaded, setLoaded] = useState(false);
 
+  // 检查是否需要归档今日训练
+  const checkAndArchiveDailyWorkout = (currentState: AppState): AppState => {
+    if (!currentState.dailyWorkout) return currentState;
+
+    const today = getTodayString();
+    if (currentState.dailyWorkout.date !== today) {
+      // 日期不同，需要归档
+      const newWorkoutHistory = [...currentState.workoutHistory, currentState.dailyWorkout];
+      return {
+        ...currentState,
+        dailyWorkout: null,
+        workoutHistory: newWorkoutHistory,
+      };
+    }
+    return currentState;
+  };
+
   useEffect(() => {
     async function init() {
-      const saved = await loadData();
-      if (saved) {
-        setState({ ...initialState, ...saved, exerciseLibrary: DEFAULT_EXERCISES });
+      try {
+        const saved = await loadData();
+        if (saved) {
+          // 深度修复数据完整性
+          let validData = { ...saved };
+
+          // 修复 dailyWorkout
+          if (validData.dailyWorkout) {
+            if (!validData.dailyWorkout.exercises || !Array.isArray(validData.dailyWorkout.exercises)) {
+              validData.dailyWorkout.exercises = [];
+            }
+            // 修复每个 exercise 的 sets
+            validData.dailyWorkout.exercises = validData.dailyWorkout.exercises.map((ex: any) => ({
+              ...ex,
+              sets: Array.isArray(ex.sets) ? ex.sets : []
+            }));
+          }
+
+          // 确保其他数组字段存在
+          if (!validData.workoutHistory || !Array.isArray(validData.workoutHistory)) {
+            validData.workoutHistory = [];
+          }
+          if (!validData.bodyMetrics || !Array.isArray(validData.bodyMetrics)) {
+            validData.bodyMetrics = [];
+          }
+          if (!validData.metricTargets || !Array.isArray(validData.metricTargets)) {
+            validData.metricTargets = initialState.metricTargets;
+          }
+          if (!validData.bodyPhotos || !Array.isArray(validData.bodyPhotos)) {
+            validData.bodyPhotos = [];
+          }
+          if (!validData.folders || !Array.isArray(validData.folders)) {
+            validData.folders = initialState.folders;
+          }
+          if (!validData.notes || !Array.isArray(validData.notes)) {
+            validData.notes = [];
+          }
+
+          const initialStateWithData = { ...initialState, ...validData, exerciseLibrary: DEFAULT_EXERCISES };
+          // 检查并归档过期的今日训练
+          const archivedState = checkAndArchiveDailyWorkout(initialStateWithData);
+          setState(archivedState);
+        }
+      } catch (e) {
+        console.error('Failed to load data:', e);
+        // 如果加载失败，使用初始状态
       }
       setLoaded(true);
     }
     init();
   }, []);
+
+  // 定期检查是否需要归档今日训练（每分钟检查一次）
+  useEffect(() => {
+    if (!loaded) return;
+
+    const checkInterval = setInterval(() => {
+      setState(prev => checkAndArchiveDailyWorkout(prev));
+    }, 60000); // 每分钟检查一次
+
+    return () => clearInterval(checkInterval);
+  }, [loaded]);
 
   useEffect(() => {
     if (loaded) {
