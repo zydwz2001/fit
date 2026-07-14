@@ -1,62 +1,46 @@
 # Vibe Fitness Pro
 
-一个面向个人训练复盘的移动端健身记录工具，整合训练录入、身体数据追踪、照片对比和健身知识管理。
+一个面向个人训练复盘的健身记录产品原型。
 
-## Product Background
+它把训练记录、身体指标、照片对比和知识沉淀放进同一个工作台里，重点解决个人健身场景里最真实的碎片化问题：训练时不好记、训练后不好复盘、变化数据不好串起来。
 
-我做这个项目的起点来自几个真实使用痛点：
+## 这个项目解决什么
 
-- Keep 的身体记录入口越来越深，非付费用户记录体重、围度和照片变化的路径变长。
-- 训记适合专业训练记录，但记录链路偏繁琐，训练中连续输入重量、次数和左右侧数据不够顺手。
-- Obsidian 适合知识沉淀，但不适合管理身体照片、训练截图和动作参考图。
+- 训练当天需要快速记动作、组数、重量和左右侧数据。
+- 训练之后希望按月回看容量、部位和频率变化。
+- 身体指标、照片和训练笔记分散在多个工具里，无法形成连续复盘。
 
-Vibe Fitness Pro 的目标是把这些高频能力合成一个个人健身工作台：训练当天快速记录，训练后按月复盘，身体变化和知识笔记长期沉淀。
+## 核心设计
 
-## Features
+- 今日训练：支持快速录入动作、组数和容量。
+- 月视图复盘：按日期回看训练分布和训练量趋势。
+- 身体追踪：记录体重、BMI、围度等指标变化。
+- 照片对比：把多张身体照片放在同一视图中比较。
+- 知识沉淀：把动作经验和训练反思整理成 Markdown 笔记。
 
-- 今日训练：动作库选择、组数录入、左右重量模式、完成组容量计算。
-- 月视图回顾：按日期查看训练部位、训练容量和有氧记录。
-- 身体追踪：体重、BMI、腰围、臂围等指标趋势；体重录入自动计算 BMI。
-- 照片对比：上传身体照片，选择 2-4 张生成带日期标注的对比图。
-- 知识管理：文件夹、Markdown 笔记、双链样式引用、数据导入导出。
-- 私密保护：身体数据页带 demo 密码入口。
+## 作品亮点
 
-Demo passcode: `0000`
+- 以“训练中录入效率”为第一优先级，而不是把所有能力都堆到首页。
+- 用本地优先的数据结构支持快速迭代，降低原型验证成本。
+- 把训练记录、身体变化和知识复盘连接成一个闭环。
 
-## Tech Architecture
+## 技术栈
 
-```text
-src/
-  components/        reusable UI and chart/photo/editor components
-  components/training/
-                     training card, set row and custom keyboard
-  contexts/          global app state and reducer
-  pages/             Training, Body and Knowledge feature pages
-  types/             domain models and default exercise library
-  utils/             date, volume, BMI and localStorage helpers
-```
+- Vite + React + TypeScript
+- Tailwind CSS
+- React Context + reducer
+- `localStorage` 本地存储
+- SVG / Canvas 图表与图片处理
 
-The app is a local-first React application:
-
-- Framework: Vite + React + TypeScript
-- Styling: Tailwind CSS
-- State: React Context + reducer
-- Storage: browser `localStorage`
-- Charts and photo comparison: SVG and Canvas
-
-## Run Locally
+## 本地运行
 
 ```bash
 npm install
 npm run dev
 ```
 
-Build:
+构建：
 
 ```bash
 npm run build
 ```
-
-## Notes
-
-This is an MVP prototype. Data is stored locally in the browser and is not synced to a backend. The current version focuses on the core product loop: record training, track body changes, review history, and manage personal fitness knowledge.
