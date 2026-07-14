@@ -17,7 +17,6 @@ export function PhotoCompare({ photos, onClose }: PhotoCompareProps) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // 设置画布大小
     const cols = photos.length <= 2 ? 2 : 2;
     const rows = photos.length <= 2 ? 1 : 2;
     const cellWidth = 200;
@@ -28,11 +27,9 @@ export function PhotoCompare({ photos, onClose }: PhotoCompareProps) {
     canvas.width = cols * cellWidth + (cols + 1) * padding;
     canvas.height = rows * (cellHeight + labelHeight) + (rows + 1) * padding;
 
-    // 背景
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // 加载并绘制图片
     const loadImage = (photo: BodyPhoto, index: number) => {
       return new Promise<void>((resolve) => {
         const img = new Image();
@@ -42,10 +39,8 @@ export function PhotoCompare({ photos, onClose }: PhotoCompareProps) {
           const x = padding + col * (cellWidth + padding);
           const y = padding + row * (cellHeight + labelHeight + padding);
 
-          // 绘制图片
           ctx.drawImage(img, x, y, cellWidth, cellHeight);
 
-          // 绘制日期标签
           ctx.fillStyle = '#10B981';
           ctx.font = 'bold 14px sans-serif';
           ctx.textAlign = 'center';

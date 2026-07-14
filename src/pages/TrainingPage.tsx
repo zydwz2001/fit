@@ -13,14 +13,12 @@ const SUB_TABS = [
   { id: 'library', label: '动作库' },
 ];
 
-// 深蹲历史记录数据
 const SQUAT_HISTORY = [
   { date: '2026-03-28', sets: [{ weight: 80, reps: 10 }, { weight: 80, reps: 8 }, { weight: 85, reps: 6 }], volume: 2150 },
   { date: '2026-03-21', sets: [{ weight: 75, reps: 12 }, { weight: 75, reps: 10 }, { weight: 80, reps: 8 }], volume: 2230 },
   { date: '2026-03-14', sets: [{ weight: 70, reps: 12 }, { weight: 75, reps: 10 }, { weight: 75, reps: 8 }], volume: 2090 },
 ];
 
-// 历史月数据
 const HISTORY_WORKOUTS: DailyWorkout[] = [
   {
     id: 'h1',
@@ -223,7 +221,6 @@ export function TrainingPage() {
         />
       )}
 
-      {/* 动作历史弹窗 */}
       {showHistoryModal && (
         <ExerciseHistoryModal
           exerciseId={showHistoryModal}
@@ -231,7 +228,6 @@ export function TrainingPage() {
         />
       )}
 
-      {/* 月视图详情弹窗 */}
       {showDayDetailModal && (
         <DayDetailModal
           date={showDayDetailModal.date}
@@ -260,17 +256,14 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
     value: string;
   } | null>(null);
 
-  // 所有 hooks 必须放在最前面！
   const displayDate = useMemo(() => formatDisplayDate(new Date()), []);
 
-  // 初始化顺序，每次 exercises 变化时都更新
   React.useEffect(() => {
     if (state.dailyWorkout) {
       setOrder(state.dailyWorkout.exercises.map((ex) => ex.id));
     }
   }, [state.dailyWorkout?.exercises]);
 
-  // 按当前顺序获取练习
   const orderedExercises = useMemo(() => {
     if (!state.dailyWorkout || !Array.isArray(state.dailyWorkout.exercises)) {
       return [];
@@ -323,7 +316,6 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
     dispatch({ type: 'REMOVE_SET', payload: { exerciseId, setId } });
   };
 
-  // 简单拖拽处理
   const handleDragStart = (e: React.DragEvent, exerciseId: string) => {
     setDraggingId(exerciseId);
     e.dataTransfer.setData('text/plain', exerciseId);
@@ -352,7 +344,6 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
     setDraggingId(null);
   };
 
-  // 获取当前正在编辑的 exercise 和 set
   const getCurrentEditingData = () => {
     if (!keyboardState || !state.dailyWorkout) return null;
     const exercise = state.dailyWorkout.exercises.find(e => e.id === keyboardState.exerciseId);
@@ -381,11 +372,9 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
     const currentValue = data.exercise.sets[data.setIndex][keyboardState.inputType];
     if (currentValue === undefined) return;
 
-    // 向上填充：把当前值填充到上面所有的组
     for (let i = 0; i < data.setIndex; i++) {
       const set = data.exercise.sets[i];
       if (keyboardState.inputType === 'leftWeight' || keyboardState.inputType === 'rightWeight') {
-        // 左右输入模式，左右都改
         handleUpdateSet(keyboardState.exerciseId, set.id, {
           leftWeight: currentValue,
           rightWeight: currentValue,
@@ -404,11 +393,9 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
     const currentValue = data.exercise.sets[data.setIndex][keyboardState.inputType];
     if (currentValue === undefined) return;
 
-    // 向下填充：把当前值填充到下面所有的组
     for (let i = data.setIndex + 1; i < data.exercise.sets.length; i++) {
       const set = data.exercise.sets[i];
       if (keyboardState.inputType === 'leftWeight' || keyboardState.inputType === 'rightWeight') {
-        // 左右输入模式，左右都改
         handleUpdateSet(keyboardState.exerciseId, set.id, {
           leftWeight: currentValue,
           rightWeight: currentValue,
@@ -421,7 +408,6 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
     }
   };
 
-  // 提前返回，但所有 hooks 都已经在上面调用了
   if (!state.dailyWorkout || state.dailyWorkout.exercises.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full min-h-[400px] gap-6">
@@ -491,10 +477,8 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
         </Button>
       </div>
 
-      {/* 自定义键盘 */}
       {keyboardState && (
         <>
-          {/* 点击背景遮罩收起键盘 */}
           <div
             className="fixed inset-0 z-40"
             onClick={() => setKeyboardState(null)}
@@ -505,8 +489,8 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
               onChange={handleKeyboardUpdate}
               onFillUp={handleFillUp}
               onFillDown={handleFillDown}
-              hasFillUp={!!getCurrentEditingData()?.nextSet}
-              hasFillDown={!!getCurrentEditingData()?.prevSet}
+              hasFillUp={!!getCurrentEditingData()?.prevSet}
+              hasFillDown={!!getCurrentEditingData()?.nextSet}
             />
             <button
               onClick={() => setKeyboardState(null)}
@@ -553,13 +537,11 @@ function LibraryTab({ onGoToToday, hasTodayWorkout }: LibraryTabProps) {
 
   const muscleGroups = [...new Set(filteredExercises.map((ex) => ex.muscleGroup))];
 
-  // 按肌肉群分组
   const exercisesByGroup = muscleGroups.reduce((acc, group) => {
     acc[group] = filteredExercises.filter((ex) => ex.muscleGroup === group);
     return acc;
   }, {} as Record<string, Exercise[]>);
 
-  // 设置默认选中第一个分组
   React.useEffect(() => {
     if (muscleGroups.length > 0 && !activeGroup) {
       setActiveGroup(muscleGroups[0]);
@@ -571,7 +553,6 @@ function LibraryTab({ onGoToToday, hasTodayWorkout }: LibraryTabProps) {
     sectionRefs[group]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  // 肌肉群到区域名称的映射
   const getSectionTitle = (group: string): string => {
     const map: Record<string, string> = {
       '腿': '腿部训练',
@@ -645,7 +626,6 @@ function LibraryTab({ onGoToToday, hasTodayWorkout }: LibraryTabProps) {
         </div>
       </div>
 
-      {/* 悬浮开始训练按钮 */}
       {hasSelectedExercises && (
         <div className="absolute bottom-36 left-0 right-0 flex justify-center z-10">
           <Button onClick={onGoToToday} className="px-8 shadow-lg">
@@ -759,7 +739,6 @@ function HistoryTab({ onShowDayDetail }: HistoryTabProps) {
         })}
       </div>
 
-      {/* 月份选择器弹窗 */}
       {showMonthPicker && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowMonthPicker(false)}>
           <div className="bg-white w-full max-w-sm rounded-vibe-xl p-6" onClick={(e) => e.stopPropagation()}>
@@ -770,7 +749,6 @@ function HistoryTab({ onShowDayDetail }: HistoryTabProps) {
               </button>
             </div>
 
-            {/* 年份选择 */}
             <div className="flex justify-center items-center gap-4 mb-6">
               <button
                 onClick={() => selectYear(currentMonth.getFullYear() - 1)}
@@ -787,7 +765,6 @@ function HistoryTab({ onShowDayDetail }: HistoryTabProps) {
               </button>
             </div>
 
-            {/* 月份网格 */}
             <div className="grid grid-cols-4 gap-3">
               {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((month) => (
                 <button
@@ -1024,7 +1001,6 @@ function DayDetailModal({ date, hasWorkout, onClose }: DayDetailModalProps) {
     }, 0);
   };
 
-  // 如果没有训练记录且不是在添加中
   if (!workout && !addingWorkout) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
@@ -1054,7 +1030,6 @@ function DayDetailModal({ date, hasWorkout, onClose }: DayDetailModalProps) {
 
   if (!workout) return null;
 
-  // 非编辑模式下的简洁显示
   const renderSimpleView = () => (
     <div className="space-y-4">
       {workout.exercises.map((exercise) => {
@@ -1206,7 +1181,6 @@ function DayDetailModal({ date, hasWorkout, onClose }: DayDetailModalProps) {
         </div>
       </div>
 
-      {/* 动作库选择弹窗 - 带部位选择 */}
       {showLibrary && workout && (
         <DayDetailLibraryModal
           workout={workout}

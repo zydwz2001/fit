@@ -37,7 +37,6 @@ function BodyContent() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { state, dispatch } = useApp();
 
-  // 按当前排序获取指标
   const orderedMetrics = metricOrder
     .map(type => DEFAULT_METRICS.find(m => m.type === type))
     .filter((m): m is typeof DEFAULT_METRICS[0] => m !== undefined);
@@ -114,7 +113,7 @@ function BodyContent() {
 
   const handleDelete = (_metricId: string) => {
     if (confirm('确定要删除这条记录吗？')) {
-      // 暂时没有直接删除单个 metric 的 action，这里暂存
+      dispatch({ type: 'REMOVE_BODY_METRIC', payload: { metricId: _metricId } });
     }
   };
 
@@ -122,10 +121,9 @@ function BodyContent() {
     if (!editingMetric) return;
     const num = parseFloat(editValue);
     if (!isNaN(num)) {
-      // 更新记录
       dispatch({
-        type: 'ADD_BODY_METRIC',
-        payload: { type: editingMetric.type, value: num }
+        type: 'UPDATE_BODY_METRIC',
+        payload: { metricId: editingMetric.id, value: num }
       });
       setEditingMetric(null);
     }
@@ -148,7 +146,6 @@ function BodyContent() {
     }
   };
 
-  // 图表数据
   const chartData = useMemo(() => {
     const metrics = state.bodyMetrics.filter((m: BodyMetric) => m.type === activeMetric);
     return metrics
@@ -159,7 +156,6 @@ function BodyContent() {
       }));
   }, [state.bodyMetrics, activeMetric]);
 
-  // 历史记录数据（逆序）
   const historyData = useMemo(() => {
     const metrics = state.bodyMetrics.filter((m: BodyMetric) => m.type === activeMetric);
     return metrics
@@ -369,7 +365,6 @@ function BodyContent() {
         </div>
       </div>
 
-      {/* 编辑记录弹窗 */}
       {editingMetric && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setEditingMetric(null)}>
           <div className="bg-white w-full max-w-sm rounded-vibe-xl p-6" onClick={(e) => e.stopPropagation()}>
@@ -406,7 +401,6 @@ function BodyContent() {
         </div>
       )}
 
-      {/* 对比图弹窗 */}
       {showCompareModal && (
         <PhotoCompare
           photos={comparePhotos}

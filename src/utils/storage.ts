@@ -1,4 +1,3 @@
-// 本地存储工具
 const STORAGE_KEY = 'vibe-fitness-data';
 
 export async function loadData(): Promise<any> {

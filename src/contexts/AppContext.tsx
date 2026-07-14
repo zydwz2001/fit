@@ -13,6 +13,8 @@ type Action =
   | { type: 'SET_BODY_UNLOCKED'; payload: boolean }
   | { type: 'SET_WEIGHT_UNIT'; payload: 'kg' | 'lbs' }
   | { type: 'ADD_BODY_METRIC'; payload: { type: any; value: number } }
+  | { type: 'UPDATE_BODY_METRIC'; payload: { metricId: string; value: number } }
+  | { type: 'REMOVE_BODY_METRIC'; payload: { metricId: string } }
   | { type: 'SET_METRIC_TARGET'; payload: { type: any; target: number } }
   | { type: 'INIT_DAILY_WORKOUT' }
   | { type: 'ADD_EXERCISE_TO_WORKOUT'; payload: Exercise }
@@ -35,7 +37,6 @@ type Action =
   | { type: 'SELECT_FOLDER'; payload: { folderId: string | null } }
   | { type: 'ARCHIVE_DAILY_WORKOUT' };
 
-// 肌肉群到训练日名称的映射
 function getWorkoutName(firstMuscleGroup: string): string {
   const map: Record<string, string> = {
     '胸': '练胸日',
@@ -87,7 +88,6 @@ function appReducer(state: AppState, action: Action): AppState {
       const oldUnit = state.weightUnit;
       if (newUnit === oldUnit) return state;
 
-      // 转换系数：1 lbs = 0.45 kg
       const convertWeight = (w: number | undefined, from: 'kg' | 'lbs', to: 'kg' | 'lbs'): number | undefined => {
         if (w === undefined) return undefined;
         if (from === to) return w;
@@ -98,7 +98,6 @@ function appReducer(state: AppState, action: Action): AppState {
         }
       };
 
-      // 转换今日训练的重量
       const convertedDailyWorkout = state.dailyWorkout ? {
         ...state.dailyWorkout,
         exercises: state.dailyWorkout.exercises.map(ex => ({
@@ -112,7 +111,6 @@ function appReducer(state: AppState, action: Action): AppState {
         }))
       } : null;
 
-      // 转换历史记录的重量
       const convertedHistory = state.workoutHistory.map(workout => ({
         ...workout,
         exercises: workout.exercises.map(ex => ({
@@ -161,6 +159,62 @@ function appReducer(state: AppState, action: Action): AppState {
       }
 
       return { ...state, bodyMetrics: newMetrics };
+    }
+    case 'UPDATE_BODY_METRIC': {
+      const metric = state.bodyMetrics.find((m: BodyMetric) => m.id === action.payload.metricId);
+      if (!metric || metric.type === 'bmi') return state;
+
+      const updatedMetrics = state.bodyMetrics.map((m: BodyMetric) =>
+        m.id === action.payload.metricId
+          ? { ...m, value: action.payload.value, timestamp: Date.now() }
+          : m
+      );
+
+      if (metric.type !== 'weight') {
+        return { ...state, bodyMetrics: updatedMetrics };
+      }
+
+      const bmiValue = calculateBMI(action.payload.value);
+      const bmiIndex = updatedMetrics.findIndex(
+        (m: BodyMetric) => m.type === 'bmi' && m.date === metric.date
+      );
+
+      if (bmiIndex >= 0) {
+        const metricsWithBmi = [...updatedMetrics];
+        metricsWithBmi[bmiIndex] = {
+          ...metricsWithBmi[bmiIndex],
+          value: bmiValue,
+          timestamp: Date.now(),
+        };
+        return { ...state, bodyMetrics: metricsWithBmi };
+      }
+
+      return {
+        ...state,
+        bodyMetrics: [
+          ...updatedMetrics,
+          {
+            id: generateId(),
+            type: 'bmi',
+            value: bmiValue,
+            date: metric.date,
+            timestamp: Date.now(),
+          },
+        ],
+      };
+    }
+    case 'REMOVE_BODY_METRIC': {
+      const metric = state.bodyMetrics.find((m: BodyMetric) => m.id === action.payload.metricId);
+      if (!metric || metric.type === 'bmi') return state;
+
+      return {
+        ...state,
+        bodyMetrics: state.bodyMetrics.filter((m: BodyMetric) => {
+          if (m.id === action.payload.metricId) return false;
+          if (metric.type === 'weight' && m.type === 'bmi' && m.date === metric.date) return false;
+          return true;
+        }),
+      };
     }
     case 'SET_METRIC_TARGET': {
       const { type, target } = action.payload;
@@ -275,12 +329,10 @@ function appReducer(state: AppState, action: Action): AppState {
         return { ...state, dailyWorkout: workout };
       }
 
-      // 检查是否已存在
       const exists = state.dailyWorkout.exercises.some(
         (ex) => ex.id === action.payload.id
       );
       if (exists) {
-        // 移除已存在的
         const newExercises = state.dailyWorkout.exercises.filter(
           (ex) => ex.id !== action.payload.id
         );
@@ -296,7 +348,6 @@ function appReducer(state: AppState, action: Action): AppState {
         };
       }
 
-      // 添加新的
       const newExercise = {
         ...action.payload,
         sets: [
@@ -468,7 +519,6 @@ function appReducer(state: AppState, action: Action): AppState {
     }
     case 'ARCHIVE_DAILY_WORKOUT': {
       if (!state.dailyWorkout) return state;
-      // 将今日训练归档到历史记录
       const newWorkoutHistory = [...state.workoutHistory, state.dailyWorkout];
       return {
         ...state,
@@ -485,13 +535,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(initialState);
   const [loaded, setLoaded] = useState(false);
 
-  // 检查是否需要归档今日训练
   const checkAndArchiveDailyWorkout = (currentState: AppState): AppState => {
     if (!currentState.dailyWorkout) return currentState;
 
     const today = getTodayString();
     if (currentState.dailyWorkout.date !== today) {
-      // 日期不同，需要归档
       const newWorkoutHistory = [...currentState.workoutHistory, currentState.dailyWorkout];
       return {
         ...currentState,
@@ -507,22 +555,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
       try {
         const saved = await loadData();
         if (saved) {
-          // 深度修复数据完整性
           let validData = { ...saved };
 
-          // 修复 dailyWorkout
           if (validData.dailyWorkout) {
             if (!validData.dailyWorkout.exercises || !Array.isArray(validData.dailyWorkout.exercises)) {
               validData.dailyWorkout.exercises = [];
             }
-            // 修复每个 exercise 的 sets
             validData.dailyWorkout.exercises = validData.dailyWorkout.exercises.map((ex: any) => ({
               ...ex,
               sets: Array.isArray(ex.sets) ? ex.sets : []
             }));
           }
 
-          // 确保其他数组字段存在
           if (!validData.workoutHistory || !Array.isArray(validData.workoutHistory)) {
             validData.workoutHistory = [];
           }
@@ -543,26 +587,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }
 
           const initialStateWithData = { ...initialState, ...validData, exerciseLibrary: DEFAULT_EXERCISES };
-          // 检查并归档过期的今日训练
           const archivedState = checkAndArchiveDailyWorkout(initialStateWithData);
           setState(archivedState);
         }
       } catch (e) {
         console.error('Failed to load data:', e);
-        // 如果加载失败，使用初始状态
       }
       setLoaded(true);
     }
     init();
   }, []);
 
-  // 定期检查是否需要归档今日训练（每分钟检查一次）
   useEffect(() => {
     if (!loaded) return;
 
     const checkInterval = setInterval(() => {
       setState(prev => checkAndArchiveDailyWorkout(prev));
-    }, 60000); // 每分钟检查一次
+    }, 60000);
 
     return () => clearInterval(checkInterval);
   }, [loaded]);

@@ -7,28 +7,42 @@ interface MarkdownEditorProps {
   onCancel?: () => void;
 }
 
-const MARKDOWN_RULES = [
+const INLINE_MARKDOWN_RULES = [
   { pattern: /\*\*(.*?)\*\*/g, replace: '<strong>$1</strong>' },
   { pattern: /\*(.*?)\*/g, replace: '<em>$1</em>' },
-  { pattern: /^### (.*$)/gm, replace: '<h3 class="text-lg font-black mb-2">$1</h3>' },
-  { pattern: /^## (.*$)/gm, replace: '<h2 class="text-xl font-black mb-3">$1</h2>' },
-  { pattern: /^# (.*$)/gm, replace: '<h1 class="text-2xl font-black mb-4">$1</h1>' },
   { pattern: /`(.*?)`/g, replace: '<code class="bg-slate-100 px-2 py-1 rounded text-sm font-mono">$1</code>' },
   { pattern: /\[\[(.*?)\]\]/g, replace: '<span class="text-vibe-green font-bold">[[$1]]</span>' },
 ];
 
-function renderMarkdown(text: string): string {
+function renderInlineMarkdown(text: string): string {
   let html = text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/\n/g, '<br>');
+    .replace(/>/g, '&gt;');
 
-  MARKDOWN_RULES.forEach(({ pattern, replace }) => {
+  INLINE_MARKDOWN_RULES.forEach(({ pattern, replace }) => {
     html = html.replace(pattern, replace);
   });
 
   return html;
+}
+
+function renderMarkdown(text: string): string {
+  return text
+    .split('\n')
+    .map((line) => {
+      if (line.startsWith('### ')) {
+        return `<h3 class="text-lg font-black mb-2">${renderInlineMarkdown(line.slice(4))}</h3>`;
+      }
+      if (line.startsWith('## ')) {
+        return `<h2 class="text-xl font-black mb-3">${renderInlineMarkdown(line.slice(3))}</h2>`;
+      }
+      if (line.startsWith('# ')) {
+        return `<h1 class="text-2xl font-black mb-4">${renderInlineMarkdown(line.slice(2))}</h1>`;
+      }
+      return renderInlineMarkdown(line);
+    })
+    .join('<br>');
 }
 
 export function MarkdownEditor({
@@ -47,7 +61,6 @@ export function MarkdownEditor({
 
   return (
     <div className="fixed inset-0 bg-white z-50 flex flex-col">
-      {/* 顶部工具栏 */}
       <div className="p-4 border-b border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
           {onCancel && (
@@ -80,7 +93,6 @@ export function MarkdownEditor({
         </div>
       </div>
 
-      {/* 标题输入 */}
       <div className="p-4 border-b border-slate-50">
         <input
           type="text"
@@ -91,7 +103,6 @@ export function MarkdownEditor({
         />
       </div>
 
-      {/* 编辑器主体 */}
       <div className="flex-1 overflow-hidden flex flex-col">
         {preview ? (
           <div
@@ -114,7 +125,6 @@ export function MarkdownEditor({
         )}
       </div>
 
-      {/* 快捷工具栏 */}
       {!preview && (
         <div className="p-2 border-t border-slate-100 flex items-center gap-1 overflow-x-auto">
           {[

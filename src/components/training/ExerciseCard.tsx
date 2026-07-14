@@ -55,7 +55,6 @@ export function ExerciseCard({
 
   const volume = !isCardio ? calculateVolume(exercise, state.weightUnit) : 0;
 
-  // 如果是在动作库中使用的卡片
   if (onSelect) {
     return (
       <div

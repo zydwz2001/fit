@@ -226,7 +226,6 @@ export function KnowledgePage() {
           })}
         </div>
 
-        {/* 添加文件夹按钮 */}
         <button
           onClick={() => setShowAddFolder(true)}
           className="mt-4 w-full h-12 border-2 border-dashed border-slate-200 rounded-vibe-xl flex items-center justify-center gap-2 text-slate-400 hover:border-vibe-green hover:text-vibe-green transition-colors"
@@ -245,7 +244,6 @@ export function KnowledgePage() {
         <i className="fas fa-plus"></i>
       </FAB>
 
-      {/* 菜单弹窗 */}
       {showMenu && (
         <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)}>
           <div className="absolute top-16 right-4 bg-white rounded-vibe-xl shadow-lg p-2 w-48" onClick={(e) => e.stopPropagation()}>
@@ -270,7 +268,6 @@ export function KnowledgePage() {
         </div>
       )}
 
-      {/* 导入数据弹窗 */}
       {showImportModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowImportModal(false)}>
           <div className="bg-white w-full max-w-sm rounded-vibe-xl p-6" onClick={(e) => e.stopPropagation()}>
@@ -320,7 +317,6 @@ export function KnowledgePage() {
         </div>
       )}
 
-      {/* 新建文件夹弹窗 */}
       {showAddFolder && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowAddFolder(false)}>
           <div className="bg-white w-full max-w-sm rounded-vibe-xl p-6" onClick={(e) => e.stopPropagation()}>

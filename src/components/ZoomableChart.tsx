@@ -18,7 +18,6 @@ export function ZoomableChart({
   const lastDistanceRef = useRef<number>(0);
   const lastScaleRef = useRef(1);
 
-  // 处理双指缩放
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 2) {
       const distance = Math.hypot(
@@ -42,9 +41,7 @@ export function ZoomableChart({
     }
   };
 
-  // 准备图表数据
   const chartData = useMemo(() => {
-    // 按日期排序，取最近365天
     const sorted = [...data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     const oneYearAgo = Date.now() - 365 * 24 * 60 * 60 * 1000;
     const filtered = sorted.filter(d => new Date(d.date).getTime() >= oneYearAgo);
@@ -53,7 +50,6 @@ export function ZoomableChart({
     return filtered;
   }, [data]);
 
-  // 计算路径
   const pathData = useMemo(() => {
     if (chartData.length < 2) return '';
 
@@ -80,7 +76,6 @@ export function ZoomableChart({
     return path;
   }, [chartData, height, scale]);
 
-  // 目标线位置
   const targetY = useMemo(() => {
     if (!targetValue || chartData.length === 0) return null;
     const values = chartData.map(d => d.value);
