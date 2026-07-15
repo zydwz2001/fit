@@ -8,7 +8,7 @@
 
 - 发布入口：`docs/index.html`
 - 本地预览：直接用浏览器打开 `docs/index.html`
-- GitHub Pages：当前 workflow 会直接发布 `docs/` 目录，不依赖本地构建
+- GitHub Pages：线上版本发布在 `gh-pages` 分支，不依赖本地构建
 
 Demo 覆盖基础功能：
 
