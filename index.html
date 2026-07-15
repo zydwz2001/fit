@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FIT 项目展示页</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --ink: #172033;
+      --muted: #718096;
+      --line: #e5e7eb;
+      --paper: #ffffff;
+      --wash: #f5f7fb;
+      --green: #10b981;
+      --blue: #2563eb;
+      --amber: #d97706;
+      --rose: #e11d48;
+      --violet: #7c3aed;
+    }
+
+    body {
+      min-height: 100vh;
+      background: #20242b;
+      color: var(--ink);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+    }
+
+    .app {
+      width: min(430px, 100vw);
+      height: min(900px, calc(100vh - 36px));
+      background: var(--wash);
+      border: 8px solid #2c3038;
+      border-radius: 34px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, .35);
+    }
+
+    header {
+      min-height: 132px;
+      flex: 0 0 auto;
+      background: var(--paper);
+      border-bottom: 1px solid var(--line);
+      padding: 14px 18px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+
+    .top-nav {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      padding: 4px;
+      border-radius: 10px;
+      background: #eef2f7;
+    }
+
+    .top-nav button {
+      height: 40px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .top-nav button.active {
+      background: var(--paper);
+      color: var(--ink);
+      box-shadow: 0 6px 16px rgba(15, 23, 42, .08);
+    }
+
+    .title-row {
+      width: 100%;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .brand {
+      min-width: 0;
+    }
+
+    .brand p {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+
+    .brand h1 {
+      font-size: 22px;
+      line-height: 1;
+      font-weight: 900;
+    }
+
+    .today-pill {
+      flex: 0 0 auto;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #f8fafc;
+      padding: 8px 10px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    main {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 16px 18px 22px;
+    }
+
+    .panel {
+      display: none;
+    }
+
+    .panel.active {
+      display: block;
+    }
+
+    .subtabs {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .subtabs button,
+    .metric-tabs button {
+      border: 0;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .subtabs button {
+      height: 38px;
+      border-radius: 8px;
+      background: #e9eef6;
+      color: #526173;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .subtabs button.active {
+      background: var(--ink);
+      color: #fff;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .stat {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      min-height: 78px;
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 900;
+      margin-bottom: 7px;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 20px;
+      line-height: 1.1;
+      font-weight: 900;
+    }
+
+    .stat small {
+      display: block;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+      margin-top: 3px;
+    }
+
+    .card {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+
+    .exercise-head,
+    .folder-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px;
+    }
+
+    .exercise-title,
+    .folder-title {
+      min-width: 0;
+      flex: 1;
+      text-align: left;
+    }
+
+    .exercise-title h3,
+    .folder-title h3 {
+      font-size: 15px;
+      line-height: 1.2;
+      font-weight: 900;
+      margin-bottom: 3px;
+    }
+
+    .exercise-title p,
+    .folder-title p {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .badge {
+      flex: 0 0 auto;
+      border-radius: 999px;
+      padding: 7px 9px;
+      background: #ecfdf5;
+      color: #047857;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .badge.blue {
+      background: #eff6ff;
+      color: var(--blue);
+    }
+
+    .action-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .action-row.single {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .mini-button {
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      color: var(--ink);
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .mini-button.primary {
+      border-color: var(--green);
+      background: #ecfdf5;
+      color: #047857;
+    }
+
+    .mini-button.warn {
+      border-color: #fed7aa;
+      background: #fff7ed;
+      color: var(--amber);
+    }
+
+    .inline-add-button {
+      min-height: 32px;
+      padding: 0 10px;
+      border-color: #bbf7d0;
+      background: #f0fdf4;
+      color: #047857;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+
+    .inline-add-button::before {
+      content: "+";
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      background: #10b981;
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      line-height: 1;
+    }
+
+    .sets {
+      border-top: 1px solid var(--line);
+      padding: 0 14px 12px;
+    }
+
+    .set-row {
+      display: grid;
+      grid-template-columns: 42px 1fr 70px;
+      gap: 8px;
+      align-items: center;
+      min-height: 34px;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .set-row:hover {
+      background: #f8fafc;
+    }
+
+    .set-row:last-child {
+      border-bottom: 0;
+    }
+
+    .set-row span:first-child,
+    .set-row span:last-child {
+      color: var(--muted);
+    }
+
+    .done {
+      color: var(--green);
+      text-align: right;
+    }
+
+    .pending {
+      color: var(--amber);
+      text-align: right;
+    }
+
+    .calendar-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .calendar-head h2 {
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .calendar-head button {
+      width: 34px;
+      height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .week,
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 5px;
+    }
+
+    .week {
+      margin-bottom: 6px;
+    }
+
+    .week span {
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .day {
+      min-height: 78px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      background: #edf2f7;
+      padding: 6px;
+      font-size: 11px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .day.empty {
+      opacity: 0;
+    }
+
+    .day.has {
+      border-color: #bfdbfe;
+      background: #fff;
+    }
+
+    .day.today {
+      border-color: var(--green);
+    }
+
+    .day.selected {
+      background: #ecfdf5;
+      border-color: var(--green);
+    }
+
+    .day-tag {
+      display: block;
+      width: 100%;
+      margin-top: 5px;
+      border-radius: 5px;
+      padding: 3px 2px;
+      background: var(--blue);
+      color: #fff;
+      font-size: 9px;
+      text-align: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .day-volume {
+      display: block;
+      width: 100%;
+      margin-top: 4px;
+      border-radius: 5px;
+      padding: 3px 2px;
+      background: #ecfdf5;
+      color: #047857;
+      font-size: 9px;
+      text-align: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .day-detail {
+      margin-top: 12px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .day-detail h3 {
+      font-size: 15px;
+      font-weight: 900;
+      margin-bottom: 6px;
+    }
+
+    .day-detail p {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.5;
+    }
+
+    .chart-card {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    .chart-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .chart-top h2 {
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .chart-top p {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .metric-value {
+      text-align: right;
+      color: var(--green);
+      font-size: 24px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    canvas {
+      width: 100%;
+      height: 180px;
+      display: block;
+    }
+
+    .metric-tabs {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .metric-tabs button {
+      min-height: 44px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: var(--paper);
+      color: #526173;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .metric-tabs button.active {
+      background: #ecfdf5;
+      border-color: var(--green);
+      color: #047857;
+    }
+
+    .history-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .history-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .history-row span {
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .folder-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .folder-icon.amber {
+      background: #fffbeb;
+      color: var(--amber);
+    }
+
+    .folder-icon.blue {
+      background: #eff6ff;
+      color: var(--blue);
+    }
+
+    .folder-icon.green {
+      background: #ecfdf5;
+      color: var(--green);
+    }
+
+    .folder-icon.rose {
+      background: #fff1f2;
+      color: var(--rose);
+    }
+
+    .folder-head {
+      cursor: pointer;
+    }
+
+    .knowledge-toolbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .notes {
+      border-top: 1px solid var(--line);
+      padding: 6px 14px 12px 66px;
+      background: #f8fafc;
+    }
+
+    .note {
+      padding: 9px 0;
+      border-bottom: 1px solid #e9eef6;
+    }
+
+    .note:last-child {
+      border-bottom: 0;
+    }
+
+    .note h4 {
+      font-size: 13px;
+      line-height: 1.2;
+      font-weight: 900;
+      margin-bottom: 4px;
+    }
+
+    .note p {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.45;
+      font-weight: 700;
+    }
+
+    .system-bar {
+      flex: 0 0 auto;
+      height: 58px;
+      background: rgba(255, 255, 255, .94);
+      border-top: 1px solid var(--line);
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      align-items: center;
+      padding: 8px 28px 12px;
+    }
+
+    .system-key {
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #1f2937;
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .home-indicator {
+      width: 72px;
+      height: 5px;
+      border-radius: 999px;
+      background: #1f2937;
+      justify-self: center;
+    }
+
+    .recent-key {
+      width: 18px;
+      height: 18px;
+      border: 2px solid #1f2937;
+      border-radius: 5px;
+      justify-self: center;
+    }
+
+    @media (max-width: 520px) {
+      body {
+        padding: 0;
+        background: var(--wash);
+      }
+
+      .app {
+        width: 100vw;
+        height: 100vh;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <nav class="top-nav">
+        <button class="active" data-tab="training">训练</button>
+        <button data-tab="body">身体</button>
+        <button data-tab="knowledge">知识库</button>
+      </nav>
+      <div class="title-row">
+        <div class="brand">
+          <p>keep fit</p>
+          <h1>自律给我自由</h1>
+        </div>
+        <div class="today-pill" id="todayLabel"></div>
+      </div>
+    </header>
+
+    <main>
+      <section id="training" class="panel active">
+        <div class="subtabs">
+          <button class="active" data-training-view="today">今日训练</button>
+          <button data-training-view="month">月视图</button>
+        </div>
+        <div id="trainingToday"></div>
+        <div id="trainingMonth" style="display:none"></div>
+      </section>
+
+      <section id="body" class="panel">
+        <div class="metric-tabs" id="metricTabs"></div>
+        <div class="action-row single">
+          <button class="mini-button primary" id="addMetricRecord">新增记录</button>
+        </div>
+        <div class="chart-card">
+          <div class="chart-top">
+            <div>
+              <h2 id="metricTitle">体重曲线</h2>
+              <p>内置 6 周身体数据，支持切换指标查看曲线</p>
+            </div>
+            <div class="metric-value" id="metricLatest"></div>
+          </div>
+          <canvas id="metricChart" width="720" height="360"></canvas>
+        </div>
+        <div class="history-list" id="metricHistory"></div>
+      </section>
+
+      <section id="knowledge" class="panel">
+        <div id="knowledgeFolders"></div>
+      </section>
+    </main>
+
+    <div class="system-bar" aria-label="手机系统导航键">
+      <div class="system-key" aria-label="返回">‹</div>
+      <div class="home-indicator" aria-label="主页"></div>
+      <div class="recent-key" aria-label="多任务"></div>
+    </div>
+  </div>
+
+  <script>
+    const today = new Date();
+    const state = {
+      monthCursor: new Date(today.getFullYear(), today.getMonth(), 1),
+      metric: "weight",
+      selectedDay: formatDate(today)
+    };
+
+    function formatDate(date) {
+      const yyyy = date.getFullYear();
+      const mm = String(date.getMonth() + 1).padStart(2, "0");
+      const dd = String(date.getDate()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function offsetDate(days) {
+      const date = new Date(today);
+      date.setDate(date.getDate() + days);
+      return formatDate(date);
+    }
+
+    function displayDate(date) {
+      return `${date.getMonth() + 1}月${date.getDate()}日`;
+    }
+
+    function clone(value) {
+      return JSON.parse(JSON.stringify(value));
+    }
+
+    function parseVolume(value, done) {
+      if (!done || !value.includes("kg")) return 0;
+      const repsMatch = value.match(/×\s*(\d+)/);
+      const reps = repsMatch ? Number(repsMatch[1]) : 0;
+      const weightPart = value.split("kg")[0].trim();
+      if (weightPart.includes("/")) {
+        return weightPart.split("/").reduce((sum, item) => sum + Number(item || 0), 0) * reps;
+      }
+      return Number(weightPart || 0) * reps;
+    }
+
+    function calculateWorkoutVolume() {
+      return Math.round(workout.exercises.reduce((sum, exercise) => {
+        return sum + exercise.sets.reduce((setSum, row) => setSum + parseVolume(row.value, row.done), 0);
+      }, 0));
+    }
+
+    function syncTodayHistory() {
+      workout.totalVolume = calculateWorkoutVolume();
+      const todayRecord = history.find(item => item.date === workout.date);
+      if (todayRecord) {
+        todayRecord.name = workout.name;
+        todayRecord.volume = workout.totalVolume;
+      }
+    }
+
+    const workout = {
+      date: formatDate(today),
+      name: "练背日",
+      exercises: [
+        {
+          name: "高位下拉",
+          group: "背部",
+          sets: [
+            { label: "第1组", value: "42.5kg × 12次", done: true },
+            { label: "第2组", value: "45kg × 10次", done: true },
+            { label: "第3组", value: "47.5kg × 8次", done: false }
+          ]
+        },
+        {
+          name: "单臂哑铃划船",
+          group: "背部 / 左右独立",
+          sets: [
+            { label: "第1组", value: "18/18kg × 12次", done: true },
+            { label: "第2组", value: "20/20kg × 10次", done: true },
+            { label: "第3组", value: "20/20kg × 8次", done: false }
+          ]
+        },
+        {
+          name: "爬楼机",
+          group: "有氧",
+          sets: [
+            { label: "计划", value: "18 分钟 / 8 档", done: false }
+          ]
+        }
+      ],
+      totalVolume: 1792
+    };
+
+    const history = [
+      { date: offsetDate(-13), name: "练腿日", group: "腿", volume: 2380 },
+      { date: offsetDate(-10), name: "练胸日", group: "胸", volume: 1645 },
+      { date: offsetDate(-8), name: "游泳恢复", group: "有氧", volume: 0 },
+      { date: offsetDate(-6), name: "练肩日", group: "肩", volume: 1328 },
+      { date: offsetDate(-4), name: "练背日", group: "背", volume: 2195 },
+      { date: offsetDate(-2), name: "核心有氧", group: "有氧", volume: 0 },
+      { date: formatDate(today), name: workout.name, group: "背", volume: workout.totalVolume }
+    ];
+
+    const metricMap = {
+      weight: {
+        label: "体重",
+        unit: "kg",
+        color: "#10b981",
+        data: [55.8, 55.4, 55.0, 54.6, 54.2, 53.9]
+      },
+      waist: {
+        label: "腰围",
+        unit: "cm",
+        color: "#2563eb",
+        data: [69.5, 68.8, 68.2, 67.6, 67.0, 66.5]
+      },
+      arm: {
+        label: "臂围",
+        unit: "cm",
+        color: "#d97706",
+        data: [27.4, 27.5, 27.7, 27.9, 28.0, 28.2]
+      },
+      bmi: {
+        label: "BMI",
+        unit: "",
+        color: "#7c3aed",
+        data: [22.4, 22.2, 22.0, 21.9, 21.7, 21.6]
+      }
+    };
+
+    const metricDates = [-35, -28, -21, -14, -7, 0].map(offsetDate);
+
+    const folders = [
+      {
+        name: "营养补剂",
+        color: "amber",
+        count: 2,
+        notes: [
+          ["蛋白质摄入备忘", "训练日优先保证正餐蛋白，每餐 25-35g；晚训后用酸奶、鸡蛋或乳清补齐缺口。"],
+          ["肌酸与电解质", "肌酸每日 3-5g 即可；夏天训练出汗多时补钠和水，避免后半程掉状态。"]
+        ]
+      },
+      {
+        name: "训练计划",
+        color: "blue",
+        count: 2,
+        notes: [
+          ["七月四练拆分", "周一背，周三腿，周五胸肩，周日有氧加核心。保留一次灵活调整给攀岩或游泳。"],
+          ["减量周规则", "连续两次主项完成度低于 80% 时，下一周总组数减 30%，保留动作模式但降低重量。"]
+        ]
+      },
+      {
+        name: "动作要点",
+        color: "green",
+        count: 2,
+        notes: [
+          ["划船发力提示", "先沉肩，再把肘往髋部带。顶峰停 0.5 秒，避免耸肩和用腰甩重量。"],
+          ["深蹲检查清单", "热身组拍侧面视频：脚跟稳定、膝盖方向一致、底部不要松背。"]
+        ]
+      },
+      {
+        name: "恢复拉伸",
+        color: "rose",
+        count: 1,
+        notes: [
+          ["睡眠恢复记录", "晚训后 30 分钟内结束高刺激内容，拉伸 8 分钟，睡前不再加咖啡因。"]
+        ]
+      }
+    ];
+
+    const demoDefaults = {
+      workout: clone(workout),
+      history: clone(history),
+      metricDates: clone(metricDates),
+      metricData: Object.fromEntries(Object.entries(metricMap).map(([key, item]) => [key, clone(item.data)])),
+      folders: clone(folders)
+    };
+
+    function saveDemo() {
+      const payload = {
+        workout,
+        history,
+        metricDates,
+        metricData: Object.fromEntries(Object.entries(metricMap).map(([key, item]) => [key, item.data])),
+        folders
+      };
+      localStorage.setItem("fit-static-demo", JSON.stringify(payload));
+    }
+
+    function loadDemo() {
+      try {
+        const saved = JSON.parse(localStorage.getItem("fit-static-demo") || "null");
+        if (!saved) return;
+        Object.assign(workout, saved.workout || {});
+        history.splice(0, history.length, ...(saved.history || demoDefaults.history));
+        metricDates.splice(0, metricDates.length, ...(saved.metricDates || demoDefaults.metricDates));
+        Object.entries(saved.metricData || {}).forEach(([key, data]) => {
+          if (metricMap[key] && Array.isArray(data)) {
+            metricMap[key].data = data;
+          }
+        });
+        folders.splice(0, folders.length, ...(saved.folders || demoDefaults.folders));
+      } catch {
+        localStorage.removeItem("fit-static-demo");
+      }
+    }
+
+    loadDemo();
+
+    document.getElementById("todayLabel").textContent = `${displayDate(today)} 今日`;
+
+    function renderToday() {
+      syncTodayHistory();
+      const doneSets = workout.exercises.flatMap(item => item.sets).filter(item => item.done).length;
+      const totalSets = workout.exercises.flatMap(item => item.sets).length;
+      document.getElementById("trainingToday").innerHTML = `
+        <div class="summary-grid">
+          <div class="stat"><span>训练类型</span><strong>${workout.name}</strong><small>${workout.date}</small></div>
+          <div class="stat"><span>完成组数</span><strong>${doneSets}/${totalSets}</strong><small>可继续记录</small></div>
+          <div class="stat"><span>总容量</span><strong>${workout.totalVolume}</strong><small>kg</small></div>
+        </div>
+        <div class="action-row">
+          <button class="mini-button primary" id="completeWorkout">完成全部</button>
+          <button class="mini-button" id="addExercise">添加动作</button>
+        </div>
+        ${workout.exercises.map((exercise, exerciseIndex) => `
+          <article class="card">
+            <div class="exercise-head">
+              <div class="exercise-title">
+                <h3>${exercise.name}</h3>
+                <p>${exercise.group}</p>
+              </div>
+              <button class="mini-button inline-add-button" data-add-set="${exerciseIndex}">加组</button>
+            </div>
+            <div class="sets">
+              ${exercise.sets.map((row, setIndex) => `
+                <div class="set-row" data-toggle-set="${exerciseIndex}:${setIndex}">
+                  <span>${row.label}</span>
+                  <strong>${row.value}</strong>
+                  <span class="${row.done ? "done" : "pending"}">${row.done ? "已完成" : "待完成"}</span>
+                </div>
+              `).join("")}
+            </div>
+          </article>
+        `).join("")}
+      `;
+      attachTrainingActions();
+    }
+
+    function attachTrainingActions() {
+      document.querySelectorAll("[data-toggle-set]").forEach(row => {
+        row.onclick = () => {
+          const [exerciseIndex, setIndex] = row.dataset.toggleSet.split(":").map(Number);
+          workout.exercises[exerciseIndex].sets[setIndex].done = !workout.exercises[exerciseIndex].sets[setIndex].done;
+          saveDemo();
+          renderToday();
+          renderCalendar();
+        };
+      });
+
+      document.querySelectorAll("[data-add-set]").forEach(button => {
+        button.onclick = (event) => {
+          event.stopPropagation();
+          const exerciseIndex = Number(button.dataset.addSet);
+          const exercise = workout.exercises[exerciseIndex];
+          const weight = prompt(`给「${exercise.name}」添加重量，例如 45 或 18/18`, "45");
+          if (!weight) return;
+          const reps = prompt("次数", "10");
+          if (!reps) return;
+          exercise.sets.push({
+            label: `第${exercise.sets.length + 1}组`,
+            value: `${weight}kg × ${Number(reps) || 0}次`,
+            done: false
+          });
+          saveDemo();
+          renderToday();
+          renderCalendar();
+        };
+      });
+
+      document.getElementById("completeWorkout").onclick = () => {
+        workout.exercises.forEach(exercise => exercise.sets.forEach(row => row.done = true));
+        saveDemo();
+        renderToday();
+        renderCalendar();
+      };
+
+      document.getElementById("addExercise").onclick = () => {
+        const name = prompt("动作名称", "坐姿划船");
+        if (!name) return;
+        const group = prompt("训练部位", "背部") || "训练";
+        const weight = prompt("第一组重量，例如 35 或 16/16", "35");
+        if (!weight) return;
+        const reps = prompt("第一组次数", "10");
+        if (!reps) return;
+        workout.exercises.push({
+          name,
+          group,
+          sets: [{ label: "第1组", value: `${weight}kg × ${Number(reps) || 0}次`, done: false }]
+        });
+        saveDemo();
+        renderToday();
+        renderCalendar();
+      };
+
+    }
+
+    function renderCalendar() {
+      const cursor = state.monthCursor;
+      const year = cursor.getFullYear();
+      const month = cursor.getMonth();
+      const first = new Date(year, month, 1);
+      const last = new Date(year, month + 1, 0);
+      const days = [];
+      for (let i = 0; i < first.getDay(); i += 1) days.push(null);
+      for (let day = 1; day <= last.getDate(); day += 1) {
+        days.push(new Date(year, month, day));
+      }
+
+      document.getElementById("trainingMonth").innerHTML = `
+        <div class="calendar-head">
+          <button id="prevMonth">‹</button>
+          <h2>${year}年${month + 1}月</h2>
+          <button id="nextMonth">›</button>
+        </div>
+        <div class="week">${["日", "一", "二", "三", "四", "五", "六"].map(day => `<span>${day}</span>`).join("")}</div>
+        <div class="calendar">
+          ${days.map(day => {
+            if (!day) return `<div class="day empty"></div>`;
+            const key = formatDate(day);
+            const item = history.find(record => record.date === key);
+            const isToday = key === formatDate(today);
+            return `
+              <div class="day ${item ? "has" : ""} ${isToday ? "today" : ""} ${state.selectedDay === key ? "selected" : ""}" data-day="${key}">
+                ${day.getDate()}
+                ${item ? `<span class="day-tag">${item.group}</span>${item.volume ? `<span class="day-volume">${item.volume}kg</span>` : ""}` : ""}
+              </div>
+            `;
+          }).join("")}
+        </div>
+        <div class="day-detail" id="dayDetail"></div>
+      `;
+
+      document.getElementById("prevMonth").onclick = () => {
+        state.monthCursor = new Date(year, month - 1, 1);
+        renderCalendar();
+      };
+      document.getElementById("nextMonth").onclick = () => {
+        state.monthCursor = new Date(year, month + 1, 1);
+        renderCalendar();
+      };
+      document.querySelectorAll("[data-day]").forEach(day => {
+        day.onclick = () => {
+          state.selectedDay = day.dataset.day;
+          renderCalendar();
+        };
+      });
+      renderDayDetail();
+    }
+
+    function renderDayDetail() {
+      const target = document.getElementById("dayDetail");
+      if (!target) return;
+      const item = history.find(record => record.date === state.selectedDay);
+      target.innerHTML = item
+        ? `<h3>${item.date} · ${item.name}</h3><p>训练部位：${item.group}<br>训练容量：${item.volume ? item.volume + " kg" : "有氧 / 恢复训练"}</p>`
+        : `<h3>${state.selectedDay}</h3><p>当天暂无训练记录。</p>`;
+    }
+
+    function renderMetricTabs() {
+      document.getElementById("metricTabs").innerHTML = Object.entries(metricMap).map(([key, item]) => `
+        <button class="${state.metric === key ? "active" : ""}" data-metric="${key}">${item.label}</button>
+      `).join("");
+      document.querySelectorAll("[data-metric]").forEach(button => {
+        button.onclick = () => {
+          state.metric = button.dataset.metric;
+          renderMetricTabs();
+          renderChart();
+        };
+      });
+    }
+
+    function renderChart() {
+      const metric = metricMap[state.metric];
+      const data = metric.data;
+      const canvas = document.getElementById("metricChart");
+      const ctx = canvas.getContext("2d");
+      const width = canvas.width;
+      const height = canvas.height;
+      const padding = 42;
+      const min = Math.min(...data) - 0.6;
+      const max = Math.max(...data) + 0.6;
+      const latest = data[data.length - 1];
+
+      document.getElementById("metricTitle").textContent = `${metric.label}曲线`;
+      document.getElementById("metricLatest").textContent = `${latest.toFixed(1)}${metric.unit}`;
+      document.getElementById("metricHistory").innerHTML = data.map((value, index) => `
+        <div class="history-row">
+          <strong>${value.toFixed(1)}${metric.unit}</strong>
+          <span>${metricDates[index]}</span>
+        </div>
+      `).reverse().join("");
+
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, width, height);
+      ctx.strokeStyle = "#e5e7eb";
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 4; i += 1) {
+        const y = padding + i * ((height - padding * 2) / 3);
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(width - padding, y);
+        ctx.stroke();
+      }
+
+      const points = data.map((value, index) => {
+        const x = padding + index * ((width - padding * 2) / (data.length - 1));
+        const y = height - padding - ((value - min) / (max - min)) * (height - padding * 2);
+        return [x, y];
+      });
+
+      ctx.strokeStyle = metric.color;
+      ctx.lineWidth = 5;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.beginPath();
+      points.forEach(([x, y], index) => {
+        if (index === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      points.forEach(([x, y]) => {
+        ctx.beginPath();
+        ctx.fillStyle = "#ffffff";
+        ctx.arc(x, y, 9, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = metric.color;
+        ctx.lineWidth = 4;
+        ctx.stroke();
+      });
+
+      ctx.fillStyle = "#718096";
+      ctx.font = "700 20px sans-serif";
+      metricDates.forEach((date, index) => {
+        const x = points[index][0];
+        ctx.fillText(date.slice(5), x - 24, height - 10);
+      });
+    }
+
+    function addMetricRecord() {
+      const metric = metricMap[state.metric];
+      const value = Number(prompt(`新增${metric.label}${metric.unit ? `（${metric.unit}）` : ""}`, metric.data[metric.data.length - 1]));
+      if (!Number.isFinite(value)) return;
+      const date = formatDate(new Date());
+      const existingIndex = metricDates.lastIndexOf(date);
+      if (existingIndex >= 0) {
+        metric.data[existingIndex] = value;
+      } else {
+        metricDates.push(date);
+        Object.entries(metricMap).forEach(([key, item]) => {
+          item.data.push(key === state.metric ? value : item.data[item.data.length - 1]);
+        });
+      }
+      saveDemo();
+      renderMetricTabs();
+      renderChart();
+    }
+
+    function renderKnowledge() {
+      document.getElementById("knowledgeFolders").innerHTML = `
+        <div class="knowledge-toolbar">
+          <button class="mini-button primary" id="addFolder">新建文件夹</button>
+        </div>
+        ${folders.map((folder, folderIndex) => `
+        <article class="card">
+          <div class="folder-head" data-toggle-folder="${folderIndex}">
+            <div class="folder-icon ${folder.color}">${folder.name.slice(0, 1)}</div>
+            <div class="folder-title">
+              <h3>${folder.name}</h3>
+              <p>${folder.notes.length} 条笔记</p>
+            </div>
+            <button class="mini-button inline-add-button" data-add-note="${folderIndex}">笔记</button>
+          </div>
+          ${folder.open === false ? "" : `
+          <div class="notes">
+            ${folder.notes.map(note => `
+              <div class="note">
+                <h4>${note[0]}</h4>
+                <p>${note[1]}</p>
+              </div>
+            `).join("")}
+          </div>
+          `}
+        </article>
+      `).join("")}
+      `;
+      attachKnowledgeActions();
+    }
+
+    function attachKnowledgeActions() {
+      document.querySelectorAll("[data-toggle-folder]").forEach(folder => {
+        folder.onclick = () => {
+          const index = Number(folder.dataset.toggleFolder);
+          folders[index].open = folders[index].open === false;
+          saveDemo();
+          renderKnowledge();
+        };
+      });
+
+      document.querySelectorAll("[data-add-note]").forEach(button => {
+        button.onclick = (event) => {
+          event.stopPropagation();
+          const index = Number(button.dataset.addNote);
+          const title = prompt("笔记标题", "训练复盘");
+          if (!title) return;
+          const content = prompt("笔记内容", "今天保持动作稳定，下一次尝试增加一组。");
+          if (!content) return;
+          folders[index].notes.push([title, content]);
+          folders[index].open = true;
+          saveDemo();
+          renderKnowledge();
+        };
+      });
+
+      document.getElementById("addFolder").onclick = () => {
+        const name = prompt("文件夹名称", "阶段复盘");
+        if (!name) return;
+        folders.push({
+          name,
+          color: ["amber", "blue", "green", "rose"][folders.length % 4],
+          count: 0,
+          open: true,
+          notes: []
+        });
+        saveDemo();
+        renderKnowledge();
+      };
+
+    }
+
+    document.querySelectorAll("[data-tab]").forEach(button => {
+      button.onclick = () => {
+        document.querySelectorAll("[data-tab]").forEach(item => item.classList.remove("active"));
+        document.querySelectorAll(".panel").forEach(panel => panel.classList.remove("active"));
+        button.classList.add("active");
+        document.getElementById(button.dataset.tab).classList.add("active");
+      };
+    });
+
+    document.querySelectorAll("[data-training-view]").forEach(button => {
+      button.onclick = () => {
+        document.querySelectorAll("[data-training-view]").forEach(item => item.classList.remove("active"));
+        button.classList.add("active");
+        document.getElementById("trainingToday").style.display = button.dataset.trainingView === "today" ? "" : "none";
+        document.getElementById("trainingMonth").style.display = button.dataset.trainingView === "month" ? "" : "none";
+      };
+    });
+
+    document.getElementById("addMetricRecord").onclick = addMetricRecord;
+
+    renderToday();
+    renderCalendar();
+    renderMetricTabs();
+    renderChart();
+    renderKnowledge();
+  </script>
+</body>
+</html>
