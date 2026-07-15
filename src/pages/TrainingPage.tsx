@@ -19,175 +19,6 @@ const SQUAT_HISTORY = [
   { date: '2026-03-14', sets: [{ weight: 70, reps: 12 }, { weight: 75, reps: 10 }, { weight: 75, reps: 8 }], volume: 2090 },
 ];
 
-const HISTORY_WORKOUTS: DailyWorkout[] = [
-  {
-    id: 'h1',
-    date: '2026-03-28',
-    name: '练腿日',
-    exercises: [
-      { id: 'he1', name: '深蹲', muscleGroup: '腿', category: 'strength', useLeftRight: false, sets: [
-        { id: 's1', weight: 80, reps: 10, completed: true },
-        { id: 's2', weight: 80, reps: 8, completed: true },
-        { id: 's3', weight: 85, reps: 6, completed: true },
-      ] },
-      { id: 'he2', name: '硬拉', muscleGroup: '腿', category: 'strength', useLeftRight: false, sets: [
-        { id: 's4', weight: 100, reps: 8, completed: true },
-        { id: 's5', weight: 100, reps: 7, completed: true },
-      ] },
-      { id: 'he3', name: '髋外展', muscleGroup: '腿', category: 'strength', useLeftRight: true, sets: [
-        { id: 's6', weight: 0, leftWeight: 30, rightWeight: 30, reps: 15, completed: true },
-        { id: 's7', weight: 0, leftWeight: 30, rightWeight: 30, reps: 12, completed: true },
-      ] },
-    ],
-    totalVolume: 4230,
-    muscleGroups: ['腿'],
-  },
-  {
-    id: 'h2',
-    date: '2026-03-25',
-    name: '练胸日',
-    exercises: [
-      { id: 'he4', name: '杠铃卧推', muscleGroup: '胸', category: 'strength', useLeftRight: false, sets: [
-        { id: 's8', weight: 60, reps: 10, completed: true },
-        { id: 's9', weight: 65, reps: 8, completed: true },
-        { id: 's10', weight: 70, reps: 5, completed: true },
-      ] },
-      { id: 'he5', name: '哑铃卧推', muscleGroup: '胸', category: 'strength', useLeftRight: true, sets: [
-        { id: 's11', weight: 0, leftWeight: 25, rightWeight: 25, reps: 12, completed: true },
-        { id: 's12', weight: 0, leftWeight: 25, rightWeight: 25, reps: 10, completed: true },
-      ] },
-    ],
-    totalVolume: 2680,
-    muscleGroups: ['胸'],
-  },
-  {
-    id: 'h3',
-    date: '2026-03-22',
-    name: '练背日',
-    exercises: [
-      { id: 'he6', name: '澳式引体', muscleGroup: '背', category: 'strength', useLeftRight: false, sets: [
-        { id: 's13', weight: 0, reps: 12, completed: true },
-        { id: 's14', weight: 0, reps: 10, completed: true },
-        { id: 's15', weight: 0, reps: 8, completed: true },
-      ] },
-      { id: 'he7', name: '杠铃划船', muscleGroup: '背', category: 'strength', useLeftRight: false, sets: [
-        { id: 's16', weight: 50, reps: 10, completed: true },
-        { id: 's17', weight: 55, reps: 8, completed: true },
-      ] },
-      { id: 'he8', name: '高位下拉', muscleGroup: '背', category: 'strength', useLeftRight: false, sets: [
-        { id: 's18', weight: 45, reps: 12, completed: true },
-        { id: 's19', weight: 50, reps: 10, completed: true },
-      ] },
-    ],
-    totalVolume: 2340,
-    muscleGroups: ['背'],
-  },
-  {
-    id: 'h4',
-    date: '2026-03-20',
-    name: '有氧日',
-    exercises: [
-      { id: 'he9', name: '游泳', muscleGroup: '有氧', category: 'cardio', useLeftRight: false, sets: [] },
-    ],
-    totalVolume: 0,
-    muscleGroups: ['有氧'],
-    cardioName: '游泳',
-  },
-  {
-    id: 'h5',
-    date: '2026-03-18',
-    name: '练肩日',
-    exercises: [
-      { id: 'he10', name: '哑铃推肩', muscleGroup: '肩', category: 'strength', useLeftRight: true, sets: [
-        { id: 's20', weight: 0, leftWeight: 12, rightWeight: 12, reps: 12, completed: true },
-        { id: 's21', weight: 0, leftWeight: 12, rightWeight: 12, reps: 10, completed: true },
-        { id: 's22', weight: 0, leftWeight: 14, rightWeight: 14, reps: 8, completed: true },
-      ] },
-      { id: 'he11', name: '哑铃侧平举', muscleGroup: '肩', category: 'strength', useLeftRight: true, sets: [
-        { id: 's23', weight: 0, leftWeight: 5, rightWeight: 5, reps: 15, completed: true },
-        { id: 's24', weight: 0, leftWeight: 5, rightWeight: 5, reps: 12, completed: true },
-      ] },
-    ],
-    totalVolume: 1364,
-    muscleGroups: ['肩'],
-  },
-  {
-    id: 'h6',
-    date: '2026-03-15',
-    name: '有氧日',
-    exercises: [
-      { id: 'he12', name: '自由搏击', muscleGroup: '有氧', category: 'cardio', useLeftRight: false, sets: [] },
-    ],
-    totalVolume: 0,
-    muscleGroups: ['有氧'],
-    cardioName: '自由搏击',
-  },
-  {
-    id: 'h7',
-    date: '2026-03-12',
-    name: '练腿日',
-    exercises: [
-      { id: 'he13', name: '硬拉', muscleGroup: '腿', category: 'strength', useLeftRight: false, sets: [
-        { id: 's25', weight: 90, reps: 10, completed: true },
-        { id: 's26', weight: 95, reps: 8, completed: true },
-        { id: 's27', weight: 100, reps: 5, completed: true },
-      ] },
-      { id: 'he14', name: '保加利亚深蹲', muscleGroup: '腿', category: 'strength', useLeftRight: false, sets: [
-        { id: 's28', weight: 20, reps: 10, completed: true },
-        { id: 's29', weight: 20, reps: 8, completed: true },
-      ] },
-    ],
-    totalVolume: 3020,
-    muscleGroups: ['腿'],
-  },
-  {
-    id: 'h8',
-    date: '2026-03-10',
-    name: '练胸日',
-    exercises: [
-      { id: 'he15', name: '俯卧撑', muscleGroup: '胸', category: 'strength', useLeftRight: false, sets: [
-        { id: 's30', weight: 0, reps: 15, completed: true },
-        { id: 's31', weight: 0, reps: 12, completed: true },
-        { id: 's32', weight: 0, reps: 10, completed: true },
-      ] },
-      { id: 'he16', name: '器械飞鸟', muscleGroup: '胸', category: 'strength', useLeftRight: false, sets: [
-        { id: 's33', weight: 25, reps: 12, completed: true },
-        { id: 's34', weight: 25, reps: 10, completed: true },
-      ] },
-    ],
-    totalVolume: 1100,
-    muscleGroups: ['胸'],
-  },
-  {
-    id: 'h9',
-    date: '2026-03-08',
-    name: '有氧日',
-    exercises: [
-      { id: 'he17', name: '爬坡', muscleGroup: '有氧', category: 'cardio', useLeftRight: false, sets: [] },
-    ],
-    totalVolume: 0,
-    muscleGroups: ['有氧'],
-    cardioName: '爬坡',
-  },
-  {
-    id: 'h10',
-    date: '2026-03-05',
-    name: '练背日',
-    exercises: [
-      { id: 'he18', name: '哑铃划船', muscleGroup: '背', category: 'strength', useLeftRight: true, sets: [
-        { id: 's35', weight: 0, leftWeight: 20, rightWeight: 20, reps: 12, completed: true },
-        { id: 's36', weight: 0, leftWeight: 22, rightWeight: 22, reps: 10, completed: true },
-      ] },
-      { id: 'he19', name: 'T杠划船', muscleGroup: '背', category: 'strength', useLeftRight: false, sets: [
-        { id: 's37', weight: 40, reps: 10, completed: true },
-        { id: 's38', weight: 45, reps: 8, completed: true },
-      ] },
-    ],
-    totalVolume: 1600,
-    muscleGroups: ['背'],
-  },
-];
-
 export function TrainingPage() {
   const { state } = useApp();
   const [subTab, setSubTab] = useState('today');
@@ -643,8 +474,15 @@ interface HistoryTabProps {
 }
 
 function HistoryTab({ onShowDayDetail }: HistoryTabProps) {
+  const { state } = useApp();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const workouts = useMemo(() => {
+    return [
+      ...state.workoutHistory,
+      ...(state.dailyWorkout ? [state.dailyWorkout] : []),
+    ];
+  }, [state.workoutHistory, state.dailyWorkout]);
 
   const calendarDays = useMemo(() => {
     const year = currentMonth.getFullYear();
@@ -668,7 +506,7 @@ function HistoryTab({ onShowDayDetail }: HistoryTabProps) {
   const getWorkoutForDay = (date: Date | null) => {
     if (!date) return null;
     const dateStr = formatDate(date);
-    return HISTORY_WORKOUTS.find((w) => w.date === dateStr);
+    return workouts.find((w) => w.date === dateStr);
   };
 
   const prevMonth = () => {
@@ -832,21 +670,28 @@ interface DayDetailModalProps {
 }
 
 function DayDetailModal({ date, hasWorkout, onClose }: DayDetailModalProps) {
+  const { state } = useApp();
   const [isEditing, setIsEditing] = useState(false);
   const [workout, setWorkout] = useState<DailyWorkout | null>(null);
   const [showLibrary, setShowLibrary] = useState(false);
   const [expandedExercises, setExpandedExercises] = useState<Record<string, boolean>>({});
   const [addingWorkout, setAddingWorkout] = useState(false);
   const [libraryActiveGroup, setLibraryActiveGroup] = useState<string>('');
+  const workouts = useMemo(() => {
+    return [
+      ...state.workoutHistory,
+      ...(state.dailyWorkout ? [state.dailyWorkout] : []),
+    ];
+  }, [state.workoutHistory, state.dailyWorkout]);
 
   React.useEffect(() => {
-    const found = HISTORY_WORKOUTS.find((w) => w.date === date);
+    const found = workouts.find((w) => w.date === date);
     if (found) {
       setWorkout(JSON.parse(JSON.stringify(found)));
     } else {
       setWorkout(null);
     }
-  }, [date]);
+  }, [date, workouts]);
 
   const handleAddWorkout = () => {
     setAddingWorkout(true);

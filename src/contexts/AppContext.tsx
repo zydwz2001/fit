@@ -3,6 +3,7 @@ import { AppState, generateId, getTodayString, calculateBMI, calculateVolume } f
 import type { BodyMetric, MetricTarget, Exercise, Set as ExerciseSet, DailyWorkout } from '@/types';
 import { DEFAULT_EXERCISES } from '@/types';
 import { loadData, saveData } from '@/utils/storage';
+import { createDemoState } from '@/utils/demoData';
 
 interface AppContextType {
   state: AppState;
@@ -52,26 +53,32 @@ function getWorkoutName(firstMuscleGroup: string): string {
   return map[firstMuscleGroup] || '今日训练';
 }
 
-const initialState: AppState = {
-  dailyWorkout: null,
-  workoutHistory: [],
-  exerciseLibrary: DEFAULT_EXERCISES,
-  bodyMetrics: [],
-  metricTargets: [
-    { type: 'weight', target: 53.0 },
-    { type: 'waist', target: 65.0 },
-    { type: 'arm', target: 35.0 },
-  ],
-  bodyPhotos: [],
-  bodyUnlocked: false,
-  folders: [
-    { id: 'f1', name: '营养补剂', icon: 'fa-folder', color: 'amber', expanded: false },
-    { id: 'f2', name: '训练计划', icon: 'fa-folder', color: 'blue', expanded: false },
-  ],
-  notes: [],
-  selectedFolderId: null,
-  weightUnit: 'kg',
-};
+const initialState: AppState = createDemoState();
+
+function hasItems<T>(value: T[] | undefined): value is T[] {
+  return Array.isArray(value) && value.length > 0;
+}
+
+function mergeWithDemoState(saved: Partial<AppState>): AppState {
+  const demoState = createDemoState();
+  const hasSavedNotes = hasItems(saved.notes);
+
+  return {
+    ...demoState,
+    ...saved,
+    dailyWorkout: saved.dailyWorkout || demoState.dailyWorkout,
+    workoutHistory: hasItems(saved.workoutHistory) ? saved.workoutHistory : demoState.workoutHistory,
+    exerciseLibrary: DEFAULT_EXERCISES,
+    bodyMetrics: hasItems(saved.bodyMetrics) ? saved.bodyMetrics : demoState.bodyMetrics,
+    metricTargets: hasItems(saved.metricTargets) ? saved.metricTargets : demoState.metricTargets,
+    bodyPhotos: hasItems(saved.bodyPhotos) ? saved.bodyPhotos : demoState.bodyPhotos,
+    folders: hasSavedNotes && hasItems(saved.folders) ? saved.folders : demoState.folders,
+    notes: hasSavedNotes ? saved.notes : demoState.notes,
+    bodyUnlocked: true,
+    selectedFolderId: saved.selectedFolderId ?? null,
+    weightUnit: saved.weightUnit ?? demoState.weightUnit,
+  };
+}
 
 function calculateTotalVolume(exercises: Exercise[], weightUnit: 'kg' | 'lbs' = 'kg'): number {
   return exercises.reduce((sum, ex) => sum + calculateVolume(ex, weightUnit), 0);
@@ -586,7 +593,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             validData.notes = [];
           }
 
-          const initialStateWithData = { ...initialState, ...validData, exerciseLibrary: DEFAULT_EXERCISES };
+          const initialStateWithData = mergeWithDemoState(validData);
           const archivedState = checkAndArchiveDailyWorkout(initialStateWithData);
           setState(archivedState);
         }
