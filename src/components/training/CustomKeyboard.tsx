@@ -45,7 +45,7 @@ export function CustomKeyboard({
 
   const handleBackspacePressStart = () => {
     handleBackspace();
-    longPressTimer.current = setTimeout(() => {
+    longPressTimer.current = window.setTimeout(() => {
       handleClear();
     }, 500);
   };

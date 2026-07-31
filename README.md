@@ -59,6 +59,14 @@ npm run check
 
 `check` 会依次执行 ESLint、Vitest 和生产构建。GitHub Pages 工作流只在源码推送到 `main` 后发布新版本。
 
+Android 工程使用 Capacitor 包装同一套 React 源码：
+
+```bash
+npm run android:sync
+```
+
+APK 由 GitHub Actions 在 Android 构建环境中生成，避免本地 Java / SDK 版本差异。
+
 ## 设计取舍
 
 - 优先服务训练时的输入效率，而不是先把界面做得很复杂。
