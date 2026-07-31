@@ -31,7 +31,7 @@ export function SetRow({
 }: SetRowProps) {
   const getFontSize = (value: number | string | undefined) => {
     const len = (value ?? '').toString().length;
-    return len > 4 ? '10px' : '11px';
+    return len > 4 ? '12px' : '14px';
   };
 
   const getInputValue = (type: 'weight' | 'leftWeight' | 'rightWeight' | 'reps') => {
@@ -69,7 +69,7 @@ export function SetRow({
 
   return (
     <div className="flex items-center gap-1 min-w-0">
-      <span className="w-6 text-[10px] font-black italic text-slate-300 text-center flex-shrink-0">
+      <span className="w-6 text-[10px] font-bold text-slate-400 text-center flex-shrink-0">
         {index + 1}
       </span>
 
@@ -92,7 +92,7 @@ export function SetRow({
                     style={{ fontSize: getFontSize(set.leftWeight) }}
                   />
                 </div>
-                <span className="text-[9px] text-slate-400 flex-shrink-0">{weightUnit}</span>
+                <span className="text-xs text-slate-500 flex-shrink-0">{weightUnit}</span>
               </div>
               <div className="flex items-center gap-0.5 flex-1 min-w-0">
                 <div className={`flex-1 h-10 bg-slate-50 rounded-vibe px-0.5 flex items-center min-w-0 ${isInputActive('rightWeight') ? 'ring-2 ring-vibe-green' : ''}`}>
@@ -109,7 +109,7 @@ export function SetRow({
                     style={{ fontSize: getFontSize(set.rightWeight) }}
                   />
                 </div>
-                <span className="text-[9px] text-slate-400 flex-shrink-0">{weightUnit}</span>
+                <span className="text-xs text-slate-500 flex-shrink-0">{weightUnit}</span>
               </div>
             </>
           ) : (
@@ -128,7 +128,7 @@ export function SetRow({
                   style={{ fontSize: getFontSize(set.weight) }}
                 />
               </div>
-              <span className="text-[9px] text-slate-400 flex-shrink-0">{weightUnit}</span>
+              <span className="text-xs text-slate-500 flex-shrink-0">{weightUnit}</span>
             </div>
           )}
 
@@ -147,7 +147,7 @@ export function SetRow({
                 style={{ fontSize: getFontSize(set.reps) }}
               />
             </div>
-            <span className="text-[9px] text-slate-400 flex-shrink-0">次</span>
+            <span className="text-xs text-slate-500 flex-shrink-0">次</span>
           </div>
         </div>
       ) : (

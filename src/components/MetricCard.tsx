@@ -37,8 +37,8 @@ export function MetricCard({
       className={`metric-card ${active ? 'active' : ''} ${onClick ? 'cursor-pointer' : ''}`}
       onClick={onClick}
     >
-      <p className="text-[9px] font-black text-slate-400 mb-1">{label}</p>
-      <p className="text-lg font-black italic">
+      <p className="text-xs font-semibold text-slate-500 mb-1">{label}</p>
+      <p className="text-xl font-bold">
         {value}
         {unit && <span className="text-sm">{unit}</span>}
       </p>
@@ -46,7 +46,7 @@ export function MetricCard({
         <div className="mt-2 flex items-center gap-1 border-t pt-2">
           {showTargetInput ? (
             <>
-              <span className="text-[8px] font-bold text-slate-300">目标:</span>
+              <span className="text-xs font-semibold text-slate-400">目标</span>
               <input
                 type="text"
                 value={targetDraft}
@@ -58,13 +58,13 @@ export function MetricCard({
                 }}
                 inputMode="decimal"
                 aria-label={`${label}目标值`}
-                className="w-full text-[8px] font-black text-vibe-green bg-transparent outline-none"
+                className="w-full text-xs font-bold text-vibe-green bg-transparent outline-none"
               />
             </>
           ) : target ? (
             <>
-              <span className="text-[8px] font-bold text-slate-300">目标:</span>
-              <span className="text-[8px] font-black text-vibe-green">{target}</span>
+              <span className="text-xs font-semibold text-slate-400">目标</span>
+              <span className="text-xs font-bold text-vibe-green">{target}</span>
             </>
           ) : null}
         </div>

@@ -29,7 +29,7 @@ export function TrainingPage() {
         onTabChange={setSubTab}
       />
       {subTab === 'today' && (
-        <div className="scroll-content p-6">
+        <div className="scroll-content p-4">
           <TodayTab
             onGoToLibrary={() => setSubTab('library')}
             onShowHistory={(exerciseId) => setShowHistoryModal(exerciseId)}
@@ -37,12 +37,12 @@ export function TrainingPage() {
         </div>
       )}
       {subTab === 'history' && (
-        <div className="scroll-content p-6">
+        <div className="scroll-content p-4">
           <HistoryTab onShowDayDetail={(date, hasWorkout) => setShowDayDetailModal({ date, hasWorkout })} />
         </div>
       )}
       {subTab === 'trends' && (
-        <div className="scroll-content p-6">
+        <div className="scroll-content p-4">
           <ExerciseTrendTab />
         </div>
       )}
@@ -260,13 +260,13 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
 
   return (
     <div>
-      <div className="flex justify-between items-start mb-8">
+      <div className="flex justify-between items-start mb-5">
         <div className="flex items-center gap-2 min-w-0">
-          <h2 className="text-2xl font-black italic truncate">{displayDate}</h2>
+          <h2 className="text-2xl font-bold truncate">{displayDate}</h2>
         </div>
         <div className="text-right flex-shrink-0 ml-4">
-          <p className="text-[9px] font-black text-slate-400 uppercase">Total Volume</p>
-          <p className="text-xl font-black text-vibe-green">
+          <p className="text-xs font-semibold text-slate-500">训练容量</p>
+          <p className="text-xl font-bold text-vibe-green">
             {(state.dailyWorkout?.totalVolume || 0).toLocaleString()} kg
           </p>
         </div>

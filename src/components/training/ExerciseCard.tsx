@@ -93,13 +93,13 @@ export function ExerciseCard({
 
   return (
     <div
-      className={`bg-white rounded-vibe-xl shadow-sm border border-slate-50 mb-4 overflow-hidden ${showDragHandle && onDragStart ? 'cursor-grab active:cursor-grabbing' : ''}`}
+      className={`bg-white rounded-2xl shadow-sm border border-slate-100 mb-3 overflow-hidden ${showDragHandle && onDragStart ? 'cursor-grab active:cursor-grabbing' : ''}`}
       draggable={!!(showDragHandle && onDragStart)}
       onDragStart={showDragHandle && onDragStart ? onDragStart : undefined}
       onDragEnd={showDragHandle && onDragEnd ? onDragEnd : undefined}
     >
       <div
-        className="p-4 flex items-center"
+        className="p-3 flex items-center"
         onClick={!isCardio ? onToggleExpand : undefined}
       >
         <div className="flex items-center gap-3 flex-1">
@@ -115,11 +115,11 @@ export function ExerciseCard({
             </div>
           )}
           <div>
-            <h3 className="font-black text-slate-800 text-sm">{exercise.name}</h3>
+            <h3 className="font-bold text-slate-800 text-base">{exercise.name}</h3>
             <div className="flex items-center gap-2">
-              <p className="text-[10px] font-bold text-slate-400">{exercise.muscleGroup}</p>
+              <p className="text-xs font-semibold text-slate-500">{exercise.muscleGroup}</p>
               {volume > 0 && (
-                <p className="text-[10px] font-bold text-vibe-green">{volume.toLocaleString()}</p>
+                <p className="text-xs font-bold text-vibe-green">{volume.toLocaleString()}</p>
               )}
             </div>
           </div>
@@ -196,14 +196,14 @@ export function ExerciseCard({
       </div>
 
       {isCardio && onUpdateCardio && (
-        <div className="px-4 pb-4 grid grid-cols-3 gap-2 border-t border-slate-50 pt-3">
+        <div className="px-3 pb-3 grid grid-cols-3 gap-2 border-t border-slate-100 pt-3">
           {[
             { key: 'durationMinutes' as const, label: '时长', unit: '分钟', step: '1', max: undefined },
             { key: 'distanceKm' as const, label: '距离', unit: 'km', step: '0.1', max: undefined },
             { key: 'intensity' as const, label: '强度', unit: '/10', step: '1', max: 10 },
           ].map((field) => (
             <label key={field.key} className="min-w-0">
-              <span className="text-[9px] font-bold text-slate-400 block mb-1">{field.label}</span>
+              <span className="text-xs font-semibold text-slate-500 block mb-1">{field.label}</span>
               <div className="h-10 bg-slate-50 rounded-vibe px-2 flex items-center gap-1">
                 <input
                   key={`${exercise.id}-${field.key}-${exercise[field.key] ?? ''}`}
@@ -220,9 +220,9 @@ export function ExerciseCard({
                     onUpdateCardio({ [field.key]: value });
                   }}
                   inputMode="decimal"
-                  className="w-full min-w-0 bg-transparent text-xs font-bold outline-none"
+                  className="w-full min-w-0 bg-transparent text-sm font-bold outline-none"
                 />
-                <span className="text-[8px] text-slate-400 flex-shrink-0">{field.unit}</span>
+                <span className="text-xs text-slate-500 flex-shrink-0">{field.unit}</span>
               </div>
             </label>
           ))}
@@ -230,7 +230,7 @@ export function ExerciseCard({
       )}
 
       {!isCardio && expanded && (
-        <div className="px-4 pb-4 space-y-3 border-t border-slate-50 pt-3">
+        <div className="px-3 pb-3 space-y-2 border-t border-slate-100 pt-3">
           {exercise.sets.map((set, index) => (
             <SetRow
               key={set.id}
@@ -253,7 +253,7 @@ export function ExerciseCard({
           {!isCardio && (
             <button
               onClick={onAddSet}
-              className="mt-2 w-full h-10 border-2 border-dashed border-slate-200 rounded-vibe flex items-center justify-center gap-2 text-slate-400 hover:border-vibe-green hover:text-vibe-green transition-colors"
+              className="mt-2 w-full h-10 border border-slate-200 rounded-xl flex items-center justify-center gap-2 text-slate-600 hover:border-vibe-green hover:text-vibe-green transition-colors"
             >
               <i className="fas fa-plus text-sm"></i>
               <span className="text-xs font-bold">添加组</span>

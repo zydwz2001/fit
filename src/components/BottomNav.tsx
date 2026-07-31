@@ -19,7 +19,7 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
           onClick={() => onTabChange(tab.id)}
         >
           <i className={`fas ${tab.icon}`}></i>
-          <span className="text-[9px] font-black">{tab.label}</span>
+          <span className="text-xs font-bold">{tab.label}</span>
         </div>
       ))}
     </div>

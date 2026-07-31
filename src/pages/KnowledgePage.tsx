@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useApp } from '@/contexts/AppContext';
-import { Card, FAB, Button } from '@/components';
+import { Card, Button } from '@/components';
 import { MarkdownEditor } from '@/components/MarkdownEditor';
 import { exportData, importData } from '@/utils/storage';
 import type { Exercise, Folder, Note } from '@/types';
@@ -12,6 +12,7 @@ export function KnowledgePage() {
   const { state, dispatch } = useApp();
   const [showEditor, setShowEditor] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [draftFolderId, setDraftFolderId] = useState<string | null>(null);
   const [showAddFolder, setShowAddFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [newFolderColor, setNewFolderColor] = useState('amber');
@@ -56,12 +57,13 @@ export function KnowledgePage() {
         payload: {
           title,
           content,
-          folderId: state.selectedFolderId ?? state.folders[0]?.id ?? null,
+          folderId: draftFolderId,
         }
       });
     }
     setShowEditor(false);
     setEditingNote(null);
+    setDraftFolderId(null);
   };
 
   const handleAddFolder = () => {
@@ -77,6 +79,13 @@ export function KnowledgePage() {
 
   const handleEditNote = (note: Note) => {
     setEditingNote(note);
+    setDraftFolderId(note.folderId);
+    setShowEditor(true);
+  };
+
+  const handleCreateNote = (folderId: string | null) => {
+    setEditingNote(null);
+    setDraftFolderId(folderId);
     setShowEditor(true);
   };
 
@@ -89,6 +98,7 @@ export function KnowledgePage() {
       return;
     }
     setEditingNote(linkedNote);
+    setDraftFolderId(linkedNote.folderId);
     setShowEditor(true);
   };
 
@@ -232,16 +242,20 @@ export function KnowledgePage() {
   };
 
   if (showEditor) {
+    const folderId = editingNote?.folderId ?? draftFolderId;
+    const folderName = state.folders.find((folder) => folder.id === folderId)?.name;
     return (
       <MarkdownEditor
-        key={editingNote?.id ?? 'new-note'}
+        key={editingNote?.id ?? `new-note-${draftFolderId ?? 'unfiled'}`}
         title={editingNote?.title}
         content={editingNote?.content}
+        contextLabel={folderName ? `文件夹：${folderName}` : '位置：未分类笔记'}
         onSave={handleSaveNote}
         onOpenWikiLink={handleOpenWikiLink}
         onCancel={() => {
           setShowEditor(false);
           setEditingNote(null);
+          setDraftFolderId(null);
         }}
       />
     );
@@ -249,9 +263,12 @@ export function KnowledgePage() {
 
   return (
     <>
-      <div className="scroll-content p-6">
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl font-black italic">自律给我自由</h2>
+      <div className="scroll-content p-4">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-2xl font-bold">知识库</h2>
+            <p className="text-sm text-slate-500 mt-1">文件夹整理主题，笔记记录内容</p>
+          </div>
           <button
             onClick={() => setShowMenu(!showMenu)}
             className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-slate-600"
@@ -260,30 +277,54 @@ export function KnowledgePage() {
           </button>
         </div>
 
+        <div className="grid grid-cols-2 gap-2 mb-5">
+          <button
+            onClick={() => handleCreateNote(null)}
+            className="h-12 rounded-xl bg-vibe-green text-white text-sm font-bold flex items-center justify-center gap-2"
+          >
+            <i className="fas fa-file-circle-plus"></i>
+            新建笔记
+          </button>
+          <button
+            onClick={() => setShowAddFolder(true)}
+            className="h-12 rounded-xl bg-white border border-slate-200 text-slate-700 text-sm font-bold flex items-center justify-center gap-2"
+          >
+            <i className="fas fa-folder-plus text-vibe-green"></i>
+            新建文件夹
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-sm font-bold text-slate-800">内容</h3>
+          <span className="text-xs text-slate-500">{state.folders.length} 个文件夹 · {state.notes.length} 篇笔记</span>
+        </div>
+
         <div className="space-y-3">
           {unfiledNotes.length > 0 && (
-            <Card size="lg" className="overflow-hidden">
-              <div className="p-5 flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-slate-50 text-slate-500">
-                  <i className="fas fa-inbox"></i>
+            <Card size="lg" className="overflow-hidden border-slate-200">
+              <div className="px-4 py-3 flex items-center gap-3 border-b border-slate-100">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-emerald-50 text-vibe-green">
+                  <i className="fas fa-note-sticky"></i>
                 </div>
-                <div>
-                  <h4 className="font-black text-sm">未分类</h4>
-                  <p className="text-[10px] text-slate-400 font-bold">{unfiledNotes.length} 条笔记</p>
+                <div className="flex-1">
+                  <span className="inline-flex text-[10px] leading-4 px-2 rounded-full bg-emerald-50 text-emerald-700 font-bold">笔记列表</span>
+                  <h4 className="font-bold text-base mt-0.5">未分类笔记</h4>
                 </div>
+                <span className="text-sm font-semibold text-slate-500">{unfiledNotes.length} 篇</span>
               </div>
-              <div className="bg-slate-50/50 p-4 pl-14 space-y-2">
+              <div className="bg-slate-50/60 p-3 space-y-2">
                 {unfiledNotes.map((note) => (
                   <div
                     key={note.id}
-                    className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0"
+                    className="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-100"
                   >
+                    <i className="fas fa-file-lines text-slate-400"></i>
                     <button
                       className="flex-1 text-left min-w-0"
                       onClick={() => handleEditNote(note)}
                     >
-                      <p className="text-sm font-bold text-slate-700">{note.title}</p>
-                      <p className="text-[10px] text-slate-400 font-bold mt-0.5 truncate">
+                      <p className="text-sm font-bold text-slate-800">{note.title}</p>
+                      <p className="text-xs text-slate-500 mt-1 truncate">
                         {note.content.replace(/[#*`[\]]/g, '').slice(0, 50)}...
                       </p>
                     </button>
@@ -302,31 +343,38 @@ export function KnowledgePage() {
 
           {state.folders.map((folder: Folder) => {
             const notes = folderNotes(folder.id);
-            const isSelected = state.selectedFolderId === folder.id;
 
             return (
               <Card
                 key={folder.id}
                 size="lg"
-                className={`overflow-hidden ${isSelected ? 'border-vibe-green ring-1 ring-vibe-green' : ''}`}
+                className="overflow-hidden border-slate-200"
               >
                 <div
-                  className="p-5 flex items-center justify-between cursor-pointer"
-                  onClick={() => dispatch({
-                    type: 'SELECT_FOLDER',
-                    payload: { folderId: isSelected ? null : folder.id }
-                  })}
+                  className="px-4 py-3 flex items-center justify-between cursor-pointer"
+                  onClick={() => toggleFolder(folder.id)}
                 >
-                  <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${folderColor(folder.color)}`}>
-                      <i className={`fas ${folder.icon}`}></i>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${folderColor(folder.color)}`}>
+                      <i className="fas fa-folder"></i>
                     </div>
-                    <div>
-                      <h4 className="font-black text-sm">{folder.name}</h4>
-                      <p className="text-[10px] text-slate-400 font-bold">{notes.length} 条笔记</p>
+                    <div className="min-w-0">
+                      <span className="inline-flex text-[10px] leading-4 px-2 rounded-full bg-slate-100 text-slate-600 font-bold">文件夹</span>
+                      <h4 className="font-bold text-base mt-0.5 truncate">{folder.name}</h4>
+                      <p className="text-xs text-slate-500">{notes.length} 篇笔记</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
+                    <button
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleCreateNote(folder.id);
+                      }}
+                      className="w-9 h-9 flex items-center justify-center text-vibe-green"
+                      aria-label={`在${folder.name}中新建笔记`}
+                    >
+                      <i className="fas fa-file-circle-plus"></i>
+                    </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -350,20 +398,26 @@ export function KnowledgePage() {
                   </div>
                 </div>
                 {folder.expanded && (
-                  <div className="bg-slate-50/50">
-                    <div className="p-4 pl-14 space-y-2">
+                  <div className="bg-slate-50/60 border-t border-slate-100">
+                    <div className="p-3 space-y-2">
                       {notes.length > 0 ? (
                         notes.map((note: Note) => (
                           <div
                             key={note.id}
-                            className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0"
+                            className="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-100"
                           >
+                            <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 flex-shrink-0">
+                              <i className="fas fa-file-lines text-xs"></i>
+                            </div>
                             <div
-                              className="flex-1 cursor-pointer"
+                              className="flex-1 cursor-pointer min-w-0"
                               onClick={() => handleEditNote(note)}
                             >
-                              <p className="text-sm font-bold text-slate-700">{note.title}</p>
-                              <p className="text-[10px] text-slate-400 font-bold mt-0.5 truncate">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-bold text-slate-800 truncate">{note.title}</p>
+                                <span className="text-[10px] text-slate-400 flex-shrink-0">笔记</span>
+                              </div>
+                              <p className="text-xs text-slate-500 mt-1 truncate">
                                 {note.content.replace(/[#*`[\]]/g, '').slice(0, 50)}...
                               </p>
                             </div>
@@ -379,7 +433,13 @@ export function KnowledgePage() {
                           </div>
                         ))
                       ) : (
-                        <div className="text-xs font-bold text-slate-400 py-2">暂无笔记</div>
+                        <button
+                          onClick={() => handleCreateNote(folder.id)}
+                          className="w-full h-12 rounded-xl bg-white border border-dashed border-slate-300 text-sm font-semibold text-slate-500"
+                        >
+                          <i className="fas fa-file-circle-plus text-vibe-green mr-2"></i>
+                          在此文件夹新建笔记
+                        </button>
                       )}
                     </div>
                   </div>
@@ -389,23 +449,7 @@ export function KnowledgePage() {
           })}
         </div>
 
-        <button
-          onClick={() => setShowAddFolder(true)}
-          className="mt-4 w-full h-12 border-2 border-dashed border-slate-200 rounded-vibe-xl flex items-center justify-center gap-2 text-slate-400 hover:border-vibe-green hover:text-vibe-green transition-colors"
-        >
-          <i className="fas fa-folder-plus text-sm"></i>
-          <span className="text-xs font-bold">新建文件夹</span>
-        </button>
       </div>
-
-      <FAB
-        onClick={() => {
-          setEditingNote(null);
-          setShowEditor(true);
-        }}
-      >
-        <i className="fas fa-plus"></i>
-      </FAB>
 
       {showMenu && (
         <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)}>

@@ -6,6 +6,7 @@ import { prepareBodyPhoto } from '@/utils/photos';
 interface MarkdownEditorProps {
   title?: string;
   content?: string;
+  contextLabel?: string;
   onSave: (title: string, content: string) => void;
   onCancel?: () => void;
   onOpenWikiLink?: (title: string) => void;
@@ -21,6 +22,7 @@ function withWikiLinks(text: string): string {
 export function MarkdownEditor({
   title: initialTitle = '',
   content: initialContent = '',
+  contextLabel,
   onSave,
   onCancel,
   onOpenWikiLink,
@@ -63,7 +65,10 @@ export function MarkdownEditor({
               <i className="fas fa-arrow-left"></i>
             </button>
           )}
-          <h2 className="font-black text-lg">{initialTitle ? '编辑笔记' : '新建笔记'}</h2>
+          <div>
+            <h2 className="font-bold text-lg">{initialTitle ? '编辑笔记' : '新建笔记'}</h2>
+            {contextLabel && <p className="text-xs text-slate-500 mt-0.5">{contextLabel}</p>}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -92,7 +97,7 @@ export function MarkdownEditor({
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           placeholder="笔记标题"
-          className="w-full text-xl font-black bg-transparent border-none outline-none placeholder:text-slate-300"
+          className="w-full text-xl font-bold bg-transparent border-none outline-none placeholder:text-slate-300"
         />
       </div>
 

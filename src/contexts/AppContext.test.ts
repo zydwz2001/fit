@@ -60,6 +60,25 @@ describe('body metrics reducer', () => {
   });
 });
 
+describe('body photos reducer', () => {
+  it('updates an editable photo date without changing its upload timestamp', () => {
+    const photo = {
+      id: 'photo-1',
+      uri: 'data:image/jpeg;base64,test',
+      date: '2026-07-31',
+      timestamp: 12345,
+    };
+    const state = { ...createDemoState(), bodyPhotos: [photo] };
+    const next = appReducer(state, {
+      type: 'UPDATE_BODY_PHOTO',
+      payload: { photoId: photo.id, date: '2026-07-20' },
+    });
+
+    expect(next.bodyPhotos[0].date).toBe('2026-07-20');
+    expect(next.bodyPhotos[0].timestamp).toBe(12345);
+  });
+});
+
 describe('workout reducer', () => {
   it('persists a workout and derives volume, muscle groups, and cardio name', () => {
     const cardio: Exercise = {

@@ -35,6 +35,7 @@ type Action =
   | { type: 'TOGGLE_SET_COMPLETED'; payload: { exerciseId: string; setId: string } }
   | { type: 'TOGGLE_LEFT_RIGHT_MODE'; payload: { exerciseId: string } }
   | { type: 'ADD_BODY_PHOTO'; payload: { id: string; uri: string; date: string; timestamp: number } }
+  | { type: 'UPDATE_BODY_PHOTO'; payload: { photoId: string; date: string } }
   | { type: 'REMOVE_BODY_PHOTO'; payload: { photoId: string } }
   | { type: 'ADD_NOTE'; payload: { title: string; content: string; folderId: string | null } }
   | { type: 'UPDATE_NOTE'; payload: { noteId: string; title?: string; content?: string } }
@@ -252,6 +253,16 @@ export function appReducer(state: AppState, action: Action): AppState {
     case 'ADD_BODY_PHOTO': {
       const newPhoto = action.payload;
       return { ...state, bodyPhotos: [...state.bodyPhotos, newPhoto] };
+    }
+    case 'UPDATE_BODY_PHOTO': {
+      return {
+        ...state,
+        bodyPhotos: state.bodyPhotos.map((photo) =>
+          photo.id === action.payload.photoId
+            ? { ...photo, date: action.payload.date }
+            : photo
+        ),
+      };
     }
     case 'REMOVE_BODY_PHOTO': {
       return {
