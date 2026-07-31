@@ -20,8 +20,12 @@ interface ExerciseCardProps {
   onDragStart?: (e: React.DragEvent) => void;
   onDragEnd?: () => void;
   showDragHandle?: boolean;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  onUpdateCardio?: (
+    updates: Partial<Pick<Exercise, 'durationMinutes' | 'distanceKm' | 'intensity'>>
+  ) => void;
   onKeyboardShow?: (setId: string, inputType: 'weight' | 'leftWeight' | 'rightWeight' | 'reps', value: string) => void;
-  onKeyboardHide?: () => void;
   showKeyboard?: boolean;
   activeInputType?: 'weight' | 'leftWeight' | 'rightWeight' | 'reps' | null;
   activeSetId?: string | null;
@@ -44,8 +48,10 @@ export function ExerciseCard({
   onDragStart,
   onDragEnd,
   showDragHandle = false,
+  onMoveUp,
+  onMoveDown,
+  onUpdateCardio,
   onKeyboardShow,
-  onKeyboardHide,
   showKeyboard = false,
   activeInputType = null,
   activeSetId = null,
@@ -121,6 +127,34 @@ export function ExerciseCard({
 
         {showControls && (
           <div className="flex items-center gap-1">
+            {showDragHandle && (
+              <div className="flex sm:hidden">
+                <button
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onMoveUp?.();
+                  }}
+                  disabled={!onMoveUp}
+                  className="w-7 h-8 flex items-center justify-center text-slate-300 disabled:opacity-25"
+                  title="上移动作"
+                  aria-label="上移动作"
+                >
+                  <i className="fas fa-arrow-up text-xs"></i>
+                </button>
+                <button
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onMoveDown?.();
+                  }}
+                  disabled={!onMoveDown}
+                  className="w-7 h-8 flex items-center justify-center text-slate-300 disabled:opacity-25"
+                  title="下移动作"
+                  aria-label="下移动作"
+                >
+                  <i className="fas fa-arrow-down text-xs"></i>
+                </button>
+              </div>
+            )}
             {onShowHistory && !isCardio && (
               <button
                 onClick={(e) => {
@@ -161,6 +195,40 @@ export function ExerciseCard({
         )}
       </div>
 
+      {isCardio && onUpdateCardio && (
+        <div className="px-4 pb-4 grid grid-cols-3 gap-2 border-t border-slate-50 pt-3">
+          {[
+            { key: 'durationMinutes' as const, label: '时长', unit: '分钟', step: '1', max: undefined },
+            { key: 'distanceKm' as const, label: '距离', unit: 'km', step: '0.1', max: undefined },
+            { key: 'intensity' as const, label: '强度', unit: '/10', step: '1', max: 10 },
+          ].map((field) => (
+            <label key={field.key} className="min-w-0">
+              <span className="text-[9px] font-bold text-slate-400 block mb-1">{field.label}</span>
+              <div className="h-10 bg-slate-50 rounded-vibe px-2 flex items-center gap-1">
+                <input
+                  key={`${exercise.id}-${field.key}-${exercise[field.key] ?? ''}`}
+                  type="number"
+                  min="0"
+                  max={field.max}
+                  step={field.step}
+                  defaultValue={exercise[field.key] ?? ''}
+                  onBlur={(event) => {
+                    const parsed = Number.parseFloat(event.currentTarget.value);
+                    const value = Number.isFinite(parsed) && parsed > 0
+                      ? Math.min(field.max ?? parsed, parsed)
+                      : undefined;
+                    onUpdateCardio({ [field.key]: value });
+                  }}
+                  inputMode="decimal"
+                  className="w-full min-w-0 bg-transparent text-xs font-bold outline-none"
+                />
+                <span className="text-[8px] text-slate-400 flex-shrink-0">{field.unit}</span>
+              </div>
+            </label>
+          ))}
+        </div>
+      )}
+
       {!isCardio && expanded && (
         <div className="px-4 pb-4 space-y-3 border-t border-slate-50 pt-3">
           {exercise.sets.map((set, index) => (
@@ -170,13 +238,13 @@ export function ExerciseCard({
               index={index}
               useLeftRight={exercise.useLeftRight}
               isCardio={isCardio}
+              weightUnit={state.weightUnit}
               prevSet={index > 0 ? exercise.sets[index - 1] : undefined}
               nextSet={index < exercise.sets.length - 1 ? exercise.sets[index + 1] : undefined}
               onUpdate={(updates) => onUpdateSet(set.id, updates)}
               onToggleCompleted={() => onToggleSetCompleted(set.id)}
               onRemove={onRemoveSet ? () => onRemoveSet(set.id) : undefined}
               onKeyboardShow={onKeyboardShow ? (inputType, value) => onKeyboardShow(set.id, inputType, value) : undefined}
-              onKeyboardHide={onKeyboardHide}
               showKeyboard={showKeyboard && activeSetId === set.id}
               activeInputType={showKeyboard && activeSetId === set.id ? activeInputType : null}
             />

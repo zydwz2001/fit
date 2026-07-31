@@ -22,12 +22,16 @@ function sideSet(id: string, leftWeight: number, rightWeight: number, reps: numb
   return { id, weight: 0, leftWeight, rightWeight, reps, completed };
 }
 
-function exercise(id: string, sets: ExerciseSet[]): Exercise {
+function exercise(
+  id: string,
+  sets: ExerciseSet[],
+  cardio?: Pick<Exercise, 'durationMinutes' | 'distanceKm' | 'intensity'>
+): Exercise {
   const base = DEFAULT_EXERCISES.find((item) => item.id === id);
   if (!base) {
     throw new Error(`Missing demo exercise: ${id}`);
   }
-  return { ...base, sets };
+  return { ...base, sets, ...cardio };
 }
 
 function workout(id: string, date: string, name: string, exercises: Exercise[], cardioName?: string): DailyWorkout {
@@ -149,10 +153,42 @@ export function createDemoState(): AppState {
       sideSet('demo-today-row-2', 20, 20, 10),
       sideSet('demo-today-row-3', 20, 20, 8, false),
     ]),
-    exercise('stair_climber', []),
+    exercise('stair_climber', [], { durationMinutes: 18, distanceKm: 1.4, intensity: 8 }),
   ], '爬楼机');
 
   const history = [
+    workout('demo-history-archive-1', dateOffset(-112), '练腿日', [
+      exercise('squat', [
+        set('demo-ha1-squat-1', 45, 12),
+        set('demo-ha1-squat-2', 50, 10),
+        set('demo-ha1-squat-3', 52.5, 8),
+      ]),
+    ]),
+    workout('demo-history-archive-2', dateOffset(-84), '练胸日', [
+      exercise('barbell_benchpress', [
+        set('demo-ha2-bench-1', 30, 12),
+        set('demo-ha2-bench-2', 32.5, 10),
+        set('demo-ha2-bench-3', 35, 8),
+      ]),
+      exercise('cable_fly', [
+        set('demo-ha2-fly-1', 15, 15),
+        set('demo-ha2-fly-2', 17.5, 12),
+      ]),
+    ]),
+    workout('demo-history-archive-3', dateOffset(-56), '游泳耐力', [
+      exercise('swimming', [], { durationMinutes: 52, distanceKm: 1.5, intensity: 7 }),
+    ], '游泳'),
+    workout('demo-history-archive-4', dateOffset(-35), '练背日', [
+      exercise('lat_pulldown', [
+        set('demo-ha4-lat-1', 35, 12),
+        set('demo-ha4-lat-2', 37.5, 10),
+        set('demo-ha4-lat-3', 40, 8),
+      ]),
+      exercise('barbell_row', [
+        set('demo-ha4-row-1', 32.5, 12),
+        set('demo-ha4-row-2', 35, 10),
+      ]),
+    ]),
     workout('demo-history-1', dateOffset(-13), '练腿日', [
       exercise('squat', [
         set('demo-h1-squat-1', 55, 10),
@@ -176,7 +212,7 @@ export function createDemoState(): AppState {
       ]),
     ]),
     workout('demo-history-3', dateOffset(-8), '游泳恢复', [
-      exercise('swimming', []),
+      exercise('swimming', [], { durationMinutes: 45, distanceKm: 1.2, intensity: 6 }),
     ], '游泳'),
     workout('demo-history-4', dateOffset(-6), '练肩日', [
       exercise('dumbbell_shoulder_press', [
@@ -200,7 +236,7 @@ export function createDemoState(): AppState {
       ]),
     ]),
     workout('demo-history-6', dateOffset(-2), '核心有氧', [
-      exercise('hill_climbing', []),
+      exercise('hill_climbing', [], { durationMinutes: 36, distanceKm: 3.8, intensity: 7 }),
     ], '爬坡'),
   ];
 
@@ -208,6 +244,26 @@ export function createDemoState(): AppState {
     dailyWorkout,
     workoutHistory: history,
     exerciseLibrary: DEFAULT_EXERCISES,
+    workoutTemplates: [
+      {
+        id: 'demo-template-back',
+        name: '背部训练',
+        exerciseIds: ['lat_pulldown', 'dumbbell_row', 'stair_climber'],
+        createdAt: 0,
+      },
+      {
+        id: 'demo-template-legs',
+        name: '腿部力量',
+        exerciseIds: ['squat', 'bulgarian_squat', 'hip_abduction'],
+        createdAt: 0,
+      },
+      {
+        id: 'demo-template-chest-shoulders',
+        name: '胸肩训练',
+        exerciseIds: ['barbell_benchpress', 'cable_fly', 'dumbbell_lateral_raise'],
+        createdAt: 0,
+      },
+    ],
     bodyMetrics: bodyMetrics(),
     metricTargets: [
       { type: 'weight', target: 53.0 },
@@ -216,7 +272,7 @@ export function createDemoState(): AppState {
       { type: 'hip', target: 90.0 },
     ],
     bodyPhotos: [],
-    bodyUnlocked: true,
+    bodyUnlocked: false,
     folders: knowledgeFolders(),
     notes: knowledgeNotes(),
     selectedFolderId: null,

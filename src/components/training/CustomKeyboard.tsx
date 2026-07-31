@@ -8,6 +8,8 @@ interface CustomKeyboardProps {
   onFillDown?: () => void;
   hasFillUp?: boolean;
   hasFillDown?: boolean;
+  allowDecimal?: boolean;
+  onWeightUnitChange?: () => void;
 }
 
 export function CustomKeyboard({
@@ -17,6 +19,8 @@ export function CustomKeyboard({
   onFillDown,
   hasFillUp = false,
   hasFillDown = false,
+  allowDecimal = true,
+  onWeightUnitChange,
 }: CustomKeyboardProps) {
   const { state, dispatch } = useApp();
   const longPressTimer = useRef<number | null>(null);
@@ -39,21 +43,21 @@ export function CustomKeyboard({
     onChange('');
   };
 
-  const handleBackspaceMouseDown = () => {
+  const handleBackspacePressStart = () => {
     handleBackspace();
     longPressTimer.current = setTimeout(() => {
       handleClear();
     }, 500);
   };
 
-  const handleBackspaceMouseUp = () => {
+  const handleBackspacePressEnd = () => {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
   };
 
-  const handleBackspaceMouseLeave = () => {
+  const handleBackspacePressCancel = () => {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
@@ -73,6 +77,7 @@ export function CustomKeyboard({
       type: 'SET_WEIGHT_UNIT',
       payload: state.weightUnit === 'kg' ? 'lbs' : 'kg',
     });
+    onWeightUnitChange?.();
   };
 
   return (
@@ -115,12 +120,10 @@ export function CustomKeyboard({
         </button>
 
         <button
-          onClick={handleBackspace}
-          onMouseDown={handleBackspaceMouseDown}
-          onMouseUp={handleBackspaceMouseUp}
-          onMouseLeave={handleBackspaceMouseLeave}
-          onTouchStart={handleBackspaceMouseDown}
-          onTouchEnd={handleBackspaceMouseUp}
+          onPointerDown={handleBackspacePressStart}
+          onPointerUp={handleBackspacePressEnd}
+          onPointerLeave={handleBackspacePressCancel}
+          onPointerCancel={handleBackspacePressCancel}
           className="h-12 bg-white shadow-sm rounded-xl flex items-center justify-center hover:bg-slate-50 transition-colors"
         >
           <i className="fas fa-delete-left text-slate-600 text-lg"></i>
@@ -166,7 +169,8 @@ export function CustomKeyboard({
       <div className="grid grid-cols-3 gap-2 mt-2">
         <button
           onClick={handleDecimalPress}
-          className="h-14 bg-white shadow-sm rounded-xl flex items-center justify-center text-2xl font-black text-slate-800 hover:bg-slate-50 active:scale-95 transition-all"
+          disabled={!allowDecimal}
+          className="h-14 bg-white shadow-sm rounded-xl flex items-center justify-center text-2xl font-black text-slate-800 hover:bg-slate-50 active:scale-95 transition-all disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none"
         >
           .
         </button>

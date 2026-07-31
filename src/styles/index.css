@@ -32,6 +32,7 @@ body {
   width: 100vw !important;
   max-width: 100vw !important;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   position: relative;
   background: #f8fafc;
@@ -47,6 +48,7 @@ body {
     width: 375px !important;
     max-width: 375px !important;
     height: 812px;
+    max-height: 100dvh;
     border-radius: 45px;
     border: 8px solid #333;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);

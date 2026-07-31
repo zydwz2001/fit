@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 interface MetricCardProps {
   label: string;
   value: string;
@@ -19,6 +21,17 @@ export function MetricCard({
   showTargetInput = false,
   onTargetChange,
 }: MetricCardProps) {
+  const [targetDraft, setTargetDraft] = useState(target ?? '');
+
+  const commitTarget = () => {
+    const parsed = Number.parseFloat(targetDraft);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      onTargetChange?.(targetDraft);
+    } else {
+      setTargetDraft(target ?? '');
+    }
+  };
+
   return (
     <div
       className={`metric-card ${active ? 'active' : ''} ${onClick ? 'cursor-pointer' : ''}`}
@@ -36,8 +49,15 @@ export function MetricCard({
               <span className="text-[8px] font-bold text-slate-300">目标:</span>
               <input
                 type="text"
-                value={target}
-                onChange={(e) => onTargetChange?.(e.target.value)}
+                value={targetDraft}
+                onClick={(event) => event.stopPropagation()}
+                onChange={(e) => setTargetDraft(e.target.value)}
+                onBlur={commitTarget}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') event.currentTarget.blur();
+                }}
+                inputMode="decimal"
+                aria-label={`${label}目标值`}
                 className="w-full text-[8px] font-black text-vibe-green bg-transparent outline-none"
               />
             </>

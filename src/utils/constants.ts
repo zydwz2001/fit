@@ -3,17 +3,23 @@ export { DESIGN } from '@/types';
 export type { AppState, BodyMetric, MetricTarget };
 
 export const FIXED_HEIGHT = 158;
+const POUNDS_TO_KG = 0.45359237;
 
 export function calculateBMI(weight: number): number {
   const heightInM = FIXED_HEIGHT / 100;
   return Number((weight / (heightInM * heightInM)).toFixed(1));
 }
 
-export function calculateVolume(exercise: { sets: ExerciseSet[] }, weightUnit: 'kg' | 'lbs' = 'kg'): number {
+export function calculateVolume(
+  exercise: { sets: ExerciseSet[]; category?: 'strength' | 'cardio' },
+  weightUnit: 'kg' | 'lbs' = 'kg'
+): number {
+  if (exercise.category === 'cardio') return 0;
+
   const toKg = (w: number | undefined): number => {
     if (w === undefined) return 0;
     if (weightUnit === 'lbs') {
-      return w * 0.45;
+      return w * POUNDS_TO_KG;
     }
     return w;
   };
