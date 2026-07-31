@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Vibe Fitness</string>
+    <string name="title_activity_main">Vibe Fitness</string>
+    <string name="package_name">com.vibefitness.app</string>
+    <string name="custom_url_scheme">com.vibefitness.app</string>
+</resources>
