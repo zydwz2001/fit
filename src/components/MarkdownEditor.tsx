@@ -1,62 +1,53 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { prepareBodyPhoto } from '@/utils/photos';
 
 interface MarkdownEditorProps {
   title?: string;
   content?: string;
   onSave: (title: string, content: string) => void;
   onCancel?: () => void;
+  onOpenWikiLink?: (title: string) => void;
 }
 
-const INLINE_MARKDOWN_RULES = [
-  { pattern: /\*\*(.*?)\*\*/g, replace: '<strong>$1</strong>' },
-  { pattern: /\*(.*?)\*/g, replace: '<em>$1</em>' },
-  { pattern: /`(.*?)`/g, replace: '<code class="bg-slate-100 px-2 py-1 rounded text-sm font-mono">$1</code>' },
-  { pattern: /\[\[(.*?)\]\]/g, replace: '<span class="text-vibe-green font-bold">[[$1]]</span>' },
-];
-
-function renderInlineMarkdown(text: string): string {
-  let html = text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-
-  INLINE_MARKDOWN_RULES.forEach(({ pattern, replace }) => {
-    html = html.replace(pattern, replace);
+function withWikiLinks(text: string): string {
+  return text.replace(/\[\[([^\]]+)\]\]/g, (_match, title: string) => {
+    const normalizedTitle = title.trim();
+    return `[${normalizedTitle}](#wiki-${encodeURIComponent(normalizedTitle)})`;
   });
-
-  return html;
-}
-
-function renderMarkdown(text: string): string {
-  return text
-    .split('\n')
-    .map((line) => {
-      if (line.startsWith('### ')) {
-        return `<h3 class="text-lg font-black mb-2">${renderInlineMarkdown(line.slice(4))}</h3>`;
-      }
-      if (line.startsWith('## ')) {
-        return `<h2 class="text-xl font-black mb-3">${renderInlineMarkdown(line.slice(3))}</h2>`;
-      }
-      if (line.startsWith('# ')) {
-        return `<h1 class="text-2xl font-black mb-4">${renderInlineMarkdown(line.slice(2))}</h1>`;
-      }
-      return renderInlineMarkdown(line);
-    })
-    .join('<br>');
 }
 
 export function MarkdownEditor({
   title: initialTitle = '',
   content: initialContent = '',
   onSave,
-  onCancel
+  onCancel,
+  onOpenWikiLink,
 }: MarkdownEditorProps) {
   const [title, setTitle] = useState(initialTitle);
   const [content, setContent] = useState(initialContent);
   const [preview, setPreview] = useState(false);
+  const [imageError, setImageError] = useState('');
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const handleSave = () => {
-    onSave(title, content);
+    onSave(title.trim() || '未命名笔记', content);
+  };
+
+  const handleImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    setImageError('');
+    try {
+      const uri = await prepareBodyPhoto(file);
+      const alt = file.name.replace(/\.[^.]+$/, '') || '图片';
+      setContent((current) => `${current}${current.endsWith('\n') || !current ? '' : '\n'}![${alt}](${uri})\n`);
+    } catch (error) {
+      setImageError(error instanceof Error ? error.message : '图片插入失败');
+    }
   };
 
   return (
@@ -67,6 +58,7 @@ export function MarkdownEditor({
             <button
               onClick={onCancel}
               className="w-10 h-10 flex items-center justify-center text-slate-400"
+              aria-label="返回知识库"
             >
               <i className="fas fa-arrow-left"></i>
             </button>
@@ -79,9 +71,10 @@ export function MarkdownEditor({
             className={`w-10 h-10 flex items-center justify-center rounded-vibe transition-colors ${
               preview ? 'bg-vibe-green text-white' : 'text-slate-400 hover:bg-slate-100'
             }`}
-            title="预览"
+            title={preview ? '返回编辑' : '实时预览'}
+            aria-label={preview ? '返回编辑' : '实时预览'}
           >
-            <i className="fas fa-eye"></i>
+            <i className={`fas ${preview ? 'fa-pen' : 'fa-eye'}`}></i>
           </button>
           <button
             onClick={handleSave}
@@ -97,54 +90,122 @@ export function MarkdownEditor({
         <input
           type="text"
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(event) => setTitle(event.target.value)}
           placeholder="笔记标题"
           className="w-full text-xl font-black bg-transparent border-none outline-none placeholder:text-slate-300"
         />
       </div>
 
+      {imageError && (
+        <div className="mx-4 mt-3 px-3 py-2 bg-red-50 text-red-600 rounded-vibe text-xs font-bold">
+          {imageError}
+        </div>
+      )}
+
       <div className="flex-1 overflow-hidden flex flex-col">
         {preview ? (
-          <div
-            className="flex-1 p-4 overflow-y-auto prose prose-sm"
-            dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
-          />
+          <div className="flex-1 p-4 overflow-y-auto text-sm leading-7 text-slate-700">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                h1: ({ children }) => <h1 className="text-2xl font-black mt-4 mb-3">{children}</h1>,
+                h2: ({ children }) => <h2 className="text-xl font-black mt-4 mb-2">{children}</h2>,
+                h3: ({ children }) => <h3 className="text-lg font-black mt-3 mb-2">{children}</h3>,
+                p: ({ children }) => <p className="mb-3">{children}</p>,
+                ul: ({ children }) => <ul className="list-disc pl-5 mb-3">{children}</ul>,
+                ol: ({ children }) => <ol className="list-decimal pl-5 mb-3">{children}</ol>,
+                blockquote: ({ children }) => (
+                  <blockquote className="border-l-4 border-vibe-green pl-3 text-slate-500 mb-3">
+                    {children}
+                  </blockquote>
+                ),
+                code: ({ children }) => (
+                  <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs font-mono">{children}</code>
+                ),
+                table: ({ children }) => (
+                  <div className="overflow-x-auto mb-4">
+                    <table className="w-full border-collapse text-xs">{children}</table>
+                  </div>
+                ),
+                th: ({ children }) => (
+                  <th className="border border-slate-200 bg-slate-50 p-2 text-left font-black">{children}</th>
+                ),
+                td: ({ children }) => <td className="border border-slate-200 p-2">{children}</td>,
+                img: ({ src, alt }) => (
+                  <img src={src} alt={alt ?? ''} className="max-w-full rounded-vibe-xl my-4" />
+                ),
+                a: ({ href, children }) => {
+                  if (href?.startsWith('#wiki-')) {
+                    const linkedTitle = decodeURIComponent(href.slice('#wiki-'.length));
+                    return (
+                      <button
+                        onClick={() => onOpenWikiLink?.(linkedTitle)}
+                        className="text-vibe-green font-bold underline underline-offset-2"
+                      >
+                        [[{children}]]
+                      </button>
+                    );
+                  }
+                  return (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-blue-500 underline underline-offset-2"
+                    >
+                      {children}
+                    </a>
+                  );
+                },
+              }}
+            >
+              {withWikiLinks(content)}
+            </ReactMarkdown>
+          </div>
         ) : (
           <textarea
             value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="开始编辑笔记...
-支持 Markdown 语法:
-# 标题
-**粗体**
-*斜体*
-`代码`
-[[双链引用]]"
+            onChange={(event) => setContent(event.target.value)}
+            placeholder={`开始编辑笔记...
+支持标题、列表、表格、图片、代码和 [[双链引用]]`}
             className="flex-1 p-4 bg-transparent border-none outline-none resize-none text-sm leading-relaxed placeholder:text-slate-300"
           />
         )}
       </div>
 
       {!preview && (
-        <div className="p-2 border-t border-slate-100 flex items-center gap-1 overflow-x-auto">
+        <div className="p-2 border-t border-slate-100 flex items-center gap-1 overflow-x-auto no-scrollbar">
           {[
             { label: 'H1', insert: '# ' },
             { label: 'H2', insert: '## ' },
             { label: '粗', insert: '**粗体**' },
             { label: '斜', insert: '*斜体*' },
             { label: '代码', insert: '`代码`' },
-            { label: '双链', insert: '[[]]' },
-          ].map((item, i) => (
+            { label: '列表', insert: '- ' },
+            { label: '表格', insert: '| 项目 | 内容 |\n| --- | --- |\n|  |  |\n' },
+            { label: '双链', insert: '[[笔记标题]]' },
+          ].map((item) => (
             <button
-              key={i}
-              onClick={() => {
-                setContent(prev => prev + item.insert);
-              }}
+              key={item.label}
+              onClick={() => setContent((current) => current + item.insert)}
               className="h-8 px-3 flex items-center justify-center text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-vibe transition-colors flex-shrink-0"
             >
               {item.label}
             </button>
           ))}
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleImageSelect}
+          />
+          <button
+            onClick={() => imageInputRef.current?.click()}
+            className="h-8 px-3 flex items-center justify-center text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-vibe transition-colors flex-shrink-0"
+          >
+            图片
+          </button>
         </div>
       )}
     </div>

@@ -1,5 +1,7 @@
 import { useState, useRef, useMemo } from 'react';
 
+const ONE_YEAR_AGO = Date.now() - 365 * 24 * 60 * 60 * 1000;
+
 interface ZoomableChartProps {
   data: { date: string; value: number }[];
   targetValue?: number;
@@ -30,7 +32,8 @@ export function ZoomableChart({
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (e.touches.length === 2) {
+    if (e.touches.length === 2 && lastDistanceRef.current > 0) {
+      if (e.cancelable) e.preventDefault();
       const distance = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
@@ -43,8 +46,7 @@ export function ZoomableChart({
 
   const chartData = useMemo(() => {
     const sorted = [...data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    const oneYearAgo = Date.now() - 365 * 24 * 60 * 60 * 1000;
-    const filtered = sorted.filter(d => new Date(d.date).getTime() >= oneYearAgo);
+    const filtered = sorted.filter(d => new Date(d.date).getTime() >= ONE_YEAR_AGO);
 
     if (filtered.length === 0) return [];
     return filtered;
@@ -87,16 +89,20 @@ export function ZoomableChart({
 
   return (
     <div
-      className="w-full relative bg-slate-50/50 rounded-2xl p-4 overflow-hidden"
-      style={{ height }}
+      className="w-full relative bg-slate-50/50 rounded-2xl p-4 overflow-x-auto overflow-y-hidden no-scrollbar"
+      style={{ height, touchAction: 'pan-x' }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
     >
       <svg
         ref={svgRef}
-        className="w-full h-full"
+        className="h-full max-w-none"
         viewBox={`0 0 ${300 * scale} ${height}`}
-        style={{ transition: 'transform 0.1s' }}
+        style={{
+          width: `${100 * scale}%`,
+          minWidth: `${300 * scale}px`,
+          transition: 'width 0.1s',
+        }}
       >
         {targetY !== null && (
           <line
@@ -119,9 +125,13 @@ export function ZoomableChart({
         )}
       </svg>
       {scale > 1 && (
-        <div className="absolute bottom-2 right-2 text-[10px] text-slate-400">
-          {scale.toFixed(1)}x
-        </div>
+        <button
+          onClick={() => setScale(1)}
+          className="sticky left-full bottom-0 ml-auto px-2 h-6 bg-white/90 rounded text-[10px] font-bold text-slate-500 shadow-sm"
+          aria-label="重置图表缩放"
+        >
+          {scale.toFixed(1)}x · 重置
+        </button>
       )}
       {chartData.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center text-slate-400 text-sm">

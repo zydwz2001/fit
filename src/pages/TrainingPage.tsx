@@ -3,20 +3,16 @@ import { useApp } from '@/contexts/AppContext';
 import { SubTabBar, Card, Button } from '@/components';
 import { ExerciseCard } from '@/components/training';
 import { CustomKeyboard } from '@/components/training';
-import { generateId, formatDate, formatDisplayDate } from '@/utils/constants';
+import { ZoomableChart } from '@/components/ZoomableChart';
+import { generateId, formatDate, formatDisplayDate, calculateVolume } from '@/utils/constants';
 import type { Set as ExerciseSet, Exercise, DailyWorkout } from '@/types';
 import { DEFAULT_EXERCISES } from '@/types';
 
 const SUB_TABS = [
   { id: 'today', label: '今日健身' },
   { id: 'history', label: '月视图回顾' },
+  { id: 'trends', label: '动作趋势' },
   { id: 'library', label: '动作库' },
-];
-
-const SQUAT_HISTORY = [
-  { date: '2026-03-28', sets: [{ weight: 80, reps: 10 }, { weight: 80, reps: 8 }, { weight: 85, reps: 6 }], volume: 2150 },
-  { date: '2026-03-21', sets: [{ weight: 75, reps: 12 }, { weight: 75, reps: 10 }, { weight: 80, reps: 8 }], volume: 2230 },
-  { date: '2026-03-14', sets: [{ weight: 70, reps: 12 }, { weight: 75, reps: 10 }, { weight: 75, reps: 8 }], volume: 2090 },
 ];
 
 export function TrainingPage() {
@@ -43,6 +39,11 @@ export function TrainingPage() {
       {subTab === 'history' && (
         <div className="scroll-content p-6">
           <HistoryTab onShowDayDetail={(date, hasWorkout) => setShowDayDetailModal({ date, hasWorkout })} />
+        </div>
+      )}
+      {subTab === 'trends' && (
+        <div className="scroll-content p-6">
+          <ExerciseTrendTab />
         </div>
       )}
       {subTab === 'library' && (
@@ -78,8 +79,8 @@ interface TodayTabProps {
 function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
   const { state, dispatch } = useApp();
   const [expandedExercises, setExpandedExercises] = useState<Record<string, boolean>>({});
-  const [order, setOrder] = useState<string[]>([]);
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [showTemplates, setShowTemplates] = useState(false);
   const [keyboardState, setKeyboardState] = useState<{
     exerciseId: string;
     setId: string;
@@ -89,24 +90,12 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
 
   const displayDate = useMemo(() => formatDisplayDate(new Date()), []);
 
-  React.useEffect(() => {
-    if (state.dailyWorkout) {
-      setOrder(state.dailyWorkout.exercises.map((ex) => ex.id));
-    }
-  }, [state.dailyWorkout?.exercises]);
-
-  const orderedExercises = useMemo(() => {
-    if (!state.dailyWorkout || !Array.isArray(state.dailyWorkout.exercises)) {
-      return [];
-    }
-    const exerciseMap = new Map(state.dailyWorkout.exercises.map((ex) => [ex.id, ex]));
-    return order.map((id) => exerciseMap.get(id)).filter((ex): ex is Exercise => ex !== undefined);
-  }, [order, state.dailyWorkout?.exercises]);
+  const orderedExercises = state.dailyWorkout?.exercises ?? [];
 
   const toggleExpanded = (exerciseId: string) => {
     setExpandedExercises(prev => ({
       ...prev,
-      [exerciseId]: !prev[exerciseId] !== false,
+      [exerciseId]: prev[exerciseId] === false,
     }));
   };
 
@@ -139,6 +128,13 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
     dispatch({ type: 'TOGGLE_LEFT_RIGHT_MODE', payload: { exerciseId } });
   };
 
+  const handleUpdateCardio = (
+    exerciseId: string,
+    updates: Partial<Pick<Exercise, 'durationMinutes' | 'distanceKm' | 'intensity'>>
+  ) => {
+    dispatch({ type: 'UPDATE_CARDIO_EXERCISE', payload: { exerciseId, updates } });
+  };
+
   const handleRemoveExercise = (exerciseId: string) => {
     dispatch({ type: 'REMOVE_EXERCISE', payload: { exerciseId } });
   };
@@ -161,18 +157,28 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
     const sourceId = e.dataTransfer.getData('text/plain');
     if (!sourceId || sourceId === targetId) return;
 
-    const newOrder = [...order];
+    const newOrder = orderedExercises.map((exercise) => exercise.id);
     const sourceIndex = newOrder.indexOf(sourceId);
     const targetIndex = newOrder.indexOf(targetId);
     newOrder.splice(sourceIndex, 1);
     newOrder.splice(targetIndex, 0, sourceId);
-    setOrder(newOrder);
     setDraggingId(null);
     dispatch({ type: 'REORDER_EXERCISES', payload: { exerciseIds: newOrder } });
   };
 
   const handleDragEnd = () => {
     setDraggingId(null);
+  };
+
+  const handleMoveExercise = (exerciseId: string, direction: -1 | 1) => {
+    const currentOrder = orderedExercises.map((exercise) => exercise.id);
+    const currentIndex = currentOrder.indexOf(exerciseId);
+    const targetIndex = currentIndex + direction;
+    if (currentIndex < 0 || targetIndex < 0 || targetIndex >= currentOrder.length) return;
+
+    const newOrder = [...currentOrder];
+    [newOrder[currentIndex], newOrder[targetIndex]] = [newOrder[targetIndex], newOrder[currentIndex]];
+    dispatch({ type: 'REORDER_EXERCISES', payload: { exerciseIds: newOrder } });
   };
 
   const getCurrentEditingData = () => {
@@ -205,16 +211,9 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
 
     for (let i = 0; i < data.setIndex; i++) {
       const set = data.exercise.sets[i];
-      if (keyboardState.inputType === 'leftWeight' || keyboardState.inputType === 'rightWeight') {
-        handleUpdateSet(keyboardState.exerciseId, set.id, {
-          leftWeight: currentValue,
-          rightWeight: currentValue,
-        });
-      } else {
-        handleUpdateSet(keyboardState.exerciseId, set.id, {
-          [keyboardState.inputType]: currentValue,
-        });
-      }
+      handleUpdateSet(keyboardState.exerciseId, set.id, {
+        [keyboardState.inputType]: currentValue,
+      });
     }
   };
 
@@ -226,34 +225,36 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
 
     for (let i = data.setIndex + 1; i < data.exercise.sets.length; i++) {
       const set = data.exercise.sets[i];
-      if (keyboardState.inputType === 'leftWeight' || keyboardState.inputType === 'rightWeight') {
-        handleUpdateSet(keyboardState.exerciseId, set.id, {
-          leftWeight: currentValue,
-          rightWeight: currentValue,
-        });
-      } else {
-        handleUpdateSet(keyboardState.exerciseId, set.id, {
-          [keyboardState.inputType]: currentValue,
-        });
-      }
+      handleUpdateSet(keyboardState.exerciseId, set.id, {
+        [keyboardState.inputType]: currentValue,
+      });
     }
   };
 
   if (!state.dailyWorkout || state.dailyWorkout.exercises.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full min-h-[400px] gap-6">
-        <div className="w-20 h-20 bg-vibe-green/10 rounded-full flex items-center justify-center">
-          <i className="fas fa-dumbbell text-vibe-green text-2xl"></i>
+      <>
+        <div className="flex flex-col items-center justify-center h-full min-h-[400px] gap-6">
+          <div className="w-20 h-20 bg-vibe-green/10 rounded-full flex items-center justify-center">
+            <i className="fas fa-dumbbell text-vibe-green text-2xl"></i>
+          </div>
+          <div className="text-center">
+            <h3 className="text-xl font-black mb-2">开始今日训练</h3>
+            <p className="text-slate-400 text-sm mb-6">选择动作或套用训练模板</p>
+          </div>
+          <div className="flex gap-3">
+            <Button onClick={onGoToLibrary}>
+              <i className="fas fa-plus mr-2"></i>
+              选择动作
+            </Button>
+            <Button onClick={() => setShowTemplates(true)} variant="secondary">
+              <i className="fas fa-layer-group mr-2"></i>
+              使用模板
+            </Button>
+          </div>
         </div>
-        <div className="text-center">
-          <h3 className="text-xl font-black mb-2">开始今日训练</h3>
-          <p className="text-slate-400 text-sm mb-6">选择动作开始你的训练</p>
-        </div>
-        <Button onClick={onGoToLibrary} className="px-8">
-          <i className="fas fa-plus mr-2"></i>
-          开始训练
-        </Button>
-      </div>
+        {showTemplates && <WorkoutTemplateModal onClose={() => setShowTemplates(false)} />}
+      </>
     );
   }
 
@@ -266,12 +267,12 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
         <div className="text-right flex-shrink-0 ml-4">
           <p className="text-[9px] font-black text-slate-400 uppercase">Total Volume</p>
           <p className="text-xl font-black text-vibe-green">
-            {(state.dailyWorkout?.totalVolume || 0).toLocaleString()}
+            {(state.dailyWorkout?.totalVolume || 0).toLocaleString()} kg
           </p>
         </div>
       </div>
 
-      {orderedExercises.map((exercise) => (
+      {orderedExercises.map((exercise, index) => (
         <div
           key={exercise.id}
           onDragOver={handleDragOver}
@@ -286,14 +287,16 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
             onToggleSetCompleted={(setId) => handleToggleSetCompleted(exercise.id, setId)}
             onAddSet={() => handleAddSet(exercise.id)}
             onToggleLeftRight={() => handleToggleLeftRight(exercise.id)}
+            onUpdateCardio={(updates) => handleUpdateCardio(exercise.id, updates)}
             onRemove={() => handleRemoveExercise(exercise.id)}
             onRemoveSet={(setId) => handleRemoveSet(exercise.id, setId)}
             onShowHistory={() => onShowHistory(exercise.id)}
             onDragStart={(e) => handleDragStart(e, exercise.id)}
             onDragEnd={handleDragEnd}
             showDragHandle={orderedExercises.length > 1}
+            onMoveUp={index > 0 ? () => handleMoveExercise(exercise.id, -1) : undefined}
+            onMoveDown={index < orderedExercises.length - 1 ? () => handleMoveExercise(exercise.id, 1) : undefined}
             onKeyboardShow={(setId, inputType, value) => setKeyboardState({ exerciseId: exercise.id, setId, inputType, value })}
-            onKeyboardHide={() => setKeyboardState(null)}
             showKeyboard={keyboardState?.exerciseId === exercise.id}
             activeInputType={keyboardState?.exerciseId === exercise.id ? keyboardState.inputType : null}
             activeSetId={keyboardState?.exerciseId === exercise.id ? keyboardState.setId : null}
@@ -301,10 +304,14 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
         </div>
       ))}
 
-      <div className="text-center py-4">
+      <div className="py-4 flex justify-center gap-3">
         <Button onClick={onGoToLibrary} variant="secondary">
           <i className="fas fa-plus mr-2"></i>
           添加动作
+        </Button>
+        <Button onClick={() => setShowTemplates(true)} variant="ghost">
+          <i className="fas fa-layer-group mr-2"></i>
+          模板
         </Button>
       </div>
 
@@ -322,6 +329,8 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
               onFillDown={handleFillDown}
               hasFillUp={!!getCurrentEditingData()?.prevSet}
               hasFillDown={!!getCurrentEditingData()?.nextSet}
+              allowDecimal={keyboardState.inputType !== 'reps'}
+              onWeightUnitChange={() => setKeyboardState(null)}
             />
             <button
               onClick={() => setKeyboardState(null)}
@@ -332,6 +341,104 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
           </div>
         </>
       )}
+      {showTemplates && <WorkoutTemplateModal onClose={() => setShowTemplates(false)} />}
+    </div>
+  );
+}
+
+function WorkoutTemplateModal({ onClose }: { onClose: () => void }) {
+  const { state, dispatch } = useApp();
+  const [templateName, setTemplateName] = useState(state.dailyWorkout?.name ?? '');
+  const currentExerciseIds = state.dailyWorkout?.exercises.map((exercise) => exercise.id) ?? [];
+
+  const applyTemplate = (templateId: string) => {
+    if (
+      state.dailyWorkout?.exercises.length &&
+      !confirm('套用模板会替换当前训练动作，确定继续吗？')
+    ) {
+      return;
+    }
+    dispatch({ type: 'APPLY_WORKOUT_TEMPLATE', payload: { templateId } });
+    onClose();
+  };
+
+  const saveCurrentTemplate = () => {
+    if (!templateName.trim() || currentExerciseIds.length === 0) return;
+    dispatch({
+      type: 'ADD_WORKOUT_TEMPLATE',
+      payload: { name: templateName, exerciseIds: currentExerciseIds },
+    });
+    setTemplateName('');
+  };
+
+  const removeTemplate = (templateId: string, name: string) => {
+    if (!confirm(`确定删除模板“${name}”吗？`)) return;
+    dispatch({ type: 'REMOVE_WORKOUT_TEMPLATE', payload: { templateId } });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50" onClick={onClose}>
+      <div
+        className="bg-white w-full max-w-md rounded-t-vibe-xl p-6 max-h-[80vh] overflow-y-auto"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-5">
+          <div>
+            <h3 className="text-lg font-black">训练模板</h3>
+            <p className="text-[10px] font-bold text-slate-400 mt-1">一键替换今日动作列表</p>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-slate-400">
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          {state.workoutTemplates.map((template) => {
+            const exerciseNames = template.exerciseIds
+              .map((id) => state.exerciseLibrary.find((exercise) => exercise.id === id)?.name)
+              .filter((name): name is string => Boolean(name));
+            return (
+              <div key={template.id} className="bg-slate-50 rounded-vibe p-4">
+                <div className="flex justify-between gap-3">
+                  <button className="flex-1 text-left min-w-0" onClick={() => applyTemplate(template.id)}>
+                    <p className="font-black text-sm">{template.name}</p>
+                    <p className="text-[10px] text-slate-400 font-bold mt-1 truncate">
+                      {exerciseNames.join(' · ')}
+                    </p>
+                  </button>
+                  <button
+                    onClick={() => removeTemplate(template.id, template.name)}
+                    className="w-8 h-8 flex items-center justify-center text-slate-300 hover:text-red-400"
+                    aria-label={`删除模板 ${template.name}`}
+                  >
+                    <i className="fas fa-trash text-xs"></i>
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {currentExerciseIds.length > 0 && (
+          <div className="mt-6 pt-5 border-t border-slate-100">
+            <p className="text-xs font-black mb-2">保存当前动作为模板</p>
+            <div className="flex gap-2">
+              <input
+                value={templateName}
+                onChange={(event) => setTemplateName(event.target.value)}
+                placeholder="模板名称"
+                className="flex-1 h-10 bg-slate-100 rounded-vibe px-3 text-sm outline-none"
+              />
+              <Button
+                onClick={saveCurrentTemplate}
+                disabled={!templateName.trim()}
+              >
+                保存
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -372,12 +479,9 @@ function LibraryTab({ onGoToToday, hasTodayWorkout }: LibraryTabProps) {
     acc[group] = filteredExercises.filter((ex) => ex.muscleGroup === group);
     return acc;
   }, {} as Record<string, Exercise[]>);
-
-  React.useEffect(() => {
-    if (muscleGroups.length > 0 && !activeGroup) {
-      setActiveGroup(muscleGroups[0]);
-    }
-  }, [muscleGroups, activeGroup]);
+  const resolvedActiveGroup = muscleGroups.includes(activeGroup)
+    ? activeGroup
+    : (muscleGroups[0] ?? '');
 
   const scrollToGroup = (group: string) => {
     setActiveGroup(group);
@@ -418,7 +522,7 @@ function LibraryTab({ onGoToToday, hasTodayWorkout }: LibraryTabProps) {
               key={group}
               onClick={() => scrollToGroup(group)}
               className={`text-sm font-bold w-full text-center py-1 transition-colors ${
-                activeGroup === group
+                resolvedActiveGroup === group
                   ? 'border-l-4 border-vibe-green text-vibe-green'
                   : 'text-slate-400 hover:text-slate-600'
               }`}
@@ -477,6 +581,7 @@ function HistoryTab({ onShowDayDetail }: HistoryTabProps) {
   const { state } = useApp();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const swipeStartX = React.useRef<number | null>(null);
   const workouts = useMemo(() => {
     return [
       ...state.workoutHistory,
@@ -526,8 +631,23 @@ function HistoryTab({ onShowDayDetail }: HistoryTabProps) {
     setCurrentMonth(new Date(year, currentMonth.getMonth(), 1));
   };
 
+  const handleMonthTouchStart = (event: React.TouchEvent) => {
+    swipeStartX.current = event.touches[0]?.clientX ?? null;
+  };
+
+  const handleMonthTouchEnd = (event: React.TouchEvent) => {
+    if (swipeStartX.current === null) return;
+    const endX = event.changedTouches[0]?.clientX;
+    if (endX === undefined) return;
+    const distance = endX - swipeStartX.current;
+    swipeStartX.current = null;
+    if (Math.abs(distance) < 60) return;
+    if (distance > 0) prevMonth();
+    else nextMonth();
+  };
+
   return (
-    <div>
+    <div onTouchStart={handleMonthTouchStart} onTouchEnd={handleMonthTouchEnd}>
       <div className="flex justify-between items-center mb-6">
         <button onClick={prevMonth} className="w-8 h-8 flex items-center justify-center text-slate-400">
           <i className="fas fa-chevron-left"></i>
@@ -565,11 +685,13 @@ function HistoryTab({ onShowDayDetail }: HistoryTabProps) {
               {workout && (
                 <div className="flex flex-col gap-0.5 mt-1 w-full">
                   <span className="bg-blue-500 text-white text-[8px] px-1 rounded truncate text-center">
-                    {workout.muscleGroups[0]}
+                    {workout.cardioName ?? workout.muscleGroups[0] ?? '训练'}
                   </span>
-                  <span className="bg-vibe-green text-white text-[8px] px-1 rounded truncate text-center">
-                    {workout.totalVolume}
-                  </span>
+                  {workout.totalVolume > 0 && (
+                    <span className="bg-vibe-green text-white text-[8px] px-1 rounded truncate text-center">
+                      {workout.totalVolume}kg
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -625,38 +747,208 @@ function HistoryTab({ onShowDayDetail }: HistoryTabProps) {
   );
 }
 
+function ExerciseTrendTab() {
+  const { state } = useApp();
+  const workouts = useMemo(
+    () => [
+      ...state.workoutHistory,
+      ...(state.dailyWorkout ? [state.dailyWorkout] : []),
+    ],
+    [state.workoutHistory, state.dailyWorkout]
+  );
+  const availableExercises = useMemo(
+    () => state.exerciseLibrary.filter(
+      (exercise) =>
+        exercise.category === 'strength' &&
+        workouts.some((workout) => workout.exercises.some((item) => item.id === exercise.id))
+    ),
+    [state.exerciseLibrary, workouts]
+  );
+  const [selectedExerciseId, setSelectedExerciseId] = useState(
+    () => availableExercises[0]?.id ?? ''
+  );
+  const [trendMetric, setTrendMetric] = useState<'bestWeight' | 'volume'>('bestWeight');
+  const resolvedExerciseId = availableExercises.some(
+    (exercise) => exercise.id === selectedExerciseId
+  )
+    ? selectedExerciseId
+    : (availableExercises[0]?.id ?? '');
+
+  const selectedExercise = availableExercises.find(
+    (exercise) => exercise.id === resolvedExerciseId
+  );
+  const records = useMemo(() => {
+    if (!resolvedExerciseId) return [];
+    return workouts
+      .map((workout) => {
+        const exercise = workout.exercises.find((item) => item.id === resolvedExerciseId);
+        if (!exercise) return null;
+        const completedSets = exercise.sets.filter((set) => set.completed);
+        const bestWeight = completedSets.reduce((best, set) => {
+          const load = exercise.useLeftRight
+            ? (set.leftWeight ?? 0) + (set.rightWeight ?? 0)
+            : (set.weight ?? 0);
+          return Math.max(best, load);
+        }, 0);
+        return {
+          date: workout.date,
+          bestWeight,
+          volume: calculateVolume(exercise, state.weightUnit),
+          completedSets: completedSets.length,
+        };
+      })
+      .filter((record): record is {
+        date: string;
+        bestWeight: number;
+        volume: number;
+        completedSets: number;
+      } => record !== null)
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [workouts, resolvedExerciseId, state.weightUnit]);
+
+  const chartData = records.map((record) => ({
+    date: record.date,
+    value: trendMetric === 'bestWeight' ? record.bestWeight : record.volume,
+  }));
+
+  if (availableExercises.length === 0) {
+    return (
+      <div className="min-h-[400px] flex flex-col items-center justify-center text-center">
+        <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+          <i className="fas fa-chart-line text-slate-300 text-xl"></i>
+        </div>
+        <h3 className="font-black mb-2">暂无动作趋势</h3>
+        <p className="text-sm text-slate-400">完成力量训练组后，这里会生成历史曲线。</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex items-end justify-between gap-3 mb-5">
+        <div className="min-w-0 flex-1">
+          <label className="text-[10px] font-black text-slate-400 block mb-2">选择动作</label>
+          <select
+            value={resolvedExerciseId}
+            onChange={(event) => setSelectedExerciseId(event.target.value)}
+            className="w-full h-10 bg-slate-100 rounded-vibe px-3 text-sm font-black outline-none"
+          >
+            {availableExercises.map((exercise) => (
+              <option key={exercise.id} value={exercise.id}>{exercise.name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex bg-slate-100 rounded-vibe p-1">
+          <button
+            onClick={() => setTrendMetric('bestWeight')}
+            className={`h-8 px-3 rounded-lg text-[10px] font-black ${
+              trendMetric === 'bestWeight' ? 'bg-white text-vibe-green shadow-sm' : 'text-slate-400'
+            }`}
+          >
+            最佳重量
+          </button>
+          <button
+            onClick={() => setTrendMetric('volume')}
+            className={`h-8 px-3 rounded-lg text-[10px] font-black ${
+              trendMetric === 'volume' ? 'bg-white text-vibe-green shadow-sm' : 'text-slate-400'
+            }`}
+          >
+            容量
+          </button>
+        </div>
+      </div>
+
+      <div className="mb-6">
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="font-black">{selectedExercise?.name}</h3>
+          <span className="text-[10px] font-bold text-slate-400">
+            {trendMetric === 'bestWeight' ? state.weightUnit : 'kg'}
+          </span>
+        </div>
+        <ZoomableChart data={chartData} height={190} />
+      </div>
+
+      <div className="space-y-2">
+        {[...records].reverse().map((record) => (
+          <div key={record.date} className="bg-slate-50 rounded-vibe p-3 flex justify-between items-center">
+            <div>
+              <p className="text-xs font-black">{record.date}</p>
+              <p className="text-[9px] font-bold text-slate-400 mt-1">{record.completedSets} 个完成组</p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm font-black text-vibe-green">
+                {record.bestWeight.toLocaleString()} {state.weightUnit}
+              </p>
+              <p className="text-[9px] font-bold text-slate-400 mt-1">
+                {record.volume.toLocaleString()} kg 容量
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 interface ExerciseHistoryModalProps {
-  exerciseId?: string;
+  exerciseId: string;
   onClose: () => void;
 }
 
-function ExerciseHistoryModal({ onClose }: ExerciseHistoryModalProps) {
+function ExerciseHistoryModal({ exerciseId, onClose }: ExerciseHistoryModalProps) {
+  const { state } = useApp();
+  const exerciseName = state.exerciseLibrary.find((exercise) => exercise.id === exerciseId)?.name ?? '动作';
+  const records = [
+    ...state.workoutHistory,
+    ...(state.dailyWorkout ? [state.dailyWorkout] : []),
+  ]
+    .map((workout) => {
+      const exercise = workout.exercises.find((item) => item.id === exerciseId);
+      return exercise ? { workout, exercise } : null;
+    })
+    .filter((record): record is { workout: DailyWorkout; exercise: Exercise } => record !== null)
+    .sort((a, b) => b.workout.date.localeCompare(a.workout.date));
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50" onClick={onClose}>
       <div className="bg-white w-full max-w-md rounded-t-vibe-xl p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-lg font-black">深蹲历史</h3>
+          <h3 className="text-lg font-black">{exerciseName}历史</h3>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-slate-400">
             <i className="fas fa-times"></i>
           </button>
         </div>
         <div className="space-y-4 max-h-80 overflow-y-auto">
-          {SQUAT_HISTORY.map((record, i) => (
-            <Card key={i} className="p-4">
+          {records.map(({ workout, exercise }) => (
+            <Card key={workout.id} className="p-4">
               <div className="flex justify-between items-center mb-3">
-                <span className="text-sm font-black">{record.date}</span>
-                <span className="text-vibe-green text-sm font-bold">{record.volume}</span>
+                <span className="text-sm font-black">{workout.date}</span>
+                <span className="text-vibe-green text-sm font-bold">
+                  {calculateVolume(exercise, state.weightUnit).toLocaleString()} kg
+                </span>
               </div>
               <div className="space-y-2">
-                {record.sets.map((set, j) => (
-                  <div key={j} className="flex justify-between text-sm text-slate-600">
-                    <span>第{j + 1}组</span>
-                    <span>{set.weight}kg × {set.reps}次</span>
+                {exercise.sets.map((set, index) => (
+                  <div key={set.id} className="flex justify-between text-sm text-slate-600">
+                    <span className={set.completed ? '' : 'text-slate-300'}>
+                      第{index + 1}组{set.completed ? '' : '（未完成）'}
+                    </span>
+                    <span>
+                      {exercise.useLeftRight
+                        ? `${set.leftWeight ?? 0}/${set.rightWeight ?? 0}`
+                        : (set.weight ?? 0)}
+                      {state.weightUnit} × {set.reps}次
+                    </span>
                   </div>
                 ))}
               </div>
             </Card>
           ))}
+          {records.length === 0 && (
+            <div className="py-10 text-center text-sm font-bold text-slate-400">
+              暂无历史记录
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -670,28 +962,22 @@ interface DayDetailModalProps {
 }
 
 function DayDetailModal({ date, hasWorkout, onClose }: DayDetailModalProps) {
-  const { state } = useApp();
-  const [isEditing, setIsEditing] = useState(false);
-  const [workout, setWorkout] = useState<DailyWorkout | null>(null);
-  const [showLibrary, setShowLibrary] = useState(false);
-  const [expandedExercises, setExpandedExercises] = useState<Record<string, boolean>>({});
-  const [addingWorkout, setAddingWorkout] = useState(false);
-  const [libraryActiveGroup, setLibraryActiveGroup] = useState<string>('');
+  const { state, dispatch } = useApp();
   const workouts = useMemo(() => {
     return [
       ...state.workoutHistory,
       ...(state.dailyWorkout ? [state.dailyWorkout] : []),
     ];
   }, [state.workoutHistory, state.dailyWorkout]);
-
-  React.useEffect(() => {
-    const found = workouts.find((w) => w.date === date);
-    if (found) {
-      setWorkout(JSON.parse(JSON.stringify(found)));
-    } else {
-      setWorkout(null);
-    }
-  }, [date, workouts]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [workout, setWorkout] = useState<DailyWorkout | null>(() => {
+    const found = workouts.find((item) => item.date === date);
+    return found ? JSON.parse(JSON.stringify(found)) : null;
+  });
+  const [showLibrary, setShowLibrary] = useState(false);
+  const [expandedExercises, setExpandedExercises] = useState<Record<string, boolean>>({});
+  const [addingWorkout, setAddingWorkout] = useState(false);
+  const [libraryActiveGroup, setLibraryActiveGroup] = useState<string>('');
 
   const handleAddWorkout = () => {
     setAddingWorkout(true);
@@ -707,15 +993,43 @@ function DayDetailModal({ date, hasWorkout, onClose }: DayDetailModalProps) {
   };
 
   const handleDelete = () => {
-    if (confirm('确定要删除这条记录吗？')) {
+    if (workout && confirm('确定要删除这条记录吗？')) {
+      dispatch({
+        type: 'REMOVE_WORKOUT_RECORD',
+        payload: { workoutId: workout.id },
+      });
       onClose();
     }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setAddingWorkout(false);
+
+    if (!hasWorkout) {
+      onClose();
+      return;
+    }
+
+    const original = workouts.find((item) => item.date === date);
+    setWorkout(original ? JSON.parse(JSON.stringify(original)) : null);
+  };
+
+  const handleSaveWorkout = () => {
+    if (!workout) return;
+
+    dispatch({
+      type: 'SAVE_WORKOUT_RECORD',
+      payload: { workout },
+    });
+    setIsEditing(false);
+    setAddingWorkout(false);
   };
 
   const toggleExpanded = (exerciseId: string) => {
     setExpandedExercises(prev => ({
       ...prev,
-      [exerciseId]: !prev[exerciseId] !== false,
+      [exerciseId]: prev[exerciseId] === false,
     }));
   };
 
@@ -789,14 +1103,31 @@ function DayDetailModal({ date, hasWorkout, onClose }: DayDetailModalProps) {
             if (newUseLeftRight) {
               return { ...set, leftWeight: set.weight, rightWeight: set.weight };
             } else {
-              const { leftWeight, rightWeight, ...rest } = set;
-              return { ...rest, weight: leftWeight || 0 };
+              return {
+                id: set.id,
+                weight: set.leftWeight ?? set.rightWeight ?? 0,
+                reps: set.reps,
+                completed: set.completed,
+              };
             }
           });
           return { ...ex, useLeftRight: newUseLeftRight, sets: newSets };
         }
         return ex;
       }),
+    });
+  };
+
+  const handleUpdateCardio = (
+    exerciseId: string,
+    updates: Partial<Pick<Exercise, 'durationMinutes' | 'distanceKm' | 'intensity'>>
+  ) => {
+    if (!workout) return;
+    setWorkout({
+      ...workout,
+      exercises: workout.exercises.map((exercise) =>
+        exercise.id === exerciseId ? { ...exercise, ...updates } : exercise
+      ),
     });
   };
 
@@ -822,7 +1153,9 @@ function DayDetailModal({ date, hasWorkout, onClose }: DayDetailModalProps) {
     if (!workout) return;
     const newExercise = {
       ...exercise,
-      sets: [{ id: generateId(), weight: 0, reps: 0, completed: false }],
+      sets: exercise.category === 'cardio'
+        ? []
+        : [{ id: generateId(), weight: 0, reps: 0, completed: false }],
     };
     setWorkout({
       ...workout,
@@ -914,12 +1247,22 @@ function DayDetailModal({ date, hasWorkout, onClose }: DayDetailModalProps) {
                     <span className="text-slate-400 font-bold">第{idx + 1}组</span>
                     <span className="text-slate-600">
                       {exercise.useLeftRight
-                        ? `${set.leftWeight || 0}/${set.rightWeight || 0}kg × ${set.reps}次`
-                        : `${set.weight}kg × ${set.reps}次`
+                        ? `${set.leftWeight || 0}/${set.rightWeight || 0}${state.weightUnit} × ${set.reps}次`
+                        : `${set.weight}${state.weightUnit} × ${set.reps}次`
                       }
                     </span>
                   </div>
                 ))}
+              </div>
+            )}
+            {isCardio && (
+              <div className="flex flex-wrap gap-2 text-[10px] font-bold text-slate-500">
+                {exercise.durationMinutes && <span>{exercise.durationMinutes} 分钟</span>}
+                {exercise.distanceKm && <span>{exercise.distanceKm} km</span>}
+                {exercise.intensity && <span>强度 {exercise.intensity}/10</span>}
+                {!exercise.durationMinutes && !exercise.distanceKm && !exercise.intensity && (
+                  <span className="text-slate-300">未填写有氧详情</span>
+                )}
               </div>
             )}
           </div>
@@ -984,6 +1327,7 @@ function DayDetailModal({ date, hasWorkout, onClose }: DayDetailModalProps) {
                     onToggleSetCompleted={(setId) => handleToggleSetCompleted(exercise.id, setId)}
                     onAddSet={() => handleAddSet(exercise.id)}
                     onToggleLeftRight={() => handleToggleLeftRight(exercise.id)}
+                    onUpdateCardio={(updates) => handleUpdateCardio(exercise.id, updates)}
                     onRemove={() => handleRemoveExercise(exercise.id)}
                     onRemoveSet={(setId) => handleRemoveSet(exercise.id, setId)}
                     showControls={true}
@@ -1007,17 +1351,12 @@ function DayDetailModal({ date, hasWorkout, onClose }: DayDetailModalProps) {
           <div className="p-6 pt-0 flex gap-3 border-t border-slate-50">
             {isEditing ? (
               <>
-                <Button variant="secondary" className="flex-1" onClick={() => {
-                  setIsEditing(false);
-                  setAddingWorkout(false);
-                  if (!hasWorkout) {
-                    onClose();
-                  }
-                }}>取消</Button>
-                <Button className="flex-1" onClick={() => {
-                  setIsEditing(false);
-                  setAddingWorkout(false);
-                }}>完成</Button>
+                <Button variant="secondary" className="flex-1" onClick={handleCancelEdit}>
+                  取消
+                </Button>
+                <Button className="flex-1" onClick={handleSaveWorkout}>
+                  保存
+                </Button>
               </>
             ) : (
               <Button className="w-full" onClick={onClose}>关闭</Button>
@@ -1059,12 +1398,9 @@ function DayDetailLibraryModal({ workout, activeGroup, setActiveGroup, onSelectE
     acc[group] = filteredExercises.filter((ex) => ex.muscleGroup === group);
     return acc;
   }, {} as Record<string, Exercise[]>);
-
-  React.useEffect(() => {
-    if (muscleGroups.length > 0 && !activeGroup) {
-      setActiveGroup(muscleGroups[0]);
-    }
-  }, [muscleGroups, activeGroup, setActiveGroup]);
+  const resolvedActiveGroup = muscleGroups.includes(activeGroup)
+    ? activeGroup
+    : (muscleGroups[0] ?? '');
 
   const scrollToGroup = (group: string) => {
     setActiveGroup(group);
@@ -1101,7 +1437,7 @@ function DayDetailLibraryModal({ workout, activeGroup, setActiveGroup, onSelectE
                   key={group}
                   onClick={() => scrollToGroup(group)}
                   className={`text-sm font-bold w-full text-center py-1 transition-colors ${
-                    activeGroup === group
+                    resolvedActiveGroup === group
                       ? 'border-l-4 border-vibe-green text-vibe-green'
                       : 'text-slate-400 hover:text-slate-600'
                   }`}

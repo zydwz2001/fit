@@ -2,7 +2,7 @@ export const DESIGN = {
   BRAND_COLOR: '#10B981',
   COMPONENT_HEIGHT: 40,
   BORDER_RADIUS: 12,
-  BODY_PASSWORD: '0000',
+  BODY_PASSWORD: '1127',
   FIXED_HEIGHT: 158,
 } as const;
 
@@ -23,6 +23,9 @@ export interface Exercise {
   gifUrl?: string;
   sets: Set[];
   useLeftRight: boolean;
+  durationMinutes?: number;
+  distanceKm?: number;
+  intensity?: number;
 }
 
 export interface DailyWorkout {
@@ -33,6 +36,13 @@ export interface DailyWorkout {
   totalVolume: number;
   muscleGroups: string[];
   cardioName?: string;
+}
+
+export interface WorkoutTemplate {
+  id: string;
+  name: string;
+  exerciseIds: string[];
+  createdAt: number;
 }
 
 export type MetricType = 'weight' | 'bmi' | 'waist' | 'arm' | 'chest' | 'hip' | 'thigh';
@@ -99,7 +109,7 @@ export const DEFAULT_EXERCISES: Exercise[] = [
   { id: 'lat_pulldown', name: '高位下拉', muscleGroup: '背', category: 'strength', useLeftRight: false, sets: [] },
   { id: 'reverse_lat_pulldown', name: '反手高位下拉', muscleGroup: '背', category: 'strength', useLeftRight: false, sets: [] },
 
-  { id: 'barbell_benchpress', name: '杠铃卧推', muscleGroup: '胸', category: 'strength', useLeftRight: false, sets: [], gifUrl: '/images/exercises/卧推.gif' },
+  { id: 'barbell_benchpress', name: '杠铃卧推', muscleGroup: '胸', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/卧推.gif' },
   { id: 'dumbbell_benchpress', name: '哑铃卧推', muscleGroup: '胸', category: 'strength', useLeftRight: true, sets: [] },
   { id: 'pushup', name: '俯卧撑', muscleGroup: '胸', category: 'strength', useLeftRight: false, sets: [] },
   { id: 'incline_dumbbell_press', name: '哑铃上斜卧推', muscleGroup: '胸', category: 'strength', useLeftRight: true, sets: [] },
@@ -122,6 +132,7 @@ export interface AppState {
   dailyWorkout: DailyWorkout | null;
   workoutHistory: DailyWorkout[];
   exerciseLibrary: Exercise[];
+  workoutTemplates: WorkoutTemplate[];
 
   bodyMetrics: BodyMetric[];
   metricTargets: MetricTarget[];
