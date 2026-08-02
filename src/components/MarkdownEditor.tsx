@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { prepareBodyPhoto } from '@/utils/photos';
+import { useAppBack } from '@/utils/navigation';
 
 interface MarkdownEditorProps {
   title?: string;
@@ -32,6 +33,12 @@ export function MarkdownEditor({
   const [preview, setPreview] = useState(false);
   const [imageError, setImageError] = useState('');
   const imageInputRef = useRef<HTMLInputElement>(null);
+
+  useAppBack(() => {
+    if (!preview) return false;
+    setPreview(false);
+    return true;
+  }, 120);
 
   const handleSave = () => {
     onSave(title.trim() || '未命名笔记', content);

@@ -32,6 +32,7 @@ export interface DailyWorkout {
   id: string;
   date: string;
   name: string;
+  templateId?: string;
   exercises: Exercise[];
   totalVolume: number;
   muscleGroups: string[];

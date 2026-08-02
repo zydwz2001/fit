@@ -8,6 +8,7 @@ import { BodyPasswordPage } from './BodyPasswordPage';
 import { generateId } from '@/utils/constants';
 import { getTodayString } from '@/utils/constants';
 import { prepareBodyPhoto } from '@/utils/photos';
+import { useAppBack } from '@/utils/navigation';
 import type { BodyMetric, MetricTarget, BodyPhoto, MetricType } from '@/types';
 
 const DEFAULT_METRICS: { type: MetricType; label: string }[] = [
@@ -131,6 +132,30 @@ function BodyContent() {
   const [newMetricValue, setNewMetricValue] = useState('');
   const [showCompareModal, setShowCompareModal] = useState(false);
   const [comparePhotos, setComparePhotos] = useState<BodyPhoto[]>([]);
+
+  useAppBack(() => {
+    if (showCompareModal) {
+      setShowCompareModal(false);
+      return true;
+    }
+    if (showPhotoGallery) {
+      setShowPhotoGallery(false);
+      return true;
+    }
+    if (editingMetric) {
+      setEditingMetric(null);
+      return true;
+    }
+    if (showMetricOrder) {
+      setShowMetricOrder(false);
+      return true;
+    }
+    if (showAddMetric) {
+      setShowAddMetric(false);
+      return true;
+    }
+    return false;
+  }, 100);
 
   const handleEdit = (metric: BodyMetric) => {
     if (metric.type === 'bmi') return;

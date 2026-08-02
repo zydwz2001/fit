@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { BodyPhoto } from '@/types';
+import { useAppBack } from '@/utils/navigation';
 
 interface BodyPhotoGalleryProps {
   photos: BodyPhoto[];
@@ -48,6 +49,12 @@ export function BodyPhotoGallery({
     setSelecting(false);
     setSelectedIds(new Set());
   };
+
+  useAppBack(() => {
+    if (!selecting) return false;
+    cancelSelection();
+    return true;
+  }, 120);
 
   const generateCompare = () => {
     const selectedPhotos = sortedPhotos.filter((photo) => selectedIds.has(photo.id));

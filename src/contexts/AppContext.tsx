@@ -601,17 +601,22 @@ export function appReducer(state: AppState, action: Action): AppState {
       );
       if (!name || exerciseIds.length === 0) return state;
 
+      const templateId = generateId();
+
       return {
         ...state,
         workoutTemplates: [
           ...state.workoutTemplates,
           {
-            id: generateId(),
+            id: templateId,
             name,
             exerciseIds,
             createdAt: Date.now(),
           },
         ],
+        dailyWorkout: state.dailyWorkout
+          ? { ...state.dailyWorkout, templateId }
+          : null,
       };
     }
     case 'REMOVE_WORKOUT_TEMPLATE':
@@ -627,21 +632,46 @@ export function appReducer(state: AppState, action: Action): AppState {
       );
       if (!template) return state;
 
+      const previousWorkout = [...state.workoutHistory]
+        .filter((workout) =>
+          workout.templateId === template.id ||
+          (!workout.templateId && workout.name === template.name)
+        )
+        .sort((a, b) => b.date.localeCompare(a.date))[0];
+
       const exercises = template.exerciseIds
         .map((id) => state.exerciseLibrary.find((exercise) => exercise.id === id))
         .filter((exercise): exercise is Exercise => exercise !== undefined)
-        .map((exercise) => ({
-          ...exercise,
-          sets: exercise.category === 'cardio'
-            ? []
-            : [{ id: generateId(), weight: 0, reps: 0, completed: false }],
-        }));
+        .map((exercise) => {
+          const previousExercise = previousWorkout?.exercises.find(
+            (item) => item.id === exercise.id
+          );
+          const inheritedSets = previousExercise?.sets.map((set) => ({
+            ...set,
+            id: generateId(),
+            completed: false,
+          }));
+
+          return {
+            ...exercise,
+            useLeftRight: previousExercise?.useLeftRight ?? exercise.useLeftRight,
+            sets: exercise.category === 'cardio'
+              ? []
+              : inheritedSets?.length
+                ? inheritedSets
+                : [{ id: generateId(), weight: 0, reps: 0, completed: false }],
+            durationMinutes: previousExercise?.durationMinutes,
+            distanceKm: previousExercise?.distanceKm,
+            intensity: previousExercise?.intensity,
+          };
+        });
       if (exercises.length === 0) return state;
 
       const workout = normalizeWorkout({
         id: state.dailyWorkout?.id ?? generateId(),
         date: getTodayString(),
         name: template.name,
+        templateId: template.id,
         exercises,
         totalVolume: 0,
         muscleGroups: [],

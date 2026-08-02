@@ -3,16 +3,16 @@ import { useApp } from '@/contexts/AppContext';
 import { SubTabBar, Card, Button } from '@/components';
 import { ExerciseCard } from '@/components/training';
 import { CustomKeyboard } from '@/components/training';
-import { ZoomableChart } from '@/components/ZoomableChart';
 import { generateId, formatDate, formatDisplayDate, calculateVolume } from '@/utils/constants';
+import { useAppBack } from '@/utils/navigation';
 import type { Set as ExerciseSet, Exercise, DailyWorkout } from '@/types';
 import { DEFAULT_EXERCISES } from '@/types';
 
 const SUB_TABS = [
   { id: 'today', label: '今日健身' },
   { id: 'history', label: '月视图回顾' },
-  { id: 'trends', label: '动作趋势' },
   { id: 'library', label: '动作库' },
+  { id: 'trends', label: '动作趋势' },
 ];
 
 export function TrainingPage() {
@@ -21,15 +21,32 @@ export function TrainingPage() {
   const [showHistoryModal, setShowHistoryModal] = useState<string | null>(null);
   const [showDayDetailModal, setShowDayDetailModal] = useState<{ date: string; hasWorkout: boolean } | null>(null);
 
+  useAppBack(() => {
+    if (showDayDetailModal) {
+      setShowDayDetailModal(null);
+      return true;
+    }
+    if (showHistoryModal) {
+      setShowHistoryModal(null);
+      return true;
+    }
+    if (subTab !== 'today') {
+      setSubTab('today');
+      return true;
+    }
+    return false;
+  }, 50);
+
   return (
-    <>
+    <div className="training-page flex flex-col min-h-0">
       <SubTabBar
         tabs={SUB_TABS}
         activeTab={subTab}
         onTabChange={setSubTab}
+        className="flex-shrink-0"
       />
       {subTab === 'today' && (
-        <div className="scroll-content p-4">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 pb-6">
           <TodayTab
             onGoToLibrary={() => setSubTab('library')}
             onShowHistory={(exerciseId) => setShowHistoryModal(exerciseId)}
@@ -37,20 +54,22 @@ export function TrainingPage() {
         </div>
       )}
       {subTab === 'history' && (
-        <div className="scroll-content p-4">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 pb-6">
           <HistoryTab onShowDayDetail={(date, hasWorkout) => setShowDayDetailModal({ date, hasWorkout })} />
         </div>
       )}
       {subTab === 'trends' && (
-        <div className="scroll-content p-4">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 pb-6">
           <ExerciseTrendTab />
         </div>
       )}
       {subTab === 'library' && (
-        <LibraryTab
-          onGoToToday={() => setSubTab('today')}
-          hasTodayWorkout={!!state.dailyWorkout}
-        />
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <LibraryTab
+            onGoToToday={() => setSubTab('today')}
+            hasTodayWorkout={!!state.dailyWorkout}
+          />
+        </div>
       )}
 
       {showHistoryModal && (
@@ -67,7 +86,7 @@ export function TrainingPage() {
           onClose={() => setShowDayDetailModal(null)}
         />
       )}
-    </>
+    </div>
   );
 }
 
@@ -87,6 +106,18 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
     inputType: 'weight' | 'leftWeight' | 'rightWeight' | 'reps';
     value: string;
   } | null>(null);
+
+  useAppBack(() => {
+    if (keyboardState) {
+      setKeyboardState(null);
+      return true;
+    }
+    if (showTemplates) {
+      setShowTemplates(false);
+      return true;
+    }
+    return false;
+  }, 100);
 
   const displayDate = useMemo(() => formatDisplayDate(new Date()), []);
 
@@ -203,6 +234,20 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
     setKeyboardState(prev => prev ? { ...prev, value } : null);
   };
 
+  const handleWeightUnitChange = (nextUnit: 'kg' | 'lbs') => {
+    setKeyboardState((current) => {
+      if (!current || current.inputType === 'reps') return current;
+      const numericValue = Number.parseFloat(current.value);
+      if (!Number.isFinite(numericValue)) return current;
+
+      const convertedValue = state.weightUnit === 'kg' && nextUnit === 'lbs'
+        ? numericValue / 0.45359237
+        : numericValue * 0.45359237;
+      const value = String(Math.round(convertedValue * 10) / 10);
+      return { ...current, value };
+    });
+  };
+
   const handleFillUp = () => {
     const data = getCurrentEditingData();
     if (!data || !keyboardState) return;
@@ -259,7 +304,7 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
   }
 
   return (
-    <div>
+    <div className={keyboardState ? 'pb-[390px]' : ''}>
       <div className="flex justify-between items-start mb-5">
         <div className="flex items-center gap-2 min-w-0">
           <h2 className="text-2xl font-bold truncate">{displayDate}</h2>
@@ -316,12 +361,7 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
       </div>
 
       {keyboardState && (
-        <>
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setKeyboardState(null)}
-          />
-          <div className="fixed bottom-0 left-0 right-0 z-50">
+        <div className="fixed bottom-0 left-0 right-0 z-50">
             <CustomKeyboard
               value={keyboardState.value}
               onChange={handleKeyboardUpdate}
@@ -330,7 +370,7 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
               hasFillUp={!!getCurrentEditingData()?.prevSet}
               hasFillDown={!!getCurrentEditingData()?.nextSet}
               allowDecimal={keyboardState.inputType !== 'reps'}
-              onWeightUnitChange={() => setKeyboardState(null)}
+              onWeightUnitChange={handleWeightUnitChange}
             />
             <button
               onClick={() => setKeyboardState(null)}
@@ -338,8 +378,7 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
             >
               完成
             </button>
-          </div>
-        </>
+        </div>
       )}
       {showTemplates && <WorkoutTemplateModal onClose={() => setShowTemplates(false)} />}
     </div>
@@ -385,7 +424,7 @@ function WorkoutTemplateModal({ onClose }: { onClose: () => void }) {
         <div className="flex justify-between items-center mb-5">
           <div>
             <h3 className="text-lg font-black">训练模板</h3>
-            <p className="text-[10px] font-bold text-slate-400 mt-1">一键替换今日动作列表</p>
+            <p className="text-[10px] font-bold text-slate-400 mt-1">自动沿用上次的重量、组数和次数</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-slate-400">
             <i className="fas fa-times"></i>
@@ -452,7 +491,8 @@ function LibraryTab({ onGoToToday, hasTodayWorkout }: LibraryTabProps) {
   const { state, dispatch } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeGroup, setActiveGroup] = useState<string>('');
-  const sectionRefs = useState<Record<string, HTMLDivElement | null>>({})[0];
+  const exerciseListRef = React.useRef<HTMLDivElement>(null);
+  const sectionRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
 
   const isExerciseSelected = (exerciseId: string) => {
     return state.dailyWorkout?.exercises.some((e) => e.id === exerciseId) || false;
@@ -485,7 +525,26 @@ function LibraryTab({ onGoToToday, hasTodayWorkout }: LibraryTabProps) {
 
   const scrollToGroup = (group: string) => {
     setActiveGroup(group);
-    sectionRefs[group]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const list = exerciseListRef.current;
+    const section = sectionRefs.current[group];
+    if (!list || !section) return;
+
+    const top = list.scrollTop + section.getBoundingClientRect().top - list.getBoundingClientRect().top;
+    list.scrollTo({ top, behavior: 'smooth' });
+  };
+
+  const handleExerciseListScroll = () => {
+    const list = exerciseListRef.current;
+    if (!list) return;
+
+    const listTop = list.getBoundingClientRect().top;
+    const visibleGroup = [...muscleGroups].reverse().find((group) => {
+      const section = sectionRefs.current[group];
+      return section ? section.getBoundingClientRect().top <= listTop + 24 : false;
+    });
+    if (visibleGroup && visibleGroup !== resolvedActiveGroup) {
+      setActiveGroup(visibleGroup);
+    }
   };
 
   const getSectionTitle = (group: string): string => {
@@ -502,7 +561,7 @@ function LibraryTab({ onGoToToday, hasTodayWorkout }: LibraryTabProps) {
   };
 
   return (
-    <div className="flex flex-col h-full w-full relative">
+    <div className="flex flex-col h-full min-h-0 w-full">
       <div className="px-4 pt-4 pb-2 flex-shrink-0">
         <div className="bg-slate-100 rounded-full px-4 h-10 flex items-center gap-3">
           <i className="fas fa-search text-slate-400 text-sm"></i>
@@ -515,7 +574,7 @@ function LibraryTab({ onGoToToday, hasTodayWorkout }: LibraryTabProps) {
           />
         </div>
       </div>
-      <div className="flex flex-1 overflow-hidden mt-4">
+      <div className="flex flex-1 min-h-0 overflow-hidden mt-2">
         <div className="w-24 bg-slate-50 flex flex-col items-center py-4 pl-4 pr-3 gap-6 overflow-y-auto flex-shrink-0">
           {muscleGroups.map((group) => (
             <button
@@ -531,11 +590,17 @@ function LibraryTab({ onGoToToday, hasTodayWorkout }: LibraryTabProps) {
             </button>
           ))}
         </div>
-        <div className="flex-1 p-4 overflow-y-auto pb-24 min-w-0">
+        <div
+          ref={exerciseListRef}
+          onScroll={handleExerciseListScroll}
+          className="flex-1 p-4 overflow-y-auto pb-4 min-w-0"
+        >
           {muscleGroups.map((group) => (
             <div
               key={group}
-              ref={(el) => (sectionRefs[group] = el)}
+              ref={(element) => {
+                sectionRefs.current[group] = element;
+              }}
               className="mb-6"
             >
               <h3 className="text-xs font-black text-slate-400 mb-3 uppercase">
@@ -562,8 +627,8 @@ function LibraryTab({ onGoToToday, hasTodayWorkout }: LibraryTabProps) {
       </div>
 
       {hasSelectedExercises && (
-        <div className="absolute bottom-36 left-0 right-0 flex justify-center z-10">
-          <Button onClick={onGoToToday} className="px-8 shadow-lg">
+        <div className="flex-shrink-0 border-t border-slate-100 bg-white px-4 py-3 pl-28">
+          <Button onClick={onGoToToday} className="w-full shadow-sm">
             <i className="fas fa-play mr-2"></i>
             开始训练
           </Button>
@@ -582,6 +647,12 @@ function HistoryTab({ onShowDayDetail }: HistoryTabProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const swipeStartX = React.useRef<number | null>(null);
+
+  useAppBack(() => {
+    if (!showMonthPicker) return false;
+    setShowMonthPicker(false);
+    return true;
+  }, 100);
   const workouts = useMemo(() => {
     return [
       ...state.workoutHistory,
@@ -760,14 +831,15 @@ function ExerciseTrendTab() {
     () => state.exerciseLibrary.filter(
       (exercise) =>
         exercise.category === 'strength' &&
-        workouts.some((workout) => workout.exercises.some((item) => item.id === exercise.id))
+        workouts.some((workout) => workout.exercises.some(
+          (item) => item.id === exercise.id && item.sets.some((set) => set.completed)
+        ))
     ),
     [state.exerciseLibrary, workouts]
   );
   const [selectedExerciseId, setSelectedExerciseId] = useState(
     () => availableExercises[0]?.id ?? ''
   );
-  const [trendMetric, setTrendMetric] = useState<'bestWeight' | 'volume'>('bestWeight');
   const resolvedExerciseId = availableExercises.some(
     (exercise) => exercise.id === selectedExerciseId
   )
@@ -784,32 +856,24 @@ function ExerciseTrendTab() {
         const exercise = workout.exercises.find((item) => item.id === resolvedExerciseId);
         if (!exercise) return null;
         const completedSets = exercise.sets.filter((set) => set.completed);
-        const bestWeight = completedSets.reduce((best, set) => {
-          const load = exercise.useLeftRight
-            ? (set.leftWeight ?? 0) + (set.rightWeight ?? 0)
-            : (set.weight ?? 0);
-          return Math.max(best, load);
-        }, 0);
+        if (completedSets.length === 0) return null;
         return {
+          workoutId: workout.id,
           date: workout.date,
-          bestWeight,
           volume: calculateVolume(exercise, state.weightUnit),
-          completedSets: completedSets.length,
+          useLeftRight: exercise.useLeftRight,
+          sets: completedSets,
         };
       })
       .filter((record): record is {
+        workoutId: string;
         date: string;
-        bestWeight: number;
         volume: number;
-        completedSets: number;
+        useLeftRight: boolean;
+        sets: ExerciseSet[];
       } => record !== null)
-      .sort((a, b) => a.date.localeCompare(b.date));
+      .sort((a, b) => b.date.localeCompare(a.date));
   }, [workouts, resolvedExerciseId, state.weightUnit]);
-
-  const chartData = records.map((record) => ({
-    date: record.date,
-    value: trendMetric === 'bestWeight' ? record.bestWeight : record.volume,
-  }));
 
   if (availableExercises.length === 0) {
     return (
@@ -818,72 +882,57 @@ function ExerciseTrendTab() {
           <i className="fas fa-chart-line text-slate-300 text-xl"></i>
         </div>
         <h3 className="font-black mb-2">暂无动作趋势</h3>
-        <p className="text-sm text-slate-400">完成力量训练组后，这里会生成历史曲线。</p>
+        <p className="text-sm text-slate-400">完成力量训练组后，这里会显示每次动作记录。</p>
       </div>
     );
   }
 
   return (
     <div>
-      <div className="flex items-end justify-between gap-3 mb-5">
-        <div className="min-w-0 flex-1">
-          <label className="text-[10px] font-black text-slate-400 block mb-2">选择动作</label>
-          <select
-            value={resolvedExerciseId}
-            onChange={(event) => setSelectedExerciseId(event.target.value)}
-            className="w-full h-10 bg-slate-100 rounded-vibe px-3 text-sm font-black outline-none"
-          >
-            {availableExercises.map((exercise) => (
-              <option key={exercise.id} value={exercise.id}>{exercise.name}</option>
-            ))}
-          </select>
-        </div>
-        <div className="flex bg-slate-100 rounded-vibe p-1">
-          <button
-            onClick={() => setTrendMetric('bestWeight')}
-            className={`h-8 px-3 rounded-lg text-[10px] font-black ${
-              trendMetric === 'bestWeight' ? 'bg-white text-vibe-green shadow-sm' : 'text-slate-400'
-            }`}
-          >
-            最佳重量
-          </button>
-          <button
-            onClick={() => setTrendMetric('volume')}
-            className={`h-8 px-3 rounded-lg text-[10px] font-black ${
-              trendMetric === 'volume' ? 'bg-white text-vibe-green shadow-sm' : 'text-slate-400'
-            }`}
-          >
-            容量
-          </button>
-        </div>
+      <div className="mb-5">
+        <label className="text-[10px] font-black text-slate-400 block mb-2">选择动作</label>
+        <select
+          value={resolvedExerciseId}
+          onChange={(event) => setSelectedExerciseId(event.target.value)}
+          className="w-full h-10 bg-slate-100 rounded-vibe px-3 text-sm font-black outline-none"
+        >
+          {availableExercises.map((exercise) => (
+            <option key={exercise.id} value={exercise.id}>{exercise.name}</option>
+          ))}
+        </select>
       </div>
 
-      <div className="mb-6">
-        <div className="flex justify-between items-center mb-2">
-          <h3 className="font-black">{selectedExercise?.name}</h3>
-          <span className="text-[10px] font-bold text-slate-400">
-            {trendMetric === 'bestWeight' ? state.weightUnit : 'kg'}
-          </span>
-        </div>
-        <ZoomableChart data={chartData} height={190} />
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-black">{selectedExercise?.name}</h3>
+        <span className="text-[10px] font-bold text-slate-400">按日期查看</span>
       </div>
 
-      <div className="space-y-2">
-        {[...records].reverse().map((record) => (
-          <div key={record.date} className="bg-slate-50 rounded-vibe p-3 flex justify-between items-center">
-            <div>
-              <p className="text-xs font-black">{record.date}</p>
-              <p className="text-[9px] font-bold text-slate-400 mt-1">{record.completedSets} 个完成组</p>
+      <div className="space-y-3">
+        {records.map((record) => (
+          <Card key={`${record.workoutId}-${record.date}`} className="p-4">
+            <div className="flex justify-between items-center mb-3">
+              <p className="text-sm font-black">{record.date}</p>
+              <div className="text-right">
+                <p className="text-[9px] font-bold text-slate-400">总容量</p>
+                <p className="text-sm font-black text-vibe-green">
+                  {record.volume.toLocaleString(undefined, { maximumFractionDigits: 1 })} kg
+                </p>
+              </div>
             </div>
-            <div className="text-right">
-              <p className="text-sm font-black text-vibe-green">
-                {record.bestWeight.toLocaleString()} {state.weightUnit}
-              </p>
-              <p className="text-[9px] font-bold text-slate-400 mt-1">
-                {record.volume.toLocaleString()} kg 容量
-              </p>
+            <div className="space-y-2 border-t border-slate-100 pt-3">
+              {record.sets.map((set, index) => (
+                <div key={set.id} className="flex justify-between items-center text-sm">
+                  <span className="font-bold text-slate-400">第{index + 1}组</span>
+                  <span className="font-black text-slate-700">
+                    {record.useLeftRight
+                      ? `左 ${set.leftWeight ?? 0} / 右 ${set.rightWeight ?? 0} ${state.weightUnit}`
+                      : `${set.weight ?? 0} ${state.weightUnit}`}
+                    {' × '}{set.reps} 次
+                  </span>
+                </div>
+              ))}
             </div>
-          </div>
+          </Card>
         ))}
       </div>
     </div>
@@ -978,6 +1027,12 @@ function DayDetailModal({ date, hasWorkout, onClose }: DayDetailModalProps) {
   const [expandedExercises, setExpandedExercises] = useState<Record<string, boolean>>({});
   const [addingWorkout, setAddingWorkout] = useState(false);
   const [libraryActiveGroup, setLibraryActiveGroup] = useState<string>('');
+
+  useAppBack(() => {
+    if (!showLibrary) return false;
+    setShowLibrary(false);
+    return true;
+  }, 120);
 
   const handleAddWorkout = () => {
     setAddingWorkout(true);

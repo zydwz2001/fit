@@ -9,7 +9,7 @@ interface CustomKeyboardProps {
   hasFillUp?: boolean;
   hasFillDown?: boolean;
   allowDecimal?: boolean;
-  onWeightUnitChange?: () => void;
+  onWeightUnitChange?: (unit: 'kg' | 'lbs') => void;
 }
 
 export function CustomKeyboard({
@@ -73,29 +73,17 @@ export function CustomKeyboard({
   }, []);
 
   const toggleWeightUnit = () => {
+    const nextUnit = state.weightUnit === 'kg' ? 'lbs' : 'kg';
     dispatch({
       type: 'SET_WEIGHT_UNIT',
-      payload: state.weightUnit === 'kg' ? 'lbs' : 'kg',
+      payload: nextUnit,
     });
-    onWeightUnitChange?.();
+    onWeightUnitChange?.(nextUnit);
   };
 
   return (
     <div className="bg-slate-100 p-3 rounded-t-3xl border-t border-slate-200">
       <div className="grid grid-cols-4 gap-2 mb-2">
-        <button
-          onClick={onFillDown}
-          disabled={!hasFillDown}
-          className={`h-12 rounded-xl flex flex-col items-center justify-center transition-colors ${
-            hasFillDown
-              ? 'bg-white shadow-sm text-vibe-green hover:bg-slate-50'
-              : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-          }`}
-        >
-          <i className="fas fa-arrow-down text-lg"></i>
-          <span className="text-[9px] font-bold mt-0.5">向下填充</span>
-        </button>
-
         <button
           onClick={onFillUp}
           disabled={!hasFillUp}
@@ -107,6 +95,19 @@ export function CustomKeyboard({
         >
           <i className="fas fa-arrow-up text-lg"></i>
           <span className="text-[9px] font-bold mt-0.5">向上填充</span>
+        </button>
+
+        <button
+          onClick={onFillDown}
+          disabled={!hasFillDown}
+          className={`h-12 rounded-xl flex flex-col items-center justify-center transition-colors ${
+            hasFillDown
+              ? 'bg-white shadow-sm text-vibe-green hover:bg-slate-50'
+              : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+          }`}
+        >
+          <i className="fas fa-arrow-down text-lg"></i>
+          <span className="text-[9px] font-bold mt-0.5">向下填充</span>
         </button>
 
         <button

@@ -58,6 +58,7 @@ function isValidWorkout(value: unknown): boolean {
     typeof value.id === 'string' &&
     typeof value.date === 'string' &&
     typeof value.name === 'string' &&
+    (value.templateId === undefined || typeof value.templateId === 'string') &&
     Array.isArray(value.exercises) &&
     value.exercises.every(isValidExercise) &&
     isFiniteNumber(value.totalVolume) &&

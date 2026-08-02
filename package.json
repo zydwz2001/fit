@@ -1,6 +1,6 @@
 {
   "name": "vibe-fitness-pro",
-  "version": "3.0.0",
+  "version": "3.0.2",
   "private": true,
   "type": "module",
   "scripts": {
@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@capacitor/android": "^8.4.2",
+    "@capacitor/app": "^8.1.1",
     "@capacitor/core": "^8.4.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

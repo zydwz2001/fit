@@ -3,7 +3,8 @@ import { useApp } from '@/contexts/AppContext';
 import { Card, Button } from '@/components';
 import { MarkdownEditor } from '@/components/MarkdownEditor';
 import { exportData, importData } from '@/utils/storage';
-import type { Exercise, Folder, Note } from '@/types';
+import { useAppBack } from '@/utils/navigation';
+import type { Folder, Note } from '@/types';
 
 const COLORS = ['amber', 'blue', 'green', 'purple', 'pink', 'slate'];
 const ICONS = ['fa-folder', 'fa-book', 'fa-star', 'fa-heart', 'fa-lightbulb'];
@@ -20,10 +21,29 @@ export function KnowledgePage() {
   const [showMenu, setShowMenu] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [importText, setImportText] = useState('');
-  const [showExerciseConfig, setShowExerciseConfig] = useState(false);
-  const [exerciseConfigText, setExerciseConfigText] = useState('');
-  const [exerciseConfigError, setExerciseConfigError] = useState('');
   const importFileRef = useRef<HTMLInputElement>(null);
+
+  useAppBack(() => {
+    if (showEditor) {
+      setShowEditor(false);
+      setEditingNote(null);
+      setDraftFolderId(null);
+      return true;
+    }
+    if (showImportModal) {
+      setShowImportModal(false);
+      return true;
+    }
+    if (showAddFolder) {
+      setShowAddFolder(false);
+      return true;
+    }
+    if (showMenu) {
+      setShowMenu(false);
+      return true;
+    }
+    return false;
+  }, 100);
 
   const toggleFolder = (folderId: string) => {
     dispatch({ type: 'TOGGLE_FOLDER_EXPANDED', payload: { folderId } });
@@ -170,75 +190,6 @@ export function KnowledgePage() {
     };
     reader.readAsText(file);
     e.target.value = '';
-  };
-
-  const serializeExerciseLibrary = () => JSON.stringify(
-    state.exerciseLibrary.map((exercise) => ({
-      id: exercise.id,
-      name: exercise.name,
-      muscleGroup: exercise.muscleGroup,
-      category: exercise.category,
-      useLeftRight: exercise.useLeftRight,
-      ...(exercise.gifUrl ? { gifUrl: exercise.gifUrl } : {}),
-      sets: [],
-    })),
-    null,
-    2
-  );
-
-  const openExerciseConfig = () => {
-    setExerciseConfigText(serializeExerciseLibrary());
-    setExerciseConfigError('');
-    setShowExerciseConfig(true);
-    setShowMenu(false);
-  };
-
-  const applyExerciseConfig = () => {
-    try {
-      const parsed: unknown = JSON.parse(exerciseConfigText);
-      if (!Array.isArray(parsed) || parsed.length === 0) {
-        throw new Error('配置必须是非空动作数组。');
-      }
-
-      const exercises: Exercise[] = parsed.map((item, index) => {
-        if (
-          typeof item !== 'object' ||
-          item === null ||
-          typeof item.id !== 'string' ||
-          typeof item.name !== 'string' ||
-          typeof item.muscleGroup !== 'string' ||
-          (item.category !== 'strength' && item.category !== 'cardio')
-        ) {
-          throw new Error(`第 ${index + 1} 个动作缺少 id、name、muscleGroup 或合法 category。`);
-        }
-
-        return {
-          id: item.id,
-          name: item.name,
-          muscleGroup: item.muscleGroup,
-          category: item.category,
-          useLeftRight: Boolean(item.useLeftRight),
-          gifUrl: typeof item.gifUrl === 'string' ? item.gifUrl : undefined,
-          sets: [],
-        };
-      });
-
-      dispatch({ type: 'REPLACE_EXERCISE_LIBRARY', payload: { exercises } });
-      setShowExerciseConfig(false);
-      setExerciseConfigError('');
-    } catch (error) {
-      setExerciseConfigError(error instanceof Error ? error.message : '动作配置格式无效。');
-    }
-  };
-
-  const downloadExerciseConfig = () => {
-    const blob = new Blob([serializeExerciseLibrary()], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'vibe-fitness-exercises.json';
-    link.click();
-    URL.revokeObjectURL(url);
   };
 
   if (showEditor) {
@@ -471,13 +422,6 @@ export function KnowledgePage() {
               <i className="fas fa-upload text-slate-400 w-4"></i>
               导入数据
             </button>
-            <button
-              onClick={openExerciseConfig}
-              className="w-full h-10 flex items-center gap-3 px-3 text-sm font-bold text-slate-700 hover:bg-slate-50 rounded-vibe transition-colors"
-            >
-              <i className="fas fa-sliders text-slate-400 w-4"></i>
-              动作库配置
-            </button>
           </div>
         </div>
       )}
@@ -525,58 +469,6 @@ export function KnowledgePage() {
               </Button>
               <Button className="flex-1" onClick={handleImport} disabled={!importText.trim()}>
                 导入
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showExerciseConfig && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowExerciseConfig(false)}>
-          <div className="bg-white w-full max-w-md rounded-vibe-xl p-6" onClick={(event) => event.stopPropagation()}>
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h3 className="text-lg font-black">动作库 JSON 配置</h3>
-                <p className="text-[10px] font-bold text-slate-400 mt-1">
-                  category 仅支持 strength 或 cardio
-                </p>
-              </div>
-              <button onClick={() => setShowExerciseConfig(false)} className="w-8 h-8 flex items-center justify-center text-slate-400">
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-
-            <textarea
-              value={exerciseConfigText}
-              onChange={(event) => {
-                setExerciseConfigText(event.target.value);
-                setExerciseConfigError('');
-              }}
-              className="w-full h-64 bg-slate-950 text-emerald-300 rounded-vibe p-3 text-[10px] font-mono resize-none outline-none"
-              spellCheck={false}
-            />
-
-            {exerciseConfigError && (
-              <p className="mt-2 text-xs font-bold text-red-500">{exerciseConfigError}</p>
-            )}
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button variant="secondary" onClick={downloadExerciseConfig}>
-                <i className="fas fa-download"></i>
-                导出配置
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  if (!confirm('确定恢复内置动作库吗？')) return;
-                  dispatch({ type: 'RESET_EXERCISE_LIBRARY' });
-                  setShowExerciseConfig(false);
-                }}
-              >
-                恢复默认
-              </Button>
-              <Button className="ml-auto" onClick={applyExerciseConfig}>
-                应用配置
               </Button>
             </div>
           </div>

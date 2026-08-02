@@ -211,6 +211,7 @@ describe('workout templates reducer', () => {
       payload: { templateId: added.workoutTemplates[0].id },
     });
     expect(applied.dailyWorkout?.name).toBe('游泳加深蹲');
+    expect(applied.dailyWorkout?.templateId).toBe(added.workoutTemplates[0].id);
     expect(applied.dailyWorkout?.exercises.map((exercise) => exercise.id)).toEqual([
       'swimming',
       'squat',
@@ -223,6 +224,53 @@ describe('workout templates reducer', () => {
       payload: { templateId: added.workoutTemplates[0].id },
     });
     expect(removed.workoutTemplates).toEqual([]);
+  });
+
+  it('inherits the latest weights, reps, and set count when applying a template again', () => {
+    const template = {
+      id: 'template-squat',
+      name: '深蹲训练',
+      exerciseIds: ['squat'],
+      createdAt: 1,
+    };
+    const previousWorkout: DailyWorkout = {
+      id: 'previous-template-workout',
+      date: '2026-07-30',
+      name: template.name,
+      templateId: template.id,
+      exercises: [strengthExercise({
+        id: 'squat',
+        name: '深蹲',
+        muscleGroup: '腿',
+        sets: [
+          { id: 'old-set-1', weight: 60, reps: 10, completed: true },
+          { id: 'old-set-2', weight: 65, reps: 8, completed: true },
+          { id: 'old-set-3', weight: 65, reps: 6, completed: false },
+        ],
+      })],
+      totalVolume: 1120,
+      muscleGroups: ['腿'],
+    };
+    const state = {
+      ...createDemoState(),
+      dailyWorkout: null,
+      workoutHistory: [previousWorkout],
+      workoutTemplates: [template],
+    };
+
+    const applied = appReducer(state, {
+      type: 'APPLY_WORKOUT_TEMPLATE',
+      payload: { templateId: template.id },
+    });
+    const sets = applied.dailyWorkout?.exercises[0].sets ?? [];
+
+    expect(sets).toHaveLength(3);
+    expect(sets.map(({ weight, reps, completed }) => ({ weight, reps, completed }))).toEqual([
+      { weight: 60, reps: 10, completed: false },
+      { weight: 65, reps: 8, completed: false },
+      { weight: 65, reps: 6, completed: false },
+    ]);
+    expect(sets.map((set) => set.id)).not.toEqual(['old-set-1', 'old-set-2', 'old-set-3']);
   });
 });
 
