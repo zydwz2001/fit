@@ -7,7 +7,6 @@ import { useAppBack } from '@/utils/navigation';
 interface MarkdownEditorProps {
   title?: string;
   content?: string;
-  contextLabel?: string;
   onSave: (title: string, content: string) => void;
   onCancel?: () => void;
   onOpenWikiLink?: (title: string) => void;
@@ -23,7 +22,6 @@ function withWikiLinks(text: string): string {
 export function MarkdownEditor({
   title: initialTitle = '',
   content: initialContent = '',
-  contextLabel,
   onSave,
   onCancel,
   onOpenWikiLink,
@@ -72,10 +70,7 @@ export function MarkdownEditor({
               <i className="fas fa-arrow-left"></i>
             </button>
           )}
-          <div>
-            <h2 className="font-bold text-lg">{initialTitle ? '编辑笔记' : '新建笔记'}</h2>
-            {contextLabel && <p className="text-xs text-slate-500 mt-0.5">{contextLabel}</p>}
-          </div>
+          <h2 className="font-bold text-lg">{initialTitle ? '编辑笔记' : '新建笔记'}</h2>
         </div>
         <div className="flex items-center gap-2">
           <button

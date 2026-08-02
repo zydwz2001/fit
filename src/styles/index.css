@@ -73,11 +73,13 @@ body {
   padding-bottom: max(env(safe-area-inset-bottom), 4px);
 }
 
-.training-page {
+.training-page,
+.knowledge-page {
   height: calc(100% - 112px);
 }
 
-.native-app .training-page {
+.native-app .training-page,
+.native-app .knowledge-page {
   height: calc(100% - 68px);
 }
 

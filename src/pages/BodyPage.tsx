@@ -9,7 +9,7 @@ import { generateId } from '@/utils/constants';
 import { getTodayString } from '@/utils/constants';
 import { prepareBodyPhoto } from '@/utils/photos';
 import { useAppBack } from '@/utils/navigation';
-import type { BodyMetric, MetricTarget, BodyPhoto, MetricType } from '@/types';
+import type { BodyMetric, BodyPhoto, MetricType } from '@/types';
 
 const DEFAULT_METRICS: { type: MetricType; label: string }[] = [
   { type: 'weight', label: '体重 (kg)' },
@@ -206,17 +206,6 @@ function BodyContent() {
     return metrics.sort((a: BodyMetric, b: BodyMetric) => b.timestamp - a.timestamp)[0].value.toFixed(1);
   };
 
-  const getTarget = (type: MetricType) => {
-    return state.metricTargets.find((t: MetricTarget) => t.type === type)?.target;
-  };
-
-  const handleTargetChange = (type: MetricType, value: string) => {
-    const num = parseFloat(value);
-    if (!isNaN(num)) {
-      dispatch({ type: 'SET_METRIC_TARGET', payload: { type, target: num } });
-    }
-  };
-
   const chartData = useMemo(() => {
     const metrics = state.bodyMetrics.filter((m: BodyMetric) => m.type === activeMetric);
     return metrics
@@ -310,15 +299,12 @@ function BodyContent() {
 
         <div className="flex overflow-x-auto gap-3 p-4 no-scrollbar">
           {orderedMetrics.map((m) => (
-            <div key={`${m.type}-${getTarget(m.type) ?? ''}`}>
+            <div key={m.type}>
               <MetricCard
                 label={m.label}
                 value={getLatestValue(m.type)}
-                target={getTarget(m.type)?.toString()}
                 active={activeMetric === m.type}
                 onClick={() => setActiveMetric(m.type)}
-                showTargetInput={m.type !== 'bmi'}
-                onTargetChange={(v) => handleTargetChange(m.type, v)}
               />
             </div>
           ))}
@@ -326,9 +312,9 @@ function BodyContent() {
 
         <div className="px-6 mt-2">
           <ZoomableChart
+            key={activeMetric}
             data={chartData}
-            targetValue={getTarget(activeMetric)}
-            height={160}
+            height={180}
           />
         </div>
 

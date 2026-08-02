@@ -1,22 +1,51 @@
 import { useState, useRef, useMemo } from 'react';
 
-const ONE_YEAR_AGO = Date.now() - 365 * 24 * 60 * 60 * 1000;
+const BASE_WIDTH = 300;
+const MIN_SCALE = 1;
+const MAX_SCALE = 4;
+const EXACT_DATE_SCALE = 2.5;
 
 interface ZoomableChartProps {
   data: { date: string; value: number }[];
-  targetValue?: number;
   color?: string;
   height?: number;
 }
 
+function parseDate(date: string): Date {
+  return new Date(`${date}T00:00:00`);
+}
+
+function evenlySpacedIndexes(length: number, count: number): number[] {
+  if (length <= count) return Array.from({ length }, (_, index) => index);
+  return [...new Set(
+    Array.from({ length: count }, (_, index) =>
+      Math.round((index / (count - 1)) * (length - 1))
+    )
+  )];
+}
+
+export function formatChartDateLabel(
+  date: string,
+  mode: 'overview' | 'detail' | 'exact',
+  spansYears = false
+): string {
+  const value = parseDate(date);
+  const year = value.getFullYear();
+  const month = value.getMonth() + 1;
+  const day = value.getDate();
+
+  if (mode === 'exact') return date;
+  if (mode === 'detail') return `${month}月${day}日`;
+  return spansYears ? `${year}年${month}月` : `${month}月`;
+}
+
 export function ZoomableChart({
   data,
-  targetValue,
   color = '#10B981',
-  height = 160
+  height = 180
 }: ZoomableChartProps) {
   const [scale, setScale] = useState(1);
-  const svgRef = useRef<SVGSVGElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const lastDistanceRef = useRef<number>(0);
   const lastScaleRef = useRef(1);
 
@@ -39,33 +68,52 @@ export function ZoomableChart({
         e.touches[0].clientY - e.touches[1].clientY
       );
       const scaleDelta = distance / lastDistanceRef.current;
-      const newScale = Math.min(Math.max(lastScaleRef.current * scaleDelta, 1), 4);
+      const newScale = Math.min(
+        Math.max(lastScaleRef.current * scaleDelta, MIN_SCALE),
+        MAX_SCALE
+      );
       setScale(newScale);
     }
   };
 
-  const chartData = useMemo(() => {
-    const sorted = [...data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    const filtered = sorted.filter(d => new Date(d.date).getTime() >= ONE_YEAR_AGO);
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (e.touches.length < 2) lastDistanceRef.current = 0;
+  };
 
-    if (filtered.length === 0) return [];
-    return filtered;
+  const chartData = useMemo(() => {
+    return [...data].sort((a, b) => parseDate(a.date).getTime() - parseDate(b.date).getTime());
   }, [data]);
 
-  const pathData = useMemo(() => {
-    if (chartData.length < 2) return '';
+  const geometry = useMemo(() => {
+    const width = BASE_WIDTH * scale;
+    if (chartData.length === 0) return { width, points: [], path: '' };
 
-    const width = 300 * scale;
     const values = chartData.map(d => d.value);
-    const minVal = Math.min(...values) * 0.95;
-    const maxVal = Math.max(...values) * 1.05;
+    const rawMin = Math.min(...values);
+    const rawMax = Math.max(...values);
+    const valuePadding = rawMax === rawMin
+      ? Math.max(Math.abs(rawMin) * 0.05, 1)
+      : (rawMax - rawMin) * 0.1;
+    const minVal = rawMin - valuePadding;
+    const maxVal = rawMax + valuePadding;
     const range = maxVal - minVal || 1;
+    const times = chartData.map((item) => parseDate(item.date).getTime());
+    const firstTime = times[0];
+    const lastTime = times[times.length - 1];
+    const timeRange = lastTime - firstTime;
+    const sidePadding = 12;
+    const plotTop = 10;
+    const plotBottom = scale >= EXACT_DATE_SCALE ? height - 52 : height - 30;
 
     const points = chartData.map((d, i) => {
-      const x = (i / (chartData.length - 1)) * width;
-      const y = height - ((d.value - minVal) / range) * (height - 40);
-      return { x, y };
+      const x = timeRange === 0
+        ? width / 2
+        : sidePadding + ((times[i] - firstTime) / timeRange) * (width - sidePadding * 2);
+      const y = plotBottom - ((d.value - minVal) / range) * (plotBottom - plotTop);
+      return { ...d, x, y };
     });
+
+    if (points.length < 2) return { width, points, path: '' };
 
     let path = `M ${points[0].x} ${points[0].y}`;
     for (let i = 1; i < points.length; i++) {
@@ -75,62 +123,135 @@ export function ZoomableChart({
       path += ` Q ${cpx} ${prev.y} ${cpx} ${(prev.y + curr.y) / 2}`;
       path += ` Q ${cpx} ${curr.y} ${curr.x} ${curr.y}`;
     }
-    return path;
+    return { width, points, path };
   }, [chartData, height, scale]);
 
-  const targetY = useMemo(() => {
-    if (!targetValue || chartData.length === 0) return null;
-    const values = chartData.map(d => d.value);
-    const minVal = Math.min(...values) * 0.95;
-    const maxVal = Math.max(...values) * 1.05;
-    const range = maxVal - minVal || 1;
-    return height - ((targetValue - minVal) / range) * (height - 40);
-  }, [chartData, targetValue, height]);
+  const labelMode = scale >= EXACT_DATE_SCALE
+    ? 'exact'
+    : scale >= 1.5
+      ? 'detail'
+      : 'overview';
+  const spansYears = chartData.length > 1 &&
+    parseDate(chartData[0].date).getFullYear() !==
+      parseDate(chartData[chartData.length - 1].date).getFullYear();
+  const tickIndexes = (() => {
+    if (labelMode === 'exact') {
+      return geometry.points.map((_, index) => index);
+    }
+    if (labelMode === 'detail') {
+      return evenlySpacedIndexes(geometry.points.length, 8);
+    }
+
+    const monthIndexes: number[] = [];
+    let previousLabel = '';
+    geometry.points.forEach((point, index) => {
+      const label = formatChartDateLabel(point.date, 'overview', spansYears);
+      if (label !== previousLabel) {
+        monthIndexes.push(index);
+        previousLabel = label;
+      }
+    });
+    return evenlySpacedIndexes(monthIndexes.length, 4).map((index) => monthIndexes[index]);
+  })();
+
+  const resetView = () => {
+    setScale(MIN_SCALE);
+    scrollRef.current?.scrollTo({ left: 0, behavior: 'smooth' });
+  };
 
   return (
     <div
-      className="w-full relative bg-slate-50/50 rounded-2xl p-4 overflow-x-auto overflow-y-hidden no-scrollbar"
-      style={{ height, touchAction: 'pan-x' }}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
+      className="w-full relative bg-slate-50/50 rounded-2xl overflow-hidden"
+      style={{ height }}
     >
-      <svg
-        ref={svgRef}
-        className="h-full max-w-none"
-        viewBox={`0 0 ${300 * scale} ${height}`}
-        style={{
-          width: `${100 * scale}%`,
-          minWidth: `${300 * scale}px`,
-          transition: 'width 0.1s',
-        }}
+      <div
+        ref={scrollRef}
+        className="w-full h-full px-3 overflow-x-auto overflow-y-hidden no-scrollbar"
+        style={{ touchAction: 'pan-x' }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
-        {targetY !== null && (
-          <line
-            x1="0" y1={targetY} x2={300 * scale} y2={targetY}
-            stroke={color} strokeWidth="1" strokeDasharray="4,4" opacity="0.4"
-          />
-        )}
-        {pathData && (
-          <path
-            d={pathData}
-            fill="none"
-            stroke={color}
-            strokeWidth="2"
-          />
-        )}
-        {targetValue && targetY !== null && (
-          <text x="5" y={targetY - 5} fontSize="10" fill={color} fontWeight="bold">
-            目标: {targetValue}
-          </text>
-        )}
-      </svg>
-      {scale > 1 && (
+        <svg
+          className="h-full max-w-none"
+          viewBox={`0 0 ${geometry.width} ${height}`}
+          style={{
+            width: `${100 * scale}%`,
+            minWidth: `${geometry.width}px`,
+            transition: 'width 0.1s',
+          }}
+          aria-label="身体记录趋势图"
+        >
+          {tickIndexes.map((pointIndex) => {
+            const point = geometry.points[pointIndex];
+            if (!point) return null;
+            const isExact = labelMode === 'exact';
+            const isFirst = pointIndex === tickIndexes[0];
+            const isLast = pointIndex === tickIndexes[tickIndexes.length - 1];
+            const textAnchor = isExact
+              ? (isFirst ? 'start' : 'end')
+              : (isFirst ? 'start' : isLast ? 'end' : 'middle');
+            const transform = isExact
+              ? `rotate(-35 ${point.x} ${height - 7})`
+              : undefined;
+
+            return (
+              <g key={`tick-${point.date}-${pointIndex}`}>
+                <line
+                  x1={point.x}
+                  y1="8"
+                  x2={point.x}
+                  y2={height - 24}
+                  stroke="#e2e8f0"
+                  strokeWidth="1"
+                  opacity="0.55"
+                />
+                <text
+                  x={point.x}
+                  y={height - 7}
+                  fontSize={isExact ? 8 : 9}
+                  fill="#94a3b8"
+                  textAnchor={textAnchor}
+                  transform={transform}
+                  fontWeight="600"
+                >
+                  {formatChartDateLabel(point.date, labelMode, spansYears)}
+                </text>
+              </g>
+            );
+          })}
+          {geometry.path && (
+            <path
+              d={geometry.path}
+              fill="none"
+              stroke={color}
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          )}
+          {geometry.points.map((point, index) => (
+            <circle
+              key={`${point.date}-${index}`}
+              cx={point.x}
+              cy={point.y}
+              r="3.5"
+              fill="white"
+              stroke={color}
+              strokeWidth="2"
+            >
+              <title>{point.date} · {point.value}</title>
+            </circle>
+          ))}
+        </svg>
+      </div>
+      {scale > MIN_SCALE + 0.01 && (
         <button
-          onClick={() => setScale(1)}
-          className="sticky left-full bottom-0 ml-auto px-2 h-6 bg-white/90 rounded text-[10px] font-bold text-slate-500 shadow-sm"
+          onClick={resetView}
+          className="absolute top-2 right-2 px-3 h-7 bg-white/95 rounded-lg text-[10px] font-bold text-slate-500 shadow-sm"
           aria-label="重置图表缩放"
         >
-          {scale.toFixed(1)}x · 重置
+          重置视图
         </button>
       )}
       {chartData.length === 0 && (

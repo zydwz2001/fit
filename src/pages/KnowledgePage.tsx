@@ -193,14 +193,11 @@ export function KnowledgePage() {
   };
 
   if (showEditor) {
-    const folderId = editingNote?.folderId ?? draftFolderId;
-    const folderName = state.folders.find((folder) => folder.id === folderId)?.name;
     return (
       <MarkdownEditor
         key={editingNote?.id ?? `new-note-${draftFolderId ?? 'unfiled'}`}
         title={editingNote?.title}
         content={editingNote?.content}
-        contextLabel={folderName ? `文件夹：${folderName}` : '位置：未分类笔记'}
         onSave={handleSaveNote}
         onOpenWikiLink={handleOpenWikiLink}
         onCancel={() => {
@@ -214,20 +211,19 @@ export function KnowledgePage() {
 
   return (
     <>
-      <div className="scroll-content p-4">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-2xl font-bold">知识库</h2>
-            <p className="text-sm text-slate-500 mt-1">文件夹整理主题，笔记记录内容</p>
-          </div>
+      <div className="knowledge-page flex flex-col min-h-0 bg-white">
+        <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-white">
+          <h2 className="text-2xl font-bold">知识库</h2>
           <button
             onClick={() => setShowMenu(!showMenu)}
             className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-slate-600"
+            aria-label="打开知识库菜单"
           >
             <i className="fas fa-ellipsis-v"></i>
           </button>
         </div>
 
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 pb-6">
         <div className="grid grid-cols-2 gap-2 mb-5">
           <button
             onClick={() => handleCreateNote(null)}
@@ -245,11 +241,6 @@ export function KnowledgePage() {
           </button>
         </div>
 
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-bold text-slate-800">内容</h3>
-          <span className="text-xs text-slate-500">{state.folders.length} 个文件夹 · {state.notes.length} 篇笔记</span>
-        </div>
-
         <div className="space-y-3">
           {unfiledNotes.length > 0 && (
             <Card size="lg" className="overflow-hidden border-slate-200">
@@ -258,8 +249,7 @@ export function KnowledgePage() {
                   <i className="fas fa-note-sticky"></i>
                 </div>
                 <div className="flex-1">
-                  <span className="inline-flex text-[10px] leading-4 px-2 rounded-full bg-emerald-50 text-emerald-700 font-bold">笔记列表</span>
-                  <h4 className="font-bold text-base mt-0.5">未分类笔记</h4>
+                  <h4 className="font-bold text-base">未分类笔记</h4>
                 </div>
                 <span className="text-sm font-semibold text-slate-500">{unfiledNotes.length} 篇</span>
               </div>
@@ -310,8 +300,7 @@ export function KnowledgePage() {
                       <i className="fas fa-folder"></i>
                     </div>
                     <div className="min-w-0">
-                      <span className="inline-flex text-[10px] leading-4 px-2 rounded-full bg-slate-100 text-slate-600 font-bold">文件夹</span>
-                      <h4 className="font-bold text-base mt-0.5 truncate">{folder.name}</h4>
+                      <h4 className="font-bold text-base truncate">{folder.name}</h4>
                       <p className="text-xs text-slate-500">{notes.length} 篇笔记</p>
                     </div>
                   </div>
@@ -364,10 +353,7 @@ export function KnowledgePage() {
                               className="flex-1 cursor-pointer min-w-0"
                               onClick={() => handleEditNote(note)}
                             >
-                              <div className="flex items-center gap-2">
-                                <p className="text-sm font-bold text-slate-800 truncate">{note.title}</p>
-                                <span className="text-[10px] text-slate-400 flex-shrink-0">笔记</span>
-                              </div>
+                              <p className="text-sm font-bold text-slate-800 truncate">{note.title}</p>
                               <p className="text-xs text-slate-500 mt-1 truncate">
                                 {note.content.replace(/[#*`[\]]/g, '').slice(0, 50)}...
                               </p>
@@ -399,7 +385,7 @@ export function KnowledgePage() {
             );
           })}
         </div>
-
+        </div>
       </div>
 
       {showMenu && (
