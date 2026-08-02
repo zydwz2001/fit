@@ -3,7 +3,7 @@ import { useApp } from '@/contexts/AppContext';
 import { SubTabBar, Card, Button } from '@/components';
 import { ExerciseCard } from '@/components/training';
 import { CustomKeyboard } from '@/components/training';
-import { generateId, formatDate, formatDisplayDate, calculateVolume } from '@/utils/constants';
+import { generateId, formatDate, formatDisplayDate, calculateVolume, getTodayString } from '@/utils/constants';
 import { useAppBack } from '@/utils/navigation';
 import type { Set as ExerciseSet, Exercise, DailyWorkout } from '@/types';
 import { DEFAULT_EXERCISES } from '@/types';
@@ -84,6 +84,10 @@ export function TrainingPage() {
           date={showDayDetailModal.date}
           hasWorkout={showDayDetailModal.hasWorkout}
           onClose={() => setShowDayDetailModal(null)}
+          onCopyToToday={() => {
+            setShowDayDetailModal(null);
+            setSubTab('today');
+          }}
         />
       )}
     </div>
@@ -685,6 +689,19 @@ function HistoryTab({ onShowDayDetail }: HistoryTabProps) {
     return workouts.find((w) => w.date === dateStr);
   };
 
+  const getWorkoutLabels = (workout: DailyWorkout) => {
+    const labels = workout.exercises.map((exercise) =>
+      exercise.category === 'cardio' ? exercise.name : exercise.muscleGroup
+    );
+
+    if (labels.length === 0) {
+      labels.push(...workout.muscleGroups.filter((group) => group !== '有氧'));
+      if (workout.cardioName) labels.push(workout.cardioName);
+    }
+
+    return [...new Set(labels.filter(Boolean))];
+  };
+
   const prevMonth = () => {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
   };
@@ -744,23 +761,31 @@ function HistoryTab({ onShowDayDetail }: HistoryTabProps) {
       <div className="grid grid-cols-7 gap-1">
         {calendarDays.map((date, i) => {
           const workout = getWorkoutForDay(date);
+          const workoutLabels = workout ? getWorkoutLabels(workout) : [];
           return (
             <div
               key={i}
-              className={`h-16 rounded-lg flex flex-col items-center justify-start p-1 cursor-pointer ${
+              className={`min-h-24 rounded-lg flex flex-col items-center justify-start p-1 cursor-pointer ${
                 workout ? 'bg-slate-50' : ''
               } ${!date ? 'text-slate-200 pointer-events-none' : ''} hover:bg-slate-100 transition-colors`}
               onClick={() => date && onShowDayDetail(formatDate(date), !!workout)}
             >
               <span className="text-xs font-bold">{date?.getDate()}</span>
               {workout && (
-                <div className="flex flex-col gap-0.5 mt-1 w-full">
-                  <span className="bg-blue-500 text-white text-[8px] px-1 rounded truncate text-center">
-                    {workout.cardioName ?? workout.muscleGroups[0] ?? '训练'}
-                  </span>
+                <div className="flex flex-col gap-1 mt-1 w-full min-w-0">
+                  <div className="flex flex-wrap justify-center gap-0.5 w-full">
+                    {(workoutLabels.length > 0 ? workoutLabels : ['训练']).map((label) => (
+                      <span
+                        key={label}
+                        className="max-w-full bg-blue-500 text-white text-[7px] leading-3 px-1 rounded text-center break-all"
+                      >
+                        {label}
+                      </span>
+                    ))}
+                  </div>
                   {workout.totalVolume > 0 && (
-                    <span className="bg-vibe-green text-white text-[8px] px-1 rounded truncate text-center">
-                      {workout.totalVolume}kg
+                    <span className="bg-vibe-green text-white text-[clamp(6px,1.7vw,9px)] leading-3 px-0.5 rounded text-center font-mono font-semibold tabular-nums tracking-[-0.04em] whitespace-nowrap">
+                      {Math.round(workout.totalVolume)}
                     </span>
                   )}
                 </div>
@@ -846,9 +871,6 @@ function ExerciseTrendTab() {
     ? selectedExerciseId
     : (availableExercises[0]?.id ?? '');
 
-  const selectedExercise = availableExercises.find(
-    (exercise) => exercise.id === resolvedExerciseId
-  );
   const records = useMemo(() => {
     if (!resolvedExerciseId) return [];
     return workouts
@@ -900,11 +922,6 @@ function ExerciseTrendTab() {
             <option key={exercise.id} value={exercise.id}>{exercise.name}</option>
           ))}
         </select>
-      </div>
-
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-black">{selectedExercise?.name}</h3>
-        <span className="text-[10px] font-bold text-slate-400">按日期查看</span>
       </div>
 
       <div className="space-y-3">
@@ -1008,9 +1025,10 @@ interface DayDetailModalProps {
   date: string;
   hasWorkout: boolean;
   onClose: () => void;
+  onCopyToToday: () => void;
 }
 
-function DayDetailModal({ date, hasWorkout, onClose }: DayDetailModalProps) {
+function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailModalProps) {
   const { state, dispatch } = useApp();
   const workouts = useMemo(() => {
     return [
@@ -1079,6 +1097,25 @@ function DayDetailModal({ date, hasWorkout, onClose }: DayDetailModalProps) {
     });
     setIsEditing(false);
     setAddingWorkout(false);
+  };
+
+  const handleCopyToToday = () => {
+    if (!workout) return;
+    const hasExistingTodayWorkout = Boolean(
+      state.dailyWorkout && state.dailyWorkout.id !== workout.id
+    );
+    if (
+      hasExistingTodayWorkout &&
+      !confirm('今天已有训练，复制后将替换当前今日训练，是否继续？')
+    ) {
+      return;
+    }
+
+    dispatch({
+      type: 'COPY_WORKOUT_TO_TODAY',
+      payload: { workout },
+    });
+    onCopyToToday();
   };
 
   const toggleExpanded = (exerciseId: string) => {
@@ -1414,7 +1451,15 @@ function DayDetailModal({ date, hasWorkout, onClose }: DayDetailModalProps) {
                 </Button>
               </>
             ) : (
-              <Button className="w-full" onClick={onClose}>关闭</Button>
+              <>
+                <Button variant="secondary" className="flex-1" onClick={onClose}>关闭</Button>
+                {workout.date !== getTodayString() && (
+                  <Button className="flex-1" onClick={handleCopyToToday}>
+                    <i className="fas fa-copy mr-2"></i>
+                    复制到今天
+                  </Button>
+                )}
+              </>
             )}
           </div>
         </div>

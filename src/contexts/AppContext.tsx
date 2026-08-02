@@ -46,6 +46,7 @@ type Action =
   | { type: 'SELECT_FOLDER'; payload: { folderId: string | null } }
   | { type: 'SAVE_WORKOUT_RECORD'; payload: { workout: DailyWorkout } }
   | { type: 'REMOVE_WORKOUT_RECORD'; payload: { workoutId: string } }
+  | { type: 'COPY_WORKOUT_TO_TODAY'; payload: { workout: DailyWorkout } }
   | { type: 'ADD_WORKOUT_TEMPLATE'; payload: { name: string; exerciseIds: string[] } }
   | { type: 'REMOVE_WORKOUT_TEMPLATE'; payload: { templateId: string } }
   | { type: 'APPLY_WORKOUT_TEMPLATE'; payload: { templateId: string } }
@@ -593,6 +594,26 @@ export function appReducer(state: AppState, action: Action): AppState {
           (workout) => workout.id !== action.payload.workoutId
         ),
       };
+    }
+    case 'COPY_WORKOUT_TO_TODAY': {
+      const sourceWorkout = action.payload.workout;
+      const exercises = sourceWorkout.exercises.map((exercise) => ({
+        ...exercise,
+        sets: exercise.sets.map((set) => ({
+          ...set,
+          id: generateId(),
+          completed: false,
+        })),
+      }));
+      const workout = normalizeWorkout({
+        ...sourceWorkout,
+        id: generateId(),
+        date: getTodayString(),
+        exercises,
+        totalVolume: 0,
+      }, state.weightUnit);
+
+      return { ...state, dailyWorkout: workout };
     }
     case 'ADD_WORKOUT_TEMPLATE': {
       const name = action.payload.name.trim();

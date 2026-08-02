@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { appReducer, mergeWithDemoState } from './AppContext';
 import { createDemoState } from '@/utils/demoData';
-import { calculateBMI, calculateVolume } from '@/utils/constants';
+import { calculateBMI, calculateVolume, getTodayString } from '@/utils/constants';
 import type { DailyWorkout, Exercise } from '@/types';
 
 function strengthExercise(overrides: Partial<Exercise> = {}): Exercise {
@@ -123,6 +123,55 @@ describe('workout reducer', () => {
     });
 
     expect(next.workoutHistory.some((workout) => workout.id === workoutId)).toBe(false);
+  });
+
+  it('copies a historical workout to today without changing the original record', () => {
+    const historyWorkout: DailyWorkout = {
+      id: 'history-copy-source',
+      date: '2026-07-20',
+      name: '背部和爬坡',
+      exercises: [
+        strengthExercise({
+          sets: [
+            { id: 'history-set-1', weight: 55, reps: 10, completed: true },
+            { id: 'history-set-2', weight: 60, reps: 8, completed: true },
+          ],
+        }),
+        {
+          id: 'hill_climbing',
+          name: '爬坡',
+          muscleGroup: '有氧',
+          category: 'cardio',
+          useLeftRight: false,
+          sets: [],
+          durationMinutes: 30,
+        },
+      ],
+      totalVolume: 1030,
+      muscleGroups: ['背', '有氧'],
+      cardioName: '爬坡',
+    };
+    const state = {
+      ...createDemoState(),
+      dailyWorkout: null,
+      workoutHistory: [historyWorkout],
+    };
+    const next = appReducer(state, {
+      type: 'COPY_WORKOUT_TO_TODAY',
+      payload: { workout: historyWorkout },
+    });
+
+    expect(next.dailyWorkout?.date).toBe(getTodayString());
+    expect(next.dailyWorkout?.id).not.toBe(historyWorkout.id);
+    expect(next.dailyWorkout?.name).toBe(historyWorkout.name);
+    expect(next.dailyWorkout?.totalVolume).toBe(0);
+    expect(next.dailyWorkout?.exercises[0].sets.map((set) => set.completed)).toEqual([false, false]);
+    expect(next.dailyWorkout?.exercises[0].sets.map((set) => set.id)).not.toEqual([
+      'history-set-1',
+      'history-set-2',
+    ]);
+    expect(next.dailyWorkout?.exercises[1].durationMinutes).toBe(30);
+    expect(next.workoutHistory[0]).toEqual(historyWorkout);
   });
 
   it('updates structured cardio fields without creating fake strength volume', () => {
