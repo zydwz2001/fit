@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-apk:
@@ -63,3 +63,24 @@ jobs:
           path: Vibe-Fitness-Android-Preview.apk
           if-no-files-found: error
           retention-days: 14
+
+      - name: Publish no-login preview release
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version_name=$(sed -n 's/.*versionName "\([^"]*\)".*/\1/p' android/app/build.gradle)
+          test -n "$version_name"
+          tag="v${version_name}"
+          release_title="Vibe Fitness ${version_name}"
+          release_notes="Android 预览测试包。下载 Vibe-Fitness-Android-Preview.apk 后直接安装。"
+
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" Vibe-Fitness-Android-Preview.apk --clobber
+          else
+            gh release create "$tag" Vibe-Fitness-Android-Preview.apk \
+              --target "$GITHUB_SHA" \
+              --title "$release_title" \
+              --notes "$release_notes" \
+              --prerelease
+          fi
