@@ -359,37 +359,16 @@ function BodyContent() {
             onClick={() => setShowPhotoGallery(true)}
             className="w-full rounded-2xl border border-slate-100 bg-slate-50 p-4 text-left"
           >
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-base font-bold text-slate-900">身体照片</h3>
-                <p className="text-sm text-slate-500 mt-1">
-                  {state.bodyPhotos.length > 0
-                    ? `${state.bodyPhotos.length} 张 · 管理日期或制作对比图`
-                    : '上传照片，记录身体变化'}
-                </p>
+                <p className="mt-1 text-sm text-slate-500">上传照片，记录身体变化</p>
               </div>
               <span className="text-sm font-bold text-vibe-green flex items-center gap-2">
                 进入
                 <i className="fas fa-chevron-right text-xs"></i>
               </span>
             </div>
-            {state.bodyPhotos.length > 0 ? (
-              <div className="grid grid-cols-3 gap-2">
-                {[...state.bodyPhotos]
-                  .sort((a, b) => b.timestamp - a.timestamp)
-                  .slice(0, 3)
-                  .map((photo) => (
-                    <div key={photo.id} className="aspect-square rounded-xl overflow-hidden bg-slate-200">
-                      <img src={photo.uri} alt={photo.date} className="w-full h-full object-cover" />
-                    </div>
-                  ))}
-              </div>
-            ) : (
-              <div className="h-24 rounded-xl bg-white flex items-center justify-center text-slate-500">
-                <i className="fas fa-camera text-vibe-green mr-2"></i>
-                <span className="text-sm font-semibold">打开照片管理页</span>
-              </div>
-            )}
           </button>
         </div>
       </div>

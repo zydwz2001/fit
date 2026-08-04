@@ -11,6 +11,11 @@ interface ZoomableChartProps {
   height?: number;
 }
 
+interface ChartPoint {
+  x: number;
+  y: number;
+}
+
 function parseDate(date: string): Date {
   return new Date(`${date}T00:00:00`);
 }
@@ -22,6 +27,59 @@ function evenlySpacedIndexes(length: number, count: number): number[] {
       Math.round((index / (count - 1)) * (length - 1))
     )
   )];
+}
+
+export function normalizeChartData(
+  data: { date: string; value: number }[]
+): { date: string; value: number }[] {
+  const latestByDate = new Map<string, { date: string; value: number }>();
+  data.forEach((item) => {
+    if (Number.isFinite(item.value) && Number.isFinite(parseDate(item.date).getTime())) {
+      latestByDate.set(item.date, item);
+    }
+  });
+  return [...latestByDate.values()]
+    .sort((a, b) => parseDate(a.date).getTime() - parseDate(b.date).getTime());
+}
+
+export function buildSmoothPath(points: ChartPoint[]): string {
+  if (points.length < 2) return '';
+
+  const segmentSlopes = points.slice(0, -1).map((point, index) => {
+    const next = points[index + 1];
+    const width = next.x - point.x;
+    return width > 0 ? (next.y - point.y) / width : 0;
+  });
+  const tangents = points.map((_, index) => {
+    if (index === 0) return segmentSlopes[0];
+    if (index === points.length - 1) return segmentSlopes[segmentSlopes.length - 1];
+
+    const previousSlope = segmentSlopes[index - 1];
+    const nextSlope = segmentSlopes[index];
+    if (previousSlope === 0 || nextSlope === 0 || previousSlope * nextSlope <= 0) {
+      return 0;
+    }
+
+    const previousWidth = points[index].x - points[index - 1].x;
+    const nextWidth = points[index + 1].x - points[index].x;
+    const previousWeight = 2 * nextWidth + previousWidth;
+    const nextWeight = nextWidth + 2 * previousWidth;
+    return (previousWeight + nextWeight) /
+      (previousWeight / previousSlope + nextWeight / nextSlope);
+  });
+
+  let path = `M ${points[0].x} ${points[0].y}`;
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const current = points[index];
+    const next = points[index + 1];
+    const width = next.x - current.x;
+    const firstControlX = current.x + width / 3;
+    const firstControlY = current.y + tangents[index] * width / 3;
+    const secondControlX = next.x - width / 3;
+    const secondControlY = next.y - tangents[index + 1] * width / 3;
+    path += ` C ${firstControlX} ${firstControlY}, ${secondControlX} ${secondControlY}, ${next.x} ${next.y}`;
+  }
+  return path;
 }
 
 export function formatChartDateLabel(
@@ -81,7 +139,7 @@ export function ZoomableChart({
   };
 
   const chartData = useMemo(() => {
-    return [...data].sort((a, b) => parseDate(a.date).getTime() - parseDate(b.date).getTime());
+    return normalizeChartData(data);
   }, [data]);
 
   const geometry = useMemo(() => {
@@ -115,15 +173,7 @@ export function ZoomableChart({
 
     if (points.length < 2) return { width, points, path: '' };
 
-    let path = `M ${points[0].x} ${points[0].y}`;
-    for (let i = 1; i < points.length; i++) {
-      const prev = points[i - 1];
-      const curr = points[i];
-      const cpx = (prev.x + curr.x) / 2;
-      path += ` Q ${cpx} ${prev.y} ${cpx} ${(prev.y + curr.y) / 2}`;
-      path += ` Q ${cpx} ${curr.y} ${curr.x} ${curr.y}`;
-    }
-    return { width, points, path };
+    return { width, points, path: buildSmoothPath(points) };
   }, [chartData, height, scale]);
 
   const labelMode = scale >= EXACT_DATE_SCALE

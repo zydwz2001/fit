@@ -1,9 +1,16 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { AppState, generateId, getTodayString, calculateBMI, calculateVolume } from '@/utils/constants';
+import {
+  AppState,
+  generateId,
+  getTodayString,
+  calculateBMI,
+  calculateVolume,
+  getLatestBodyWeightKg,
+} from '@/utils/constants';
 import type { BodyMetric, MetricTarget, MetricType, Exercise, Set as ExerciseSet, DailyWorkout } from '@/types';
 import { DEFAULT_EXERCISES } from '@/types';
 import { loadData, saveData } from '@/utils/storage';
-import { createDemoState } from '@/utils/demoData';
+import { createInitialState } from '@/utils/initialState';
 
 interface AppContextType {
   state: AppState;
@@ -28,7 +35,7 @@ type Action =
       type: 'UPDATE_CARDIO_EXERCISE';
       payload: {
         exerciseId: string;
-        updates: Partial<Pick<Exercise, 'durationMinutes' | 'distanceKm' | 'intensity'>>;
+        updates: Partial<Pick<Exercise, 'durationMinutes'>>;
       };
     }
   | { type: 'REMOVE_SET'; payload: { exerciseId: string; setId: string } }
@@ -70,29 +77,148 @@ function getWorkoutName(firstMuscleGroup: string): string {
   return map[firstMuscleGroup] || '今日训练';
 }
 
-const initialState: AppState = createDemoState();
+const initialState: AppState = createInitialState();
 
-export function mergeWithDemoState(saved: Partial<AppState>): AppState {
-  const demoState = createDemoState();
-  const savedArray = <T,>(value: T[] | undefined, fallback: T[]): T[] =>
-    Array.isArray(value) ? value : fallback;
+const NEW_BUILT_IN_EXERCISE_IDS = [
+  'pullup',
+  'bent_over_dumbbell_reverse_fly',
+  'crunch',
+  'dumbbell_curl',
+  'barbell_curl',
+  'rope_pushdown',
+  'assisted_dip',
+] as const;
+
+const REMOVED_BUILT_IN_EXERCISE_IDS = new Set([
+  'cable_lateral_raise',
+  'reverse_pec_deck',
+]);
+
+const RENAMED_BUILT_IN_EXERCISES = new Map([
+  ['bent_over_dumbbell_reverse_fly', '俯身侧平举'],
+  ['crunch', '吊杠屈腿卷腹'],
+  ['assisted_dip', '双杠臂屈伸'],
+]);
+
+function refreshBuiltInExerciseName(exercise: Exercise): Exercise {
+  const currentName = RENAMED_BUILT_IN_EXERCISES.get(exercise.id);
+  return currentName ? { ...exercise, name: currentName } : exercise;
+}
+
+function refreshWorkoutExerciseNames(workout: DailyWorkout): DailyWorkout {
+  return {
+    ...workout,
+    exercises: workout.exercises.map(refreshBuiltInExerciseName),
+  };
+}
+
+export function mergeExerciseLibrary(saved: Exercise[] | undefined): Exercise[] {
+  if (!Array.isArray(saved)) return DEFAULT_EXERCISES;
+  if (saved.length === 0) return saved;
+
+  const defaultsById = new Map(DEFAULT_EXERCISES.map((exercise) => [exercise.id, exercise]));
+  const newBuiltInIds = new Set<string>(NEW_BUILT_IN_EXERCISE_IDS);
+  const activeExercises = saved.filter(
+    (exercise) => !REMOVED_BUILT_IN_EXERCISE_IDS.has(exercise.id)
+  );
+  const oldBuiltInCount = activeExercises.filter(
+    (exercise) => defaultsById.has(exercise.id) && !newBuiltInIds.has(exercise.id)
+  ).length;
+
+  const merged = activeExercises.map((exercise) => {
+    const currentDefault = defaultsById.get(exercise.id);
+    return currentDefault?.gifUrl
+      ? {
+          ...refreshBuiltInExerciseName(exercise),
+          gifUrl: currentDefault.gifUrl,
+          volumeMode: currentDefault.volumeMode,
+        }
+      : refreshBuiltInExerciseName(exercise);
+  });
+
+  // Only extend libraries that still resemble the original built-in list.
+  // Small, fully custom imported libraries remain untouched.
+  if (oldBuiltInCount < 20) return merged;
+
+  const existingIds = new Set(merged.map((exercise) => exercise.id));
+  const addedExercises = NEW_BUILT_IN_EXERCISE_IDS
+    .filter((id) => !existingIds.has(id))
+    .map((id) => defaultsById.get(id))
+    .filter((exercise): exercise is Exercise => Boolean(exercise));
+
+  const combined = [...merged, ...addedExercises];
+  const defaultOrder = new Map(DEFAULT_EXERCISES.map((exercise, index) => [exercise.id, index]));
+  const originalOrder = new Map(combined.map((exercise, index) => [exercise.id, index]));
+  return combined.sort((a, b) => {
+    const aOrder = defaultOrder.get(a.id) ?? DEFAULT_EXERCISES.length + (originalOrder.get(a.id) ?? 0);
+    const bOrder = defaultOrder.get(b.id) ?? DEFAULT_EXERCISES.length + (originalOrder.get(b.id) ?? 0);
+    return aOrder - bOrder;
+  });
+}
+
+function removeLegacySeedData(saved: Partial<AppState>): Partial<AppState> {
+  const isSeedId = (item: { id?: string }): boolean => item.id?.startsWith('demo-') ?? false;
+  const hasSeedData = Boolean(saved.dailyWorkout && isSeedId(saved.dailyWorkout)) ||
+    [
+      saved.workoutHistory,
+      saved.bodyMetrics,
+      saved.workoutTemplates,
+      saved.folders,
+      saved.notes,
+    ].some((items) => items?.some(isSeedId));
+
+  if (!hasSeedData) return saved;
+
+  const legacyTargets = new Map<MetricType, number>([
+    ['weight', 53],
+    ['waist', 65],
+    ['arm', 29],
+    ['hip', 90],
+  ]);
 
   return {
-    ...demoState,
     ...saved,
-    dailyWorkout: saved.dailyWorkout === undefined ? demoState.dailyWorkout : saved.dailyWorkout,
-    workoutHistory: savedArray(saved.workoutHistory, demoState.workoutHistory),
-    exerciseLibrary: savedArray(saved.exerciseLibrary, DEFAULT_EXERCISES),
-    workoutTemplates: savedArray(saved.workoutTemplates, demoState.workoutTemplates),
-    bodyMetrics: savedArray(saved.bodyMetrics, demoState.bodyMetrics),
-    metricTargets: savedArray(saved.metricTargets, demoState.metricTargets),
-    bodyPhotos: savedArray(saved.bodyPhotos, demoState.bodyPhotos),
-    folders: savedArray(saved.folders, demoState.folders),
-    notes: savedArray(saved.notes, demoState.notes),
-    bodyUnlocked: false,
-    selectedFolderId: saved.selectedFolderId ?? null,
-    weightUnit: saved.weightUnit ?? demoState.weightUnit,
+    dailyWorkout: saved.dailyWorkout && isSeedId(saved.dailyWorkout)
+      ? null
+      : saved.dailyWorkout,
+    workoutHistory: saved.workoutHistory?.filter((item) => !isSeedId(item)),
+    bodyMetrics: saved.bodyMetrics?.filter((item) => !isSeedId(item)),
+    workoutTemplates: saved.workoutTemplates?.filter((item) => !isSeedId(item)),
+    folders: saved.folders?.filter((item) => !isSeedId(item)),
+    notes: saved.notes?.filter((item) => !isSeedId(item)),
+    metricTargets: saved.metricTargets?.filter(
+      (item) => legacyTargets.get(item.type) !== item.target
+    ),
   };
+}
+
+export function mergeWithInitialState(saved: Partial<AppState>): AppState {
+  const cleanedSaved = removeLegacySeedData(saved);
+  const defaultState = createInitialState();
+  const savedArray = <T,>(value: T[] | undefined, fallback: T[]): T[] =>
+    Array.isArray(value) ? value : fallback;
+  const dailyWorkout = cleanedSaved.dailyWorkout === undefined
+    ? defaultState.dailyWorkout
+    : cleanedSaved.dailyWorkout;
+
+  const restoredState: AppState = {
+    ...defaultState,
+    ...cleanedSaved,
+    dailyWorkout: dailyWorkout ? refreshWorkoutExerciseNames(dailyWorkout) : null,
+    workoutHistory: savedArray(cleanedSaved.workoutHistory, defaultState.workoutHistory)
+      .map(refreshWorkoutExerciseNames),
+    exerciseLibrary: mergeExerciseLibrary(cleanedSaved.exerciseLibrary),
+    workoutTemplates: savedArray(cleanedSaved.workoutTemplates, defaultState.workoutTemplates),
+    bodyMetrics: savedArray(cleanedSaved.bodyMetrics, defaultState.bodyMetrics),
+    metricTargets: savedArray(cleanedSaved.metricTargets, defaultState.metricTargets),
+    bodyPhotos: savedArray(cleanedSaved.bodyPhotos, defaultState.bodyPhotos),
+    folders: savedArray(cleanedSaved.folders, defaultState.folders),
+    notes: savedArray(cleanedSaved.notes, defaultState.notes),
+    bodyUnlocked: false,
+    selectedFolderId: cleanedSaved.selectedFolderId ?? null,
+    weightUnit: cleanedSaved.weightUnit ?? defaultState.weightUnit,
+  };
+  return syncCurrentWorkoutBodyWeight(restoredState);
 }
 
 function calculateTotalVolume(exercises: Exercise[], weightUnit: 'kg' | 'lbs' = 'kg'): number {
@@ -108,6 +234,40 @@ function normalizeWorkout(workout: DailyWorkout, weightUnit: 'kg' | 'lbs'): Dail
     totalVolume: calculateTotalVolume(workout.exercises, weightUnit),
     muscleGroups,
     cardioName,
+  };
+}
+
+function keepCardioDurationOnly(exercise: Exercise): Exercise {
+  return exercise.category === 'cardio'
+    ? { ...exercise, distanceKm: undefined, intensity: undefined }
+    : exercise;
+}
+
+function initializeExerciseForWorkout(exercise: Exercise, state: AppState): Exercise {
+  if (exercise.volumeMode !== 'assisted-bodyweight') return exercise;
+  return {
+    ...exercise,
+    useLeftRight: false,
+    bodyWeightKg: getLatestBodyWeightKg(state.bodyMetrics),
+  };
+}
+
+function syncCurrentWorkoutBodyWeight(state: AppState): AppState {
+  if (!state.dailyWorkout) return state;
+
+  const bodyWeightKg = getLatestBodyWeightKg(state.bodyMetrics);
+  const exercises = state.dailyWorkout.exercises.map((exercise) =>
+    exercise.volumeMode === 'assisted-bodyweight'
+      ? { ...exercise, useLeftRight: false, bodyWeightKg }
+      : exercise
+  );
+
+  return {
+    ...state,
+    dailyWorkout: normalizeWorkout({
+      ...state.dailyWorkout,
+      exercises,
+    }, state.weightUnit),
   };
 }
 
@@ -134,15 +294,17 @@ export function appReducer(state: AppState, action: Action): AppState {
 
       const convertWorkout = (workout: DailyWorkout): DailyWorkout => normalizeWorkout({
         ...workout,
-        exercises: workout.exercises.map(ex => ({
-          ...ex,
-          sets: ex.sets.map(set => ({
-            ...set,
-            weight: convertWeight(set.weight, oldUnit, newUnit),
-            leftWeight: convertWeight(set.leftWeight, oldUnit, newUnit),
-            rightWeight: convertWeight(set.rightWeight, oldUnit, newUnit),
-          }))
-        }))
+        exercises: workout.exercises.map(ex => ex.volumeMode === 'assisted-bodyweight'
+          ? ex
+          : {
+              ...ex,
+              sets: ex.sets.map(set => ({
+                ...set,
+                weight: convertWeight(set.weight, oldUnit, newUnit),
+                leftWeight: convertWeight(set.leftWeight, oldUnit, newUnit),
+                rightWeight: convertWeight(set.rightWeight, oldUnit, newUnit),
+              })),
+            })
       }, newUnit);
 
       const convertedDailyWorkout = state.dailyWorkout ? convertWorkout(state.dailyWorkout) : null;
@@ -179,7 +341,7 @@ export function appReducer(state: AppState, action: Action): AppState {
         };
         const filteredMetrics = newMetrics.filter((m: BodyMetric) => !(m.type === 'bmi' && m.date === today));
         filteredMetrics.push(bmiMetric);
-        return { ...state, bodyMetrics: filteredMetrics };
+        return syncCurrentWorkoutBodyWeight({ ...state, bodyMetrics: filteredMetrics });
       }
 
       return { ...state, bodyMetrics: newMetrics };
@@ -210,10 +372,10 @@ export function appReducer(state: AppState, action: Action): AppState {
           value: bmiValue,
           timestamp: Date.now(),
         };
-        return { ...state, bodyMetrics: metricsWithBmi };
+        return syncCurrentWorkoutBodyWeight({ ...state, bodyMetrics: metricsWithBmi });
       }
 
-      return {
+      return syncCurrentWorkoutBodyWeight({
         ...state,
         bodyMetrics: [
           ...updatedMetrics,
@@ -225,20 +387,20 @@ export function appReducer(state: AppState, action: Action): AppState {
             timestamp: Date.now(),
           },
         ],
-      };
+      });
     }
     case 'REMOVE_BODY_METRIC': {
       const metric = state.bodyMetrics.find((m: BodyMetric) => m.id === action.payload.metricId);
       if (!metric || metric.type === 'bmi') return state;
 
-      return {
+      return syncCurrentWorkoutBodyWeight({
         ...state,
         bodyMetrics: state.bodyMetrics.filter((m: BodyMetric) => {
           if (m.id === action.payload.metricId) return false;
           if (metric.type === 'weight' && m.type === 'bmi' && m.date === metric.date) return false;
           return true;
         }),
-      };
+      });
     }
     case 'SET_METRIC_TARGET': {
       const { type, target } = action.payload;
@@ -348,12 +510,12 @@ export function appReducer(state: AppState, action: Action): AppState {
     }
     case 'ADD_EXERCISE_TO_WORKOUT': {
       if (!state.dailyWorkout) {
-        const newExercise = {
+        const newExercise = initializeExerciseForWorkout(keepCardioDurationOnly({
           ...action.payload,
           sets: action.payload.category === 'cardio' ? [] : [
             { id: generateId(), weight: 0, reps: 0, completed: false },
           ],
-        };
+        }), state);
         const workout = normalizeWorkout({
           id: generateId(),
           date: getTodayString(),
@@ -383,12 +545,12 @@ export function appReducer(state: AppState, action: Action): AppState {
         };
       }
 
-      const newExercise = {
+      const newExercise = initializeExerciseForWorkout(keepCardioDurationOnly({
         ...action.payload,
         sets: action.payload.category === 'cardio' ? [] : [
           { id: generateId(), weight: 0, reps: 0, completed: false },
         ],
-      };
+      }), state);
       const newExercises = [...state.dailyWorkout.exercises, newExercise];
       return {
         ...state,
@@ -482,7 +644,7 @@ export function appReducer(state: AppState, action: Action): AppState {
       if (!state.dailyWorkout) return state;
       const exercises = state.dailyWorkout.exercises.map((exercise) =>
         exercise.id === action.payload.exerciseId
-          ? { ...exercise, ...action.payload.updates }
+          ? keepCardioDurationOnly({ ...exercise, ...action.payload.updates })
           : exercise
       );
       return {
@@ -535,6 +697,7 @@ export function appReducer(state: AppState, action: Action): AppState {
       if (!state.dailyWorkout) return state;
       const newExercises = state.dailyWorkout.exercises.map((ex) => {
         if (ex.id === action.payload.exerciseId) {
+          if (ex.volumeMode === 'assisted-bodyweight') return ex;
           const newUseLeftRight = !ex.useLeftRight;
           const newSets = ex.sets.map((set) => {
             if (newUseLeftRight) {
@@ -597,14 +760,16 @@ export function appReducer(state: AppState, action: Action): AppState {
     }
     case 'COPY_WORKOUT_TO_TODAY': {
       const sourceWorkout = action.payload.workout;
-      const exercises = sourceWorkout.exercises.map((exercise) => ({
-        ...exercise,
-        sets: exercise.sets.map((set) => ({
-          ...set,
-          id: generateId(),
-          completed: false,
-        })),
-      }));
+      const exercises = sourceWorkout.exercises.map((exercise) =>
+        initializeExerciseForWorkout(keepCardioDurationOnly({
+          ...exercise,
+          sets: exercise.sets.map((set) => ({
+            ...set,
+            id: generateId(),
+            completed: false,
+          })),
+        }), state)
+      );
       const workout = normalizeWorkout({
         ...sourceWorkout,
         id: generateId(),
@@ -653,27 +818,23 @@ export function appReducer(state: AppState, action: Action): AppState {
       );
       if (!template) return state;
 
-      const previousWorkout = [...state.workoutHistory]
-        .filter((workout) =>
-          workout.templateId === template.id ||
-          (!workout.templateId && workout.name === template.name)
-        )
-        .sort((a, b) => b.date.localeCompare(a.date))[0];
+      const workoutsNewestFirst = [...state.workoutHistory]
+        .sort((a, b) => b.date.localeCompare(a.date));
 
       const exercises = template.exerciseIds
         .map((id) => state.exerciseLibrary.find((exercise) => exercise.id === id))
         .filter((exercise): exercise is Exercise => exercise !== undefined)
         .map((exercise) => {
-          const previousExercise = previousWorkout?.exercises.find(
-            (item) => item.id === exercise.id
-          );
+          const previousExercise = workoutsNewestFirst
+            .map((workout) => workout.exercises.find((item) => item.id === exercise.id))
+            .find((item): item is Exercise => item !== undefined);
           const inheritedSets = previousExercise?.sets.map((set) => ({
             ...set,
             id: generateId(),
             completed: false,
           }));
 
-          return {
+          return keepCardioDurationOnly({
             ...exercise,
             useLeftRight: previousExercise?.useLeftRight ?? exercise.useLeftRight,
             sets: exercise.category === 'cardio'
@@ -682,9 +843,10 @@ export function appReducer(state: AppState, action: Action): AppState {
                 ? inheritedSets
                 : [{ id: generateId(), weight: 0, reps: 0, completed: false }],
             durationMinutes: previousExercise?.durationMinutes,
-            distanceKm: previousExercise?.distanceKm,
-            intensity: previousExercise?.intensity,
-          };
+            bodyWeightKg: exercise.volumeMode === 'assisted-bodyweight'
+              ? getLatestBodyWeightKg(state.bodyMetrics)
+              : exercise.bodyWeightKg,
+          });
         });
       if (exercises.length === 0) return state;
 
@@ -732,7 +894,7 @@ export function appReducer(state: AppState, action: Action): AppState {
     case 'RESET_EXERCISE_LIBRARY':
       return { ...state, exerciseLibrary: DEFAULT_EXERCISES };
     case 'IMPORT_APP_STATE':
-      return mergeWithDemoState(action.payload);
+      return mergeWithInitialState(action.payload);
     case 'ARCHIVE_DAILY_WORKOUT': {
       if (!state.dailyWorkout) return state;
       const archivedWorkout = normalizeWorkout(state.dailyWorkout, state.weightUnit);
@@ -807,7 +969,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             validData.notes = [];
           }
 
-          const initialStateWithData = mergeWithDemoState(validData);
+          const initialStateWithData = mergeWithInitialState(validData);
           const archivedState = checkAndArchiveDailyWorkout(initialStateWithData);
           setState(archivedState);
         }

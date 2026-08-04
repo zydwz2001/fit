@@ -1,0 +1,1256 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vibe Fitness · 数据管理后台</title>
+  <style>
+    :root {
+      --green: #10b981;
+      --green-dark: #078a61;
+      --green-soft: #e9f9f3;
+      --cream: #f7f4ed;
+      --cream-deep: #eee8dc;
+      --ink: #171d27;
+      --muted: #738091;
+      --line: #e6e8e8;
+      --white: #fffefa;
+      --danger: #e05252;
+      --shadow: 0 18px 45px rgba(31, 43, 38, 0.08);
+      --radius: 22px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 1080px;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 92% 7%, rgba(16, 185, 129, 0.10), transparent 23rem),
+        var(--cream);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    button, input, select, textarea { font: inherit; }
+    button { color: inherit; }
+
+    .app-shell { min-height: 100vh; }
+
+    .topbar {
+      height: 82px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 34px;
+      border-bottom: 1px solid rgba(23, 29, 39, 0.07);
+      background: rgba(255, 254, 250, 0.86);
+      backdrop-filter: blur(18px);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    .brand { display: flex; align-items: center; gap: 14px; }
+
+    .brand-mark {
+      width: 46px;
+      height: 46px;
+      border-radius: 15px;
+      background: var(--cream);
+      display: grid;
+      place-items: center;
+      box-shadow: inset 0 0 0 1px rgba(23, 29, 39, 0.05);
+    }
+
+    .dumbbell {
+      width: 27px;
+      height: 8px;
+      border-radius: 3px;
+      background: var(--ink);
+      transform: rotate(-38deg);
+      position: relative;
+    }
+
+    .dumbbell::before,
+    .dumbbell::after {
+      content: "";
+      position: absolute;
+      top: -7px;
+      width: 8px;
+      height: 22px;
+      border-radius: 4px;
+      background: var(--green);
+    }
+
+    .dumbbell::before { left: -5px; }
+    .dumbbell::after { right: -5px; }
+    .brand-name { font-size: 18px; font-weight: 800; letter-spacing: -0.2px; }
+    .brand-sub { color: var(--muted); font-size: 12px; margin-top: 3px; }
+    .top-actions { display: flex; align-items: center; gap: 10px; }
+
+    .privacy-badge {
+      height: 38px;
+      padding: 0 14px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--green-dark);
+      background: var(--green-soft);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .layout { display: grid; grid-template-columns: 244px 1fr; min-height: calc(100vh - 82px); }
+
+    .sidebar {
+      padding: 26px 18px;
+      border-right: 1px solid rgba(23, 29, 39, 0.07);
+      background: rgba(255, 254, 250, 0.48);
+    }
+
+    .nav-section-title {
+      padding: 0 12px;
+      margin: 0 0 9px;
+      color: #a1a8b0;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.2px;
+    }
+
+    .nav { display: grid; gap: 6px; }
+
+    .nav-button {
+      width: 100%;
+      height: 47px;
+      border: 0;
+      border-radius: 14px;
+      padding: 0 13px;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      background: transparent;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 650;
+      text-align: left;
+      transition: .18s ease;
+    }
+
+    .nav-button:hover { background: rgba(255, 255, 255, .72); }
+    .nav-button.active { color: var(--green-dark); background: var(--green-soft); }
+    .nav-icon { width: 25px; text-align: center; font-size: 17px; }
+    .nav-count {
+      margin-left: auto;
+      min-width: 25px;
+      height: 22px;
+      padding: 0 7px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      background: rgba(23, 29, 39, .05);
+      font-size: 11px;
+    }
+
+    .nav-button.active .nav-count { color: var(--green-dark); background: rgba(16, 185, 129, .13); }
+
+    .sidebar-card {
+      margin-top: 26px;
+      padding: 16px;
+      border: 1px solid rgba(16, 185, 129, .15);
+      border-radius: 18px;
+      background: linear-gradient(145deg, #f4fff9, #fffefa);
+    }
+
+    .sidebar-card strong { display: block; font-size: 13px; margin-bottom: 6px; }
+    .sidebar-card p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.65; }
+
+    main { padding: 34px 42px 60px; overflow: hidden; }
+    .page { max-width: 1240px; margin: 0 auto; }
+
+    .page-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 26px;
+    }
+
+    h1 { margin: 0; font-size: 28px; letter-spacing: -1px; }
+    .page-description { color: var(--muted); margin-top: 8px; font-size: 14px; }
+    .action-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+    .btn {
+      height: 42px;
+      padding: 0 16px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--white);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 750;
+      box-shadow: 0 4px 12px rgba(25, 36, 31, .03);
+      transition: .18s ease;
+    }
+
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(25, 36, 31, .07); }
+    .btn.primary { color: white; border-color: var(--green); background: var(--green); }
+    .btn.primary:hover { background: var(--green-dark); }
+    .btn.soft { color: var(--green-dark); border-color: transparent; background: var(--green-soft); }
+    .btn.danger { color: var(--danger); }
+    .btn.small { height: 34px; padding: 0 11px; border-radius: 10px; font-size: 12px; }
+    .btn.icon { width: 36px; padding: 0; }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 22px; }
+
+    .stat-card {
+      min-height: 137px;
+      padding: 21px;
+      border: 1px solid rgba(23, 29, 39, .06);
+      border-radius: var(--radius);
+      background: rgba(255, 254, 250, .88);
+      box-shadow: var(--shadow);
+    }
+
+    .stat-top { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 13px; }
+    .stat-icon { width: 35px; height: 35px; display: grid; place-items: center; border-radius: 11px; background: var(--green-soft); }
+    .stat-value { margin-top: 16px; font-size: 29px; font-weight: 850; letter-spacing: -1px; }
+    .stat-foot { margin-top: 4px; color: var(--muted); font-size: 12px; }
+
+    .grid-2 { display: grid; grid-template-columns: 1.25fr .75fr; gap: 18px; }
+
+    .panel {
+      border: 1px solid rgba(23, 29, 39, .07);
+      border-radius: var(--radius);
+      background: rgba(255, 254, 250, .9);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-head { min-height: 65px; padding: 0 21px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
+    .panel-title { font-size: 15px; font-weight: 800; }
+    .panel-subtitle { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .panel-body { padding: 20px; }
+
+    .quick-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+    .quick-card { min-height: 97px; padding: 15px; border: 1px solid var(--line); border-radius: 16px; background: #fff; cursor: pointer; text-align: left; }
+    .quick-card:hover { border-color: rgba(16, 185, 129, .5); background: #fbfffd; }
+    .quick-card strong { display: block; margin: 9px 0 4px; font-size: 13px; }
+    .quick-card span { color: var(--muted); font-size: 11px; }
+
+    .timeline { display: grid; }
+    .timeline-item { display: grid; grid-template-columns: 74px 12px 1fr auto; gap: 12px; align-items: center; min-height: 60px; }
+    .timeline-date { color: var(--muted); font-size: 12px; }
+    .timeline-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 5px var(--green-soft); }
+    .timeline-main strong { display: block; font-size: 13px; }
+    .timeline-main span { display: block; margin-top: 4px; color: var(--muted); font-size: 11px; }
+    .timeline-value { color: var(--green-dark); font-size: 13px; font-weight: 800; }
+
+    .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 15px; }
+    .search-wrap { position: relative; flex: 1; max-width: 390px; }
+    .search-wrap input { padding-left: 38px; }
+    .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #a2a9b0; }
+
+    .field, .select, .textarea {
+      width: 100%;
+      border: 1px solid #dfe3e2;
+      border-radius: 11px;
+      color: var(--ink);
+      background: #fff;
+      outline: none;
+      transition: .15s ease;
+    }
+
+    .field, .select { height: 42px; padding: 0 12px; }
+    .textarea { min-height: 120px; padding: 12px; resize: vertical; line-height: 1.6; }
+    .field:focus, .select:focus, .textarea:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(16, 185, 129, .10); }
+
+    .segmented { display: flex; gap: 5px; padding: 4px; border-radius: 12px; background: rgba(23, 29, 39, .05); }
+    .segment { height: 33px; padding: 0 12px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); cursor: pointer; font-size: 12px; font-weight: 700; }
+    .segment.active { color: var(--ink); background: #fff; box-shadow: 0 3px 10px rgba(23, 29, 39, .07); }
+
+    table { width: 100%; border-collapse: collapse; }
+    th { height: 45px; padding: 0 15px; color: #8e98a5; background: #fafaf7; font-size: 11px; text-align: left; font-weight: 750; }
+    td { height: 66px; padding: 10px 15px; border-top: 1px solid var(--line); font-size: 13px; }
+    tbody tr { cursor: pointer; }
+    tbody tr:hover { background: #fcfdfb; }
+    .cell-title { font-weight: 760; }
+    .cell-sub { color: var(--muted); font-size: 11px; margin-top: 4px; }
+
+    .tag { display: inline-flex; align-items: center; min-height: 25px; padding: 0 9px; border-radius: 8px; color: var(--green-dark); background: var(--green-soft); font-size: 11px; font-weight: 750; margin: 2px 4px 2px 0; }
+    .tag.gray { color: var(--muted); background: #f0f2f1; }
+    .tag.black { color: white; background: var(--ink); }
+    .tag.orange { color: #aa6510; background: #fff2d9; }
+
+    .empty { padding: 70px 20px; text-align: center; color: var(--muted); }
+    .empty-icon { width: 54px; height: 54px; margin: 0 auto 15px; display: grid; place-items: center; border-radius: 18px; background: var(--green-soft); font-size: 22px; }
+    .empty strong { display: block; color: var(--ink); font-size: 15px; margin-bottom: 6px; }
+    .empty p { margin: 0 0 18px; font-size: 12px; }
+
+    .exercise-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .exercise-card { min-height: 117px; display: grid; grid-template-columns: 72px 1fr auto; gap: 13px; align-items: center; padding: 14px; border: 1px solid var(--line); border-radius: 18px; background: var(--white); }
+    .exercise-thumb { width: 72px; height: 84px; border-radius: 13px; object-fit: contain; background: #f5f5f1; }
+    .exercise-placeholder { width: 72px; height: 84px; display: grid; place-items: center; border-radius: 13px; color: var(--green-dark); background: var(--green-soft); font-size: 24px; }
+    .exercise-name { font-size: 14px; font-weight: 800; margin-bottom: 7px; }
+    .exercise-meta { color: var(--muted); font-size: 11px; line-height: 1.7; }
+
+    .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 13px; margin-bottom: 18px; }
+    .metric-summary { padding: 17px; border: 1px solid var(--line); border-radius: 17px; background: var(--white); }
+    .metric-summary span { color: var(--muted); font-size: 11px; }
+    .metric-summary strong { display: block; margin-top: 9px; font-size: 22px; }
+    .metric-summary em { margin-left: 4px; color: var(--muted); font-size: 11px; font-style: normal; font-weight: 500; }
+
+    .metric-tabs { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 16px; }
+    .metric-tab { height: 48px; border: 1px solid var(--line); border-radius: 14px; color: var(--muted); background: var(--white); cursor: pointer; font-size: 13px; font-weight: 750; }
+    .metric-tab.active { color: white; border-color: var(--green); background: var(--green); box-shadow: 0 9px 20px rgba(16, 185, 129, .18); }
+
+    .calendar-panel { padding: 18px; }
+    .calendar-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 17px; }
+    .calendar-title { font-size: 19px; font-weight: 850; }
+    .calendar-week, .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 7px; }
+    .calendar-week { margin-bottom: 7px; }
+    .calendar-week div { height: 30px; display: grid; place-items: center; color: #9ba3ab; font-size: 11px; font-weight: 750; }
+    .calendar-day { min-height: 122px; padding: 9px; border: 1px solid transparent; border-radius: 15px; background: #fafaf7; cursor: pointer; overflow: hidden; }
+    .calendar-day:hover { border-color: rgba(16, 185, 129, .38); background: #fbfffd; }
+    .calendar-day.blank { cursor: default; background: transparent; }
+    .calendar-day.blank:hover { border-color: transparent; }
+    .calendar-day-number { width: 27px; height: 27px; display: grid; place-items: center; border-radius: 9px; font-size: 12px; font-weight: 800; }
+    .calendar-day.today .calendar-day-number { color: white; background: var(--ink); }
+    .calendar-workout { margin-top: 5px; padding: 6px 7px; border-radius: 9px; color: #175a45; background: var(--green-soft); }
+    .calendar-workout strong { display: block; overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+    .calendar-workout span { display: block; margin-top: 3px; color: var(--green-dark); font-size: 9px; }
+
+    .folder-list { display: grid; gap: 15px; }
+    .folder-panel { border: 1px solid var(--line); border-radius: 20px; background: var(--white); overflow: hidden; }
+    .folder-head { min-height: 64px; padding: 0 18px; display: flex; align-items: center; justify-content: space-between; gap: 14px; border-bottom: 1px solid var(--line); }
+    .folder-name { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 820; }
+    .folder-mark { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 11px; color: var(--green-dark); background: var(--green-soft); }
+    .note-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 14px; }
+    .note-card { min-height: 112px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: #fff; cursor: pointer; }
+    .note-card:hover { border-color: rgba(16, 185, 129, .45); }
+    .note-card strong { display: block; margin-bottom: 7px; font-size: 13px; }
+    .note-card p { height: 34px; margin: 0; overflow: hidden; color: var(--muted); font-size: 11px; line-height: 1.55; }
+    .note-relations { display: flex; gap: 5px; margin-top: 9px; }
+
+    .order-list { display: grid; gap: 8px; margin-top: 10px; }
+    .order-row { min-height: 48px; padding: 6px 8px 6px 13px; display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 12px; background: white; }
+    .order-number { color: var(--green-dark); font-size: 12px; font-weight: 850; }
+
+    .photo-groups { display: grid; gap: 20px; }
+    .photo-group { padding: 18px; border: 1px solid var(--line); border-radius: 20px; background: var(--white); }
+    .photo-group-title { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+    .photo-group-title strong { font-size: 18px; }
+    .photo-group-title span { color: var(--muted); font-size: 11px; }
+    .photo-row { display: grid; grid-template-columns: 70px repeat(5, minmax(0, 150px)); gap: 8px; align-items: start; }
+    .photo-day { padding-top: 8px; color: var(--muted); font-size: 14px; }
+    .photo-item { position: relative; aspect-ratio: 1; border-radius: 13px; overflow: hidden; background: #f0f1ed; cursor: pointer; }
+    .photo-item img { width: 100%; height: 100%; object-fit: cover; }
+    .photo-placeholder { width: 100%; height: 100%; display: grid; place-items: center; color: #9da6ad; font-size: 12px; }
+
+    .backup-hero { display: grid; grid-template-columns: 1.1fr .9fr; gap: 18px; }
+    .drop-zone { min-height: 270px; padding: 35px; border: 2px dashed #cbd7d2; border-radius: 22px; display: grid; place-items: center; text-align: center; background: rgba(255, 254, 250, .72); transition: .2s ease; }
+    .drop-zone.drag { border-color: var(--green); background: var(--green-soft); }
+    .drop-icon { width: 66px; height: 66px; margin: 0 auto 17px; display: grid; place-items: center; border-radius: 20px; color: var(--green-dark); background: var(--green-soft); font-size: 28px; }
+    .drop-zone h3 { margin: 0 0 8px; font-size: 18px; }
+    .drop-zone p { margin: 0 0 19px; color: var(--muted); font-size: 12px; line-height: 1.7; }
+
+    .data-check { display: grid; gap: 10px; }
+    .check-row { min-height: 52px; padding: 0 14px; border: 1px solid var(--line); border-radius: 13px; display: flex; align-items: center; justify-content: space-between; background: white; }
+    .check-row span { color: var(--muted); font-size: 12px; }
+    .check-row strong { font-size: 13px; }
+
+    .warning { margin-top: 14px; padding: 13px 15px; border-radius: 13px; color: #8a611a; background: #fff5df; font-size: 12px; line-height: 1.65; }
+
+    .modal-backdrop { position: fixed; inset: 0; z-index: 100; display: none; align-items: center; justify-content: center; padding: 30px; background: rgba(12, 17, 22, .46); backdrop-filter: blur(5px); }
+    .modal-backdrop.open { display: flex; }
+    .modal { width: min(760px, calc(100vw - 60px)); max-height: calc(100vh - 60px); border-radius: 24px; background: var(--cream); box-shadow: 0 30px 80px rgba(0, 0, 0, .22); overflow: hidden; }
+    .modal.large { width: min(980px, calc(100vw - 60px)); }
+    .modal-head { height: 70px; padding: 0 23px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); background: var(--white); }
+    .modal-title { font-size: 17px; font-weight: 850; }
+    .modal-close { width: 36px; height: 36px; border: 0; border-radius: 11px; background: #f1f2ef; cursor: pointer; font-size: 18px; }
+    .modal-body { max-height: calc(100vh - 205px); padding: 22px; overflow-y: auto; }
+    .modal-foot { min-height: 70px; padding: 13px 22px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px solid var(--line); background: var(--white); }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .form-group { min-width: 0; }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-label { display: block; margin: 0 0 7px; color: #687482; font-size: 12px; font-weight: 750; }
+    .form-hint { margin-top: 6px; color: #9aa2aa; font-size: 10px; line-height: 1.5; }
+    .check-line { height: 42px; display: flex; align-items: center; gap: 9px; font-size: 13px; }
+
+    .editor-exercise { margin-top: 13px; padding: 16px; border: 1px solid var(--line); border-radius: 17px; background: var(--white); }
+    .editor-exercise-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 13px; }
+    .editor-exercise-head strong { font-size: 13px; }
+    .set-table { display: grid; gap: 7px; }
+    .set-row { display: grid; grid-template-columns: 32px repeat(3, minmax(90px, 1fr)) 72px 35px; gap: 7px; align-items: end; }
+    .set-index { height: 36px; display: grid; place-items: center; color: var(--muted); font-size: 11px; }
+    .mini-label { display: block; margin: 0 0 4px; color: #9aa2aa; font-size: 9px; }
+    .mini-input { width: 100%; height: 36px; padding: 0 9px; border: 1px solid #dfe3e2; border-radius: 9px; outline: none; }
+    .mini-input:focus { border-color: var(--green); }
+
+    .toast { position: fixed; right: 28px; bottom: 26px; z-index: 200; min-width: 250px; padding: 14px 17px; border-radius: 14px; color: white; background: var(--ink); box-shadow: 0 16px 40px rgba(0,0,0,.18); transform: translateY(90px); opacity: 0; transition: .25s ease; font-size: 13px; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    .status-line { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+
+    @media (max-width: 1180px) {
+      main { padding-left: 28px; padding-right: 28px; }
+      .exercise-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark"><div class="dumbbell"></div></div>
+        <div>
+          <div class="brand-name">Vibe Fitness 数据管理</div>
+          <div class="brand-sub">本地离线工具 · 数据不会上传网络</div>
+        </div>
+      </div>
+      <div class="top-actions">
+        <div class="privacy-badge">● 已自动保存在本机</div>
+        <button class="btn" data-global-action="import">↑ 导入备份</button>
+        <button class="btn primary" data-global-action="export">↓ 导出备份</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="nav-section-title">数据管理</div>
+        <nav class="nav" id="nav"></nav>
+        <div class="sidebar-card">
+          <strong>本机自动保存</strong>
+          <p>每次修改都会保留在当前浏览器中；导出 JSON 用于额外备份和传回手机。</p>
+        </div>
+      </aside>
+      <main><div class="page" id="content"></div></main>
+    </div>
+  </div>
+
+  <input id="fileInput" type="file" accept=".json,application/json" hidden />
+  <input id="photoInput" type="file" accept="image/*" multiple hidden />
+
+  <div class="modal-backdrop" id="modalBackdrop">
+    <section class="modal" id="modal">
+      <div class="modal-head">
+        <div class="modal-title" id="modalTitle"></div>
+        <button class="modal-close" data-modal-close aria-label="关闭">×</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-foot" id="modalFoot"></div>
+    </section>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const metricMeta = {
+      weight: { name: '体重', unit: 'kg' },
+      bmi: { name: 'BMI', unit: '' },
+      waist: { name: '腰围', unit: 'cm' },
+      arm: { name: '臂围', unit: 'cm' },
+      chest: { name: '胸围', unit: 'cm' },
+      hip: { name: '臀围', unit: 'cm' },
+      thigh: { name: '腿围', unit: 'cm' }
+    };
+
+    const navItems = [
+      { id: 'workouts', icon: '⚡', label: '训练记录', key: 'workoutHistory' },
+      { id: 'metrics', icon: '⌁', label: '身体数据', key: 'bodyMetrics' },
+      { id: 'photos', icon: '▣', label: '身体照片', key: 'bodyPhotos' },
+      { id: 'exercises', icon: '◆', label: '动作库', key: 'exerciseLibrary' },
+      { id: 'templates', icon: '▤', label: '训练模板', key: 'workoutTemplates' },
+      { id: 'notes', icon: '✎', label: '知识笔记', key: 'notes' },
+      { id: 'backup', icon: '⇅', label: '备份管理' }
+    ];
+
+    const builtInExercises = [
+      { id: 'squat', name: '深蹲', muscleGroup: '腿', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/squat.png' },
+      { id: 'deadlift', name: '硬拉', muscleGroup: '腿', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/deadlift.png' },
+      { id: 'hip_abduction', name: '髋外展', muscleGroup: '腿', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/hip_abduction.png' },
+      { id: 'hip_adduction', name: '髋内收', muscleGroup: '腿', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/hip_adduction.png' },
+      { id: 'bulgarian_squat', name: '保加利亚深蹲', muscleGroup: '腿', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/bulgarian_squat.png' },
+      { id: 'single_leg_dumbbell_deadlift', name: '单腿哑铃硬拉', muscleGroup: '腿', category: 'strength', useLeftRight: true, sets: [], gifUrl: 'images/exercises/single_leg_dumbbell_deadlift.png' },
+      { id: 'australian_pullup', name: '澳式引体', muscleGroup: '背', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/australian_pullup.png' },
+      { id: 'pullup', name: '引体向上', muscleGroup: '背', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/pullup.png' },
+      { id: 'barbell_row', name: '杠铃划船', muscleGroup: '背', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/barbell_row.png' },
+      { id: 'dumbbell_row', name: '哑铃划船', muscleGroup: '背', category: 'strength', useLeftRight: true, sets: [], gifUrl: 'images/exercises/dumbbell_row.png' },
+      { id: 'tbar_row', name: 'T杠划船', muscleGroup: '背', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/tbar_row.png' },
+      { id: 'romanian_deadlift', name: '罗马尼亚硬拉', muscleGroup: '背', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/romanian_deadlift.png' },
+      { id: 'lat_pulldown', name: '高位下拉', muscleGroup: '背', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/lat_pulldown.png' },
+      { id: 'reverse_lat_pulldown', name: '反手高位下拉', muscleGroup: '背', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/reverse_lat_pulldown.png' },
+      { id: 'barbell_benchpress', name: '杠铃卧推', muscleGroup: '胸', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/barbell_benchpress.png' },
+      { id: 'dumbbell_benchpress', name: '哑铃卧推', muscleGroup: '胸', category: 'strength', useLeftRight: true, sets: [], gifUrl: 'images/exercises/dumbbell_benchpress.png' },
+      { id: 'pushup', name: '俯卧撑', muscleGroup: '胸', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/pushup.png' },
+      { id: 'incline_dumbbell_press', name: '哑铃上斜卧推', muscleGroup: '胸', category: 'strength', useLeftRight: true, sets: [], gifUrl: 'images/exercises/incline_dumbbell_press.png' },
+      { id: 'cable_fly', name: '器械飞鸟', muscleGroup: '胸', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/cable_fly.png' },
+      { id: 'assisted_dip', name: '双杠臂屈伸', muscleGroup: '胸', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/assisted_dip.png', volumeMode: 'assisted-bodyweight' },
+      { id: 'dumbbell_lateral_raise', name: '哑铃侧平举', muscleGroup: '肩', category: 'strength', useLeftRight: true, sets: [], gifUrl: 'images/exercises/dumbbell_lateral_raise.png' },
+      { id: 'dumbbell_shoulder_press', name: '哑铃推肩', muscleGroup: '肩', category: 'strength', useLeftRight: true, sets: [], gifUrl: 'images/exercises/dumbbell_shoulder_press.png' },
+      { id: 'standing_overhead_press', name: '站姿实力推', muscleGroup: '肩', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/standing_overhead_press.png' },
+      { id: 'bent_over_dumbbell_reverse_fly', name: '俯身侧平举', muscleGroup: '肩', category: 'strength', useLeftRight: true, sets: [], gifUrl: 'images/exercises/bent_over_dumbbell_reverse_fly.png' },
+      { id: 'dumbbell_curl', name: '哑铃弯举', muscleGroup: '臂', category: 'strength', useLeftRight: true, sets: [], gifUrl: 'images/exercises/dumbbell_curl.png' },
+      { id: 'barbell_curl', name: '杠铃弯举', muscleGroup: '臂', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/barbell_curl.png' },
+      { id: 'rope_pushdown', name: '绳索下压', muscleGroup: '臂', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/rope_pushdown.png' },
+      { id: 'crunch', name: '吊杠屈腿卷腹', muscleGroup: '核心', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/crunch.png' },
+      { id: 'swimming', name: '游泳', muscleGroup: '有氧', category: 'cardio', useLeftRight: false, sets: [], gifUrl: 'images/exercises/swimming.png' },
+      { id: 'rock_climbing', name: '攀岩', muscleGroup: '有氧', category: 'cardio', useLeftRight: false, sets: [], gifUrl: 'images/exercises/rock_climbing.png' },
+      { id: 'kickboxing', name: '自由搏击', muscleGroup: '有氧', category: 'cardio', useLeftRight: false, sets: [], gifUrl: 'images/exercises/kickboxing.png' },
+      { id: 'hill_climbing', name: '爬坡', muscleGroup: '有氧', category: 'cardio', useLeftRight: false, sets: [], gifUrl: 'images/exercises/hill_climbing.png' },
+      { id: 'stair_climber', name: '爬楼机', muscleGroup: '有氧', category: 'cardio', useLeftRight: false, sets: [], gifUrl: 'images/exercises/stair_climber.png' }
+    ];
+
+    function uid(prefix = 'item') {
+      return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    }
+
+    function today() {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    }
+
+    function createEmptyData() {
+      return {
+        dailyWorkout: null,
+        workoutHistory: [],
+        exerciseLibrary: JSON.parse(JSON.stringify(builtInExercises)),
+        workoutTemplates: [],
+        bodyMetrics: [],
+        metricTargets: [],
+        bodyPhotos: [],
+        bodyUnlocked: false,
+        folders: [],
+        notes: [],
+        selectedFolderId: null,
+        weightUnit: 'kg'
+      };
+    }
+
+    const LOCAL_DRAFT_KEY = 'vibe-fitness-admin-draft-v1';
+
+    function loadLocalDraft() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(LOCAL_DRAFT_KEY) || 'null');
+        if (!saved?.state) return null;
+        return normalizeBackup(saved.state);
+      } catch {
+        return null;
+      }
+    }
+
+    const localDraft = loadLocalDraft();
+    let state = localDraft || createEmptyData();
+    let currentView = 'workouts';
+    let workoutViewMode = 'month';
+    let workoutCalendarMonth = new Date();
+    let activeMetricTab = 'weight';
+    let photoDatePending = today();
+
+    const content = document.getElementById('content');
+    const nav = document.getElementById('nav');
+    const fileInput = document.getElementById('fileInput');
+    const photoInput = document.getElementById('photoInput');
+    const modalBackdrop = document.getElementById('modalBackdrop');
+    const modal = document.getElementById('modal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+    const modalFoot = document.getElementById('modalFoot');
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function formatNumber(value) {
+      const num = Number(value || 0);
+      return new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 1 }).format(num);
+    }
+
+    function formatDate(date) {
+      if (!date) return '未填写';
+      const [year, month, day] = date.split('-');
+      return `${year}.${month}.${day}`;
+    }
+
+    function latestMetric(type) {
+      return [...state.bodyMetrics]
+        .filter(item => item.type === type)
+        .sort((a, b) => b.date.localeCompare(a.date) || b.timestamp - a.timestamp)[0];
+    }
+
+    function calculateExerciseVolume(exercise) {
+      if (exercise.category === 'cardio') return 0;
+      return (exercise.sets || []).filter(set => set.completed).reduce((sum, set) => {
+        if (exercise.volumeMode === 'assisted-bodyweight') {
+          return sum + Math.max((exercise.bodyWeightKg || 0) - (set.weight || 0), 0) * (set.reps || 0);
+        }
+        if (set.leftWeight !== undefined || set.rightWeight !== undefined) {
+          return sum + ((set.leftWeight || 0) + (set.rightWeight || 0)) * (set.reps || 0);
+        }
+        return sum + (set.weight || 0) * (set.reps || 0);
+      }, 0);
+    }
+
+    function normalizeWorkout(workout) {
+      const exercises = (workout.exercises || []).map(exercise => ({ ...exercise, sets: exercise.sets || [] }));
+      return {
+        ...workout,
+        exercises,
+        totalVolume: exercises.reduce((sum, exercise) => sum + calculateExerciseVolume(exercise), 0),
+        muscleGroups: [...new Set(exercises.map(exercise => exercise.muscleGroup))],
+        cardioName: exercises.find(exercise => exercise.category === 'cardio')?.name
+      };
+    }
+
+    function normalizeBackup(raw) {
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('文件内容不是有效的数据对象');
+      const knownKeys = ['dailyWorkout', 'workoutHistory', 'exerciseLibrary', 'workoutTemplates', 'bodyMetrics', 'metricTargets', 'bodyPhotos', 'folders', 'notes'];
+      if (!knownKeys.some(key => key in raw)) throw new Error('没有找到 Vibe Fitness 数据字段');
+      const arrayKeys = ['workoutHistory', 'exerciseLibrary', 'workoutTemplates', 'bodyMetrics', 'metricTargets', 'bodyPhotos', 'folders', 'notes'];
+      arrayKeys.forEach(key => {
+        if (raw[key] !== undefined && !Array.isArray(raw[key])) throw new Error(`${key} 应当是列表`);
+      });
+      const savedExercises = raw.exerciseLibrary || [];
+      const savedById = new Map(savedExercises.map(exercise => [exercise.id, exercise]));
+      const defaultIds = new Set(builtInExercises.map(exercise => exercise.id));
+      const completeExerciseLibrary = [
+        ...builtInExercises.map(exercise => ({ ...savedById.get(exercise.id), ...exercise, sets: [] })),
+        ...savedExercises.filter(exercise => !defaultIds.has(exercise.id)).map(exercise => ({ ...exercise, sets: [] })),
+      ];
+      const isLegacySeed = item => typeof item?.id === 'string' && item.id.startsWith('demo-');
+      const hasLegacySeed = isLegacySeed(raw.dailyWorkout) ||
+        ['workoutHistory', 'workoutTemplates', 'bodyMetrics', 'folders', 'notes']
+          .some(key => (raw[key] || []).some(isLegacySeed));
+      return {
+        dailyWorkout: isLegacySeed(raw.dailyWorkout) ? null : raw.dailyWorkout ?? null,
+        workoutHistory: (raw.workoutHistory || []).filter(item => !isLegacySeed(item)),
+        exerciseLibrary: completeExerciseLibrary,
+        workoutTemplates: (raw.workoutTemplates || []).filter(item => !isLegacySeed(item)),
+        bodyMetrics: hasLegacySeed ? [] : raw.bodyMetrics || [],
+        metricTargets: hasLegacySeed ? [] : raw.metricTargets || [],
+        bodyPhotos: raw.bodyPhotos || [],
+        bodyUnlocked: false,
+        folders: (raw.folders || []).filter(item => !isLegacySeed(item) && !(hasLegacySeed && item.id === 'training')),
+        notes: (raw.notes || []).filter(item => !isLegacySeed(item)),
+        selectedFolderId: raw.selectedFolderId ?? null,
+        weightUnit: raw.weightUnit === 'lbs' ? 'lbs' : 'kg'
+      };
+    }
+
+    function renderNav() {
+      nav.innerHTML = navItems.map(item => {
+        const count = item.key ? (state[item.key] || []).length : null;
+        return `<button class="nav-button ${currentView === item.id ? 'active' : ''}" data-view="${item.id}">
+          <span class="nav-icon">${item.icon}</span><span>${item.label}</span>
+          ${count !== null ? `<span class="nav-count">${count}</span>` : ''}
+        </button>`;
+      }).join('');
+    }
+
+    function pageHeader(title, description, actions = '') {
+      return `<div class="page-head"><div><h1>${title}</h1><div class="page-description">${description}</div></div><div class="action-row">${actions}</div></div>`;
+    }
+
+    function emptyState(icon, title, text, action = '') {
+      return `<div class="empty"><div class="empty-icon">${icon}</div><strong>${title}</strong><p>${text}</p>${action}</div>`;
+    }
+
+    function saveLocalDraft() {
+      try {
+        localStorage.setItem(LOCAL_DRAFT_KEY, JSON.stringify({ state: normalizeBackup(state) }));
+      } catch {
+        toast('本机存储空间不足，请立即导出备份');
+      }
+    }
+
+    function render() {
+      renderNav();
+      const renders = {
+        workouts: renderWorkouts,
+        metrics: renderMetrics,
+        photos: renderPhotos,
+        exercises: renderExercises,
+        templates: renderTemplates,
+        notes: renderNotes,
+        backup: renderBackup
+      };
+      content.innerHTML = renders[currentView]();
+      saveLocalDraft();
+    }
+
+    function renderWorkouts() {
+      const workouts = [...state.workoutHistory].sort((a, b) => b.date.localeCompare(a.date));
+      const year = workoutCalendarMonth.getFullYear();
+      const month = workoutCalendarMonth.getMonth();
+      const firstWeekday = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const cells = [
+        ...Array(firstWeekday).fill(null),
+        ...Array.from({ length: daysInMonth }, (_, index) => index + 1),
+      ];
+      const todayString = today();
+      const calendar = `<div class="panel calendar-panel"><div class="calendar-head"><button class="btn icon small" data-month-direction="-1">‹</button><div class="calendar-title">${year}年${month + 1}月</div><button class="btn icon small" data-month-direction="1">›</button></div><div class="calendar-week">${['日','一','二','三','四','五','六'].map(day => `<div>${day}</div>`).join('')}</div><div class="calendar-grid">${cells.map(day => {
+        if (!day) return '<div class="calendar-day blank"></div>';
+        const date = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const dayWorkouts = workouts.filter(workout => workout.date === date);
+        return `<div class="calendar-day ${date === todayString ? 'today' : ''}" data-add-workout-date="${date}"><div class="calendar-day-number">${day}</div>${dayWorkouts.slice(0, 2).map(workout => `<div class="calendar-workout" data-edit-workout="${escapeHtml(workout.id)}"><strong>${escapeHtml(workout.name)}</strong><span>${(workout.muscleGroups || []).join(' / ') || '训练'}${workout.totalVolume ? ` · ${Math.round(workout.totalVolume)}kg` : ''}</span></div>`).join('')}${dayWorkouts.length > 2 ? `<span class="cell-sub">还有 ${dayWorkouts.length - 2} 条</span>` : ''}</div>`;
+      }).join('')}</div></div>`;
+      const list = `<div class="toolbar"><div class="search-wrap"><span class="search-icon">⌕</span><input class="field" id="workoutSearch" placeholder="搜索训练名称或部位" /></div><div class="status-line"><span class="status-dot"></span>共 ${workouts.length} 条记录</div></div><div class="panel">${workouts.length ? `<table><thead><tr><th>训练日期</th><th>训练名称</th><th>动作</th><th>训练部位</th><th>训练容量</th><th></th></tr></thead><tbody id="workoutRows">${workouts.map(workout => `<tr data-edit-workout="${escapeHtml(workout.id)}" data-search="${escapeHtml(`${workout.name} ${(workout.muscleGroups || []).join(' ')}`)}"><td>${formatDate(workout.date)}</td><td><div class="cell-title">${escapeHtml(workout.name)}</div></td><td>${workout.exercises.length} 个</td><td>${(workout.muscleGroups || []).map(group => `<span class="tag">${escapeHtml(group)}</span>`).join('') || '<span class="tag gray">未分类</span>'}</td><td><strong>${formatNumber(workout.totalVolume)} kg</strong></td><td>›</td></tr>`).join('')}</tbody></table>` : emptyState('⚡', '没有训练记录', '点击右上角新增，或先导入手机备份。', '<button class="btn primary" data-add="workout">＋ 新增训练</button>')}</div>`;
+      return `${pageHeader('训练记录', '补录、修改或删除历史训练，容量会根据完成组自动重新计算。', `<button class="btn primary" data-add="workout">＋ 新增训练记录</button>`)}
+        <div class="toolbar"><div class="segmented"><button class="segment ${workoutViewMode === 'month' ? 'active' : ''}" data-workout-mode="month">月视图</button><button class="segment ${workoutViewMode === 'list' ? 'active' : ''}" data-workout-mode="list">列表</button></div><div class="status-line"><span class="status-dot"></span>本机自动保存</div></div>
+        ${workoutViewMode === 'month' ? calendar : list}`;
+    }
+
+    function renderMetrics() {
+      const meta = metricMeta[activeMetricTab];
+      const latest = latestMetric(activeMetricTab);
+      const target = state.metricTargets.find(item => item.type === activeMetricTab);
+      const rows = [...state.bodyMetrics].filter(item => item.type === activeMetricTab).sort((a, b) => b.date.localeCompare(a.date) || b.timestamp - a.timestamp);
+      const addName = activeMetricTab === 'bmi' ? '体重（自动计算 BMI）' : meta.name;
+      return `${pageHeader('身体数据', '和手机端一样按部位分类；点击新增会直接记录当前选中的数据类型。', `<button class="btn primary" data-add="metric">＋ 新增${addName}</button>`)}
+        <div class="metric-tabs">${Object.entries(metricMeta).map(([type, item]) => `<button class="metric-tab ${activeMetricTab === type ? 'active' : ''}" data-metric-tab="${type}">${item.name}</button>`).join('')}</div>
+        <div class="metric-grid" style="grid-template-columns:repeat(2,minmax(0,260px))"><div class="metric-summary"><span>最新${meta.name}</span><strong>${latest ? formatNumber(latest.value) : '--'}<em>${meta.unit}</em></strong><div class="cell-sub">${latest ? formatDate(latest.date) : '暂无数据'}</div></div><div class="metric-summary"><span>目标${meta.name}</span><strong>${target ? formatNumber(target.target) : '--'}<em>${meta.unit}</em></strong><div class="cell-sub">目标数据随备份同步</div></div></div>
+        <div class="panel">${rows.length ? `<table><thead><tr><th>日期</th><th>数据类型</th><th>数值</th><th>记录标识</th><th></th></tr></thead><tbody>${rows.map(metric => `<tr ${metric.type === 'bmi' ? '' : `data-edit-metric="${escapeHtml(metric.id)}"`}><td>${formatDate(metric.date)}</td><td><span class="tag">${meta.name}</span></td><td><strong>${formatNumber(metric.value)} ${meta.unit}</strong></td><td><span class="cell-sub">${escapeHtml(metric.id)}</span></td><td>${metric.type === 'bmi' ? '<span class="tag gray">随体重计算</span>' : '›'}</td></tr>`).join('')}</tbody></table>` : emptyState('⌁', `还没有${meta.name}数据`, `点击右上角新增${addName}。`)}</div>`;
+    }
+
+    function groupPhotos() {
+      return [...state.bodyPhotos].sort((a, b) => b.date.localeCompare(a.date)).reduce((groups, photo) => {
+        const [year, month, day] = photo.date.split('-');
+        const monthKey = `${year}-${month}`;
+        const dayKey = day;
+        groups[monthKey] ||= {};
+        groups[monthKey][dayKey] ||= [];
+        groups[monthKey][dayKey].push(photo);
+        return groups;
+      }, {});
+    }
+
+    function photoSrc(photo) {
+      if (!photo.uri) return '';
+      if (/^(data:|blob:|https?:|file:)/.test(photo.uri)) return photo.uri;
+      return photo.uri;
+    }
+
+    function renderPhotos() {
+      const groups = groupPhotos();
+      const monthKeys = Object.keys(groups);
+      return `${pageHeader('身体照片', '照片按“年月 → 日期”整理；点击照片可以修改拍摄日期或删除。', `<button class="btn primary" data-add="photo">＋ 添加照片</button>`)}
+        ${monthKeys.length ? `<div class="photo-groups">${monthKeys.map(monthKey => { const [year, month] = monthKey.split('-'); const days = groups[monthKey]; const count = Object.values(days).flat().length; return `<section class="photo-group"><div class="photo-group-title"><strong>${Number(month)}月 ${year}</strong><span>${count} 张照片</span></div>${Object.entries(days).map(([day, photos]) => `<div class="photo-row" style="margin-top:8px"><div class="photo-day">${Number(day)} /</div>${photos.map(photo => `<div class="photo-item" data-edit-photo="${escapeHtml(photo.id)}">${photoSrc(photo) ? `<img src="${escapeHtml(photoSrc(photo))}" alt="身体照片" onerror="this.parentNode.innerHTML='<div class=&quot;photo-placeholder&quot;>照片仅在手机中<br>路径无法预览</div>'" />` : '<div class="photo-placeholder">无预览</div>'}</div>`).join('')}</div>`).join('')}</section>`; }).join('')}</div>` : `<div class="panel">${emptyState('▣', '还没有身体照片', '导入手机备份，或在这里添加照片。', '<button class="btn primary" data-add="photo">＋ 添加照片</button>')}</div>`}`;
+    }
+
+    function resolveExerciseImage(url) {
+      if (!url) return '';
+      if (/^(data:|blob:|https?:|file:|\.\.)/.test(url)) return url;
+      return `../public/${url.replace(/^\//, '')}`;
+    }
+
+    function renderExercises() {
+      const exercises = state.exerciseLibrary;
+      return `${pageHeader('动作库', `当前完整动作库共 ${exercises.length} 个动作；暂时只查看，不在后台修改。`)}
+        <div class="toolbar"><div class="search-wrap"><span class="search-icon">⌕</span><input class="field" id="exerciseSearch" placeholder="搜索动作或训练部位" /></div><div class="segmented" id="exerciseFilter"><button class="segment active" data-filter="all">全部</button><button class="segment" data-filter="strength">力量</button><button class="segment" data-filter="cardio">有氧</button></div></div>
+        ${exercises.length ? `<div class="exercise-grid" id="exerciseGrid">${exercises.map(exercise => { const src = resolveExerciseImage(exercise.gifUrl); return `<article class="exercise-card" data-exercise-category="${exercise.category}" data-search="${escapeHtml(`${exercise.name} ${exercise.muscleGroup}`)}"><div>${src ? `<img class="exercise-thumb" src="${escapeHtml(src)}" alt="${escapeHtml(exercise.name)}" onerror="this.outerHTML='<div class=&quot;exercise-placeholder&quot;>◆</div>'" />` : '<div class="exercise-placeholder">◆</div>'}</div><div><div class="exercise-name">${escapeHtml(exercise.name)}</div><div class="exercise-meta">${escapeHtml(exercise.muscleGroup)} · ${exercise.category === 'cardio' ? '仅记录时间' : exercise.volumeMode === 'assisted-bodyweight' ? '体重减辅助重量' : exercise.useLeftRight ? '左右分别记录' : '普通重量记录'}</div><div><span class="tag ${exercise.category === 'cardio' ? 'orange' : ''}">${exercise.category === 'cardio' ? '有氧' : '力量'}</span></div></div></article>`; }).join('')}</div>` : `<div class="panel">${emptyState('◆', '动作库为空', '请从 App 导入完整动作库。')}</div>`}`;
+    }
+
+    function renderTemplates() {
+      return `${pageHeader('训练模板', '模板规定动作和顺序；手机套用时，每个动作读取它最近一次训练的组数、重量和次数。', `<button class="btn primary" data-add="template">＋ 新增模板</button>`)}
+        <div class="panel">${state.workoutTemplates.length ? `<table><thead><tr><th>模板名称</th><th>动作顺序</th><th>创建时间</th><th></th></tr></thead><tbody>${state.workoutTemplates.map(template => { const names = template.exerciseIds.map(id => state.exerciseLibrary.find(item => item.id === id)?.name || id); return `<tr data-edit-template="${escapeHtml(template.id)}"><td><div class="cell-title">${escapeHtml(template.name)}</div></td><td>${names.map((name, index) => `<span class="tag gray">${index + 1}. ${escapeHtml(name)}</span>`).join('')}</td><td>${new Date(template.createdAt).toLocaleDateString('zh-CN')}</td><td>›</td></tr>`; }).join('')}</tbody></table>` : emptyState('▤', '没有训练模板', '点击右上角创建一个有顺序的动作组合。')}</div>`;
+    }
+
+    function wikiLinks(content) {
+      return [...String(content || '').matchAll(/\[\[([^\]]+)\]\]/g)].map(match => match[1].trim()).filter(Boolean);
+    }
+
+    function noteBacklinks(note) {
+      const title = note.title.trim().toLocaleLowerCase();
+      if (!title) return [];
+      return state.notes.filter(candidate => candidate.id !== note.id && wikiLinks(candidate.content).some(link => link.toLocaleLowerCase() === title));
+    }
+
+    function noteCard(note) {
+      const outgoing = wikiLinks(note.content);
+      const incoming = noteBacklinks(note);
+      return `<article class="note-card" data-edit-note="${escapeHtml(note.id)}"><strong>${escapeHtml(note.title || '无标题')}</strong><p>${escapeHtml((note.content || '').replace(/[#*`]/g, '').slice(0, 72))}</p><div class="note-relations">${outgoing.length ? `<span class="tag">引用 ${outgoing.length}</span>` : ''}${incoming.length ? `<span class="tag orange">被引用 ${incoming.length}</span>` : ''}${!outgoing.length && !incoming.length ? '<span class="tag gray">无双链</span>' : ''}</div></article>`;
+    }
+
+    function folderSection(folder, notes) {
+      const isUnfiled = !folder;
+      return `<section class="folder-panel"><div class="folder-head"><div class="folder-name"><span class="folder-mark">${isUnfiled ? '✎' : '▰'}</span>${escapeHtml(folder?.name || '未分类笔记')}<span class="tag gray">${notes.length} 篇</span></div>${isUnfiled ? '' : `<button class="btn small" data-edit-folder="${escapeHtml(folder.id)}">设置文件夹</button>`}</div>${notes.length ? `<div class="note-grid">${notes.map(noteCard).join('')}</div>` : '<div class="empty" style="padding:28px">这个文件夹还没有笔记</div>'}</section>`;
+    }
+
+    function renderNotes() {
+      const unfiled = state.notes.filter(note => !note.folderId || !state.folders.some(folder => folder.id === note.folderId));
+      return `${pageHeader('知识笔记', '使用文件夹整理 Markdown；在正文中输入 [[笔记标题]]，系统会同时显示引用和反向引用。', `<button class="btn" data-add="folder">＋ 新建文件夹</button><button class="btn primary" data-add="note">＋ 新增笔记</button>`)}
+        <div class="folder-list">${state.folders.map(folder => folderSection(folder, state.notes.filter(note => note.folderId === folder.id))).join('')}${unfiled.length || state.folders.length === 0 ? folderSection(null, unfiled) : ''}</div>`;
+    }
+
+    function approximateSize() {
+      return new Blob([JSON.stringify(state)]).size;
+    }
+
+    function humanSize(bytes) {
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+    }
+
+    function renderBackup() {
+      return `${pageHeader('备份管理', '所有修改都会自动保存在当前浏览器；JSON 用于额外备份和传回手机。', `<button class="btn danger" data-global-action="reset-local">清除本机草稿</button><button class="btn primary" data-global-action="export">↓ 导出新备份</button>`)}
+        <div class="backup-hero">
+          <div class="drop-zone" id="dropZone"><div><div class="drop-icon">↑</div><h3>把备份文件拖到这里</h3><p>支持当前 App 导出的 .json 文件<br>所有读取和编辑都只在这台电脑的浏览器里完成</p><button class="btn primary" data-global-action="import">选择 JSON 文件</button></div></div>
+          <div class="panel"><div class="panel-head"><div><div class="panel-title">当前文件检查</div><div class="panel-subtitle">导出前确认各类数据数量</div></div><span class="tag">已自动保存</span></div><div class="panel-body"><div class="data-check">
+            <div class="check-row"><span>训练历史</span><strong>${state.workoutHistory.length} 条</strong></div>
+            <div class="check-row"><span>身体数据</span><strong>${state.bodyMetrics.length} 条</strong></div>
+            <div class="check-row"><span>身体照片</span><strong>${state.bodyPhotos.length} 张</strong></div>
+            <div class="check-row"><span>动作库</span><strong>${state.exerciseLibrary.length} 个</strong></div>
+            <div class="check-row"><span>模板 / 笔记</span><strong>${state.workoutTemplates.length} / ${state.notes.length}</strong></div>
+            <div class="check-row"><span>预计文件大小</span><strong>${humanSize(approximateSize())}</strong></div>
+          </div><div class="warning">导入 App 时建议先让 App 自动保存一份旧备份。照片较多时 JSON 会变大，正式版会增加“JSON + 照片文件夹”的 ZIP 方案。</div></div></div>
+        </div>`;
+    }
+
+    function openModal(title, body, options = {}) {
+      modalTitle.textContent = title;
+      modalBody.innerHTML = body;
+      modalFoot.innerHTML = `<div>${options.left || ''}</div><div class="action-row"><button class="btn" data-modal-close>取消</button><button class="btn primary" id="modalSave">${options.saveText || '保存'}</button></div>`;
+      modal.classList.toggle('large', Boolean(options.large));
+      modalBackdrop.classList.add('open');
+      document.getElementById('modalSave').onclick = options.onSave || closeModal;
+      if (options.onOpen) options.onOpen();
+    }
+
+    function closeModal() {
+      modalBackdrop.classList.remove('open');
+      modal.classList.remove('large');
+    }
+
+    function deleteButton(label, onDelete) {
+      const button = document.createElement('button');
+      button.className = 'btn danger';
+      button.textContent = `删除${label}`;
+      button.onclick = () => {
+        if (confirm(`确定要删除这条${label}吗？删除后无法撤销。`)) {
+          onDelete();
+          closeModal();
+          render();
+          toast(`已删除${label}`);
+        }
+      };
+      const left = modalFoot.firstElementChild;
+      left.innerHTML = '';
+      left.appendChild(button);
+    }
+
+    function showWorkoutEditor(workoutId, dateOverride) {
+      const existing = workoutId ? state.workoutHistory.find(item => item.id === workoutId) : null;
+      const draft = existing ? JSON.parse(JSON.stringify(existing)) : { id: uid('workout'), date: dateOverride || today(), name: '训练记录', exercises: [], totalVolume: 0, muscleGroups: [] };
+      const latestWeight = Math.round(latestMetric('weight')?.value || 0);
+
+      function setRowHtml(exercise, set, index) {
+        const leftRight = exercise.useLeftRight && exercise.volumeMode !== 'assisted-bodyweight';
+        return `<div class="set-row" data-set-id="${escapeHtml(set.id || uid('set'))}"><div class="set-index">${index + 1}</div>
+          ${leftRight ? `<label><span class="mini-label">左手重量</span><input class="mini-input set-left" type="number" step="0.1" value="${set.leftWeight ?? ''}" /></label><label><span class="mini-label">右手重量</span><input class="mini-input set-right" type="number" step="0.1" value="${set.rightWeight ?? ''}" /></label>` : `<label style="grid-column:span 2"><span class="mini-label">${exercise.volumeMode === 'assisted-bodyweight' ? '辅助重量' : '重量'}（kg）</span><input class="mini-input set-weight" type="number" step="0.1" value="${set.weight ?? ''}" /></label>`}
+          <label><span class="mini-label">次数</span><input class="mini-input set-reps" type="number" step="1" value="${set.reps ?? 0}" /></label>
+          <label class="check-line" style="height:36px"><input class="set-completed" type="checkbox" ${set.completed ? 'checked' : ''}/> 完成</label>
+          <button class="btn icon small remove-set" type="button">×</button></div>`;
+      }
+
+      function exerciseEditorHtml(exercise) {
+        if (exercise.category === 'cardio') {
+          return `<section class="editor-exercise" data-exercise-id="${escapeHtml(exercise.id)}" data-category="cardio"><div class="editor-exercise-head"><strong>${escapeHtml(exercise.name)} <span class="tag orange">有氧</span></strong><button class="btn small danger remove-editor-exercise" type="button">移除动作</button></div><label><span class="form-label">运动时间（分钟）</span><input class="field cardio-duration" type="number" min="0" value="${exercise.durationMinutes ?? ''}" /></label></section>`;
+        }
+        const cloned = { ...exercise };
+        if (cloned.volumeMode === 'assisted-bodyweight') cloned.bodyWeightKg = cloned.bodyWeightKg || latestWeight;
+        return `<section class="editor-exercise" data-exercise-id="${escapeHtml(cloned.id)}" data-category="strength" data-left-right="${Boolean(cloned.useLeftRight)}" data-volume-mode="${escapeHtml(cloned.volumeMode || '')}" data-body-weight="${cloned.bodyWeightKg || ''}"><div class="editor-exercise-head"><strong>${escapeHtml(cloned.name)} ${cloned.volumeMode === 'assisted-bodyweight' ? `<span class="tag">读取体重 ${cloned.bodyWeightKg || '--'} kg</span>` : ''}</strong><div class="action-row"><button class="btn small soft add-set" type="button">＋ 添加组</button><button class="btn small danger remove-editor-exercise" type="button">移除动作</button></div></div><div class="set-table">${(cloned.sets || []).map((set, index) => setRowHtml(cloned, set, index)).join('') || '<div class="cell-sub no-sets">暂时没有组，点击“添加组”。</div>'}</div></section>`;
+      }
+
+      const body = `<div class="form-grid"><div class="form-group"><label class="form-label">训练名称</label><input class="field" id="workoutName" value="${escapeHtml(draft.name)}" /></div><div class="form-group"><label class="form-label">训练日期</label><input class="field" id="workoutDate" type="date" value="${escapeHtml(draft.date)}" /></div><div class="form-group full"><label class="form-label">添加动作</label><div style="display:grid;grid-template-columns:1fr 110px;gap:9px"><select class="select" id="workoutExerciseSelect"><option value="">选择动作库中的动作</option>${state.exerciseLibrary.map(exercise => `<option value="${escapeHtml(exercise.id)}">${escapeHtml(exercise.name)} · ${escapeHtml(exercise.muscleGroup)}</option>`).join('')}</select><button class="btn soft" id="addWorkoutExercise" type="button">＋ 添加</button></div></div></div><div id="workoutExerciseEditors">${draft.exercises.map(exerciseEditorHtml).join('')}</div>`;
+
+      openModal(existing ? '修改训练记录' : '新增训练记录', body, {
+        large: true,
+        left: existing ? '<span id="deletePlaceholder"></span>' : '',
+        onOpen() {
+          const container = document.getElementById('workoutExerciseEditors');
+          document.getElementById('addWorkoutExercise').onclick = () => {
+            const selectedId = document.getElementById('workoutExerciseSelect').value;
+            if (!selectedId) return toast('请先选择一个动作');
+            const libraryItem = state.exerciseLibrary.find(item => item.id === selectedId);
+            if (!libraryItem) return;
+            const exercise = JSON.parse(JSON.stringify(libraryItem));
+            exercise.sets = [];
+            if (exercise.volumeMode === 'assisted-bodyweight') exercise.bodyWeightKg = latestWeight || undefined;
+            container.insertAdjacentHTML('beforeend', exerciseEditorHtml(exercise));
+          };
+
+          container.onclick = event => {
+            const removeExercise = event.target.closest('.remove-editor-exercise');
+            if (removeExercise) return removeExercise.closest('.editor-exercise').remove();
+            const removeSet = event.target.closest('.remove-set');
+            if (removeSet) return removeSet.closest('.set-row').remove();
+            const addSet = event.target.closest('.add-set');
+            if (addSet) {
+              const section = addSet.closest('.editor-exercise');
+              const base = state.exerciseLibrary.find(item => item.id === section.dataset.exerciseId) || { useLeftRight: section.dataset.leftRight === 'true', volumeMode: section.dataset.volumeMode };
+              const table = section.querySelector('.set-table');
+              table.querySelector('.no-sets')?.remove();
+              table.insertAdjacentHTML('beforeend', setRowHtml(base, { id: uid('set'), weight: 0, reps: 0, completed: true }, table.querySelectorAll('.set-row').length));
+            }
+          };
+          if (existing) deleteButton('训练记录', () => { state.workoutHistory = state.workoutHistory.filter(item => item.id !== existing.id); });
+        },
+        onSave() {
+          const name = document.getElementById('workoutName').value.trim();
+          const date = document.getElementById('workoutDate').value;
+          if (!name || !date) return toast('请填写训练名称和日期');
+          const exercises = [...document.querySelectorAll('#workoutExerciseEditors .editor-exercise')].map(section => {
+            const libraryItem = state.exerciseLibrary.find(item => item.id === section.dataset.exerciseId) || draft.exercises.find(item => item.id === section.dataset.exerciseId);
+            const base = JSON.parse(JSON.stringify(libraryItem || { id: section.dataset.exerciseId, name: '未命名动作', muscleGroup: '其他', useLeftRight: false }));
+            if (section.dataset.category === 'cardio') return { ...base, category: 'cardio', sets: [], durationMinutes: Number(section.querySelector('.cardio-duration').value || 0), distanceKm: undefined, intensity: undefined };
+            const sets = [...section.querySelectorAll('.set-row')].map(row => {
+              const set = { id: row.dataset.setId || uid('set'), reps: Number(row.querySelector('.set-reps').value || 0), completed: row.querySelector('.set-completed').checked };
+              const weight = row.querySelector('.set-weight');
+              if (weight) set.weight = Number(weight.value || 0);
+              const left = row.querySelector('.set-left');
+              const right = row.querySelector('.set-right');
+              if (left) set.leftWeight = Number(left.value || 0);
+              if (right) set.rightWeight = Number(right.value || 0);
+              return set;
+            });
+            return { ...base, sets, bodyWeightKg: base.volumeMode === 'assisted-bodyweight' ? (Number(section.dataset.bodyWeight) || undefined) : base.bodyWeightKg };
+          });
+          const result = normalizeWorkout({ ...draft, name, date, exercises });
+          const index = state.workoutHistory.findIndex(item => item.id === result.id);
+          if (index >= 0) state.workoutHistory[index] = result; else state.workoutHistory.push(result);
+          closeModal(); render(); toast('训练记录已保存');
+        }
+      });
+    }
+
+    function showMetricEditor(metricId, requestedType = activeMetricTab) {
+      const existing = metricId ? state.bodyMetrics.find(item => item.id === metricId) : null;
+      const type = requestedType === 'bmi' ? 'weight' : requestedType;
+      const draft = existing || { id: uid('metric'), type, value: '', date: today(), timestamp: Date.now() };
+      const meta = metricMeta[draft.type];
+      openModal(existing ? `修改${meta.name}` : `新增${meta.name}`, `<div class="form-grid"><div class="form-group"><label class="form-label">当前数据类型</label><div class="field" style="display:flex;align-items:center;background:var(--green-soft);border-color:transparent;font-weight:800;color:var(--green-dark)">${meta.name}${meta.unit ? `（${meta.unit}）` : ''}</div></div><div class="form-group"><label class="form-label">记录日期</label><input class="field" id="metricDate" type="date" value="${escapeHtml(draft.date)}" /></div><div class="form-group full"><label class="form-label">${meta.name}数值</label><input class="field" id="metricValue" type="number" step="0.1" value="${draft.value}" placeholder="请输入数字" /></div></div>`, {
+        onOpen() { if (existing) deleteButton('身体数据', () => { state.bodyMetrics = state.bodyMetrics.filter(item => item.id !== existing.id); }); },
+        onSave() {
+          const date = document.getElementById('metricDate').value;
+          const value = Number(document.getElementById('metricValue').value);
+          if (!date || !Number.isFinite(value) || value <= 0) return toast('请填写有效日期和数值');
+          const result = { ...draft, date, value, timestamp: new Date(`${date}T12:00:00`).getTime() };
+          const index = state.bodyMetrics.findIndex(item => item.id === result.id);
+          if (index >= 0) state.bodyMetrics[index] = result; else state.bodyMetrics.push(result);
+          if (draft.type === 'weight') {
+            const bmi = Number((value / (1.58 * 1.58)).toFixed(1));
+            const bmiAtDate = state.bodyMetrics.find(item => item.type === 'bmi' && item.date === date);
+            if (bmiAtDate) { bmiAtDate.value = bmi; bmiAtDate.timestamp = result.timestamp; }
+            else state.bodyMetrics.push({ id: uid('metric'), type: 'bmi', value: bmi, date, timestamp: result.timestamp });
+          }
+          closeModal(); render(); toast('身体数据已保存');
+        }
+      });
+    }
+
+    function showPhotoAdd() {
+      openModal('添加身体照片', `<div class="form-grid"><div class="form-group full"><label class="form-label">照片日期</label><input class="field" id="newPhotoDate" type="date" value="${today()}" /></div><div class="form-group full"><div class="warning" style="margin:0">下一步会打开电脑的照片选择窗口。当前单文件版本会把照片转为 Base64 存入 JSON，因此照片多时文件会比较大。</div></div></div>`, {
+        saveText: '选择照片',
+        onSave() { photoDatePending = document.getElementById('newPhotoDate').value || today(); closeModal(); photoInput.click(); }
+      });
+    }
+
+    function showPhotoEditor(photoId) {
+      const photo = state.bodyPhotos.find(item => item.id === photoId);
+      if (!photo) return;
+      openModal('修改照片日期', `<div class="form-grid"><div class="form-group full"><label class="form-label">照片日期</label><input class="field" id="photoDate" type="date" value="${escapeHtml(photo.date)}" /></div></div>`, {
+        onOpen() { deleteButton('照片', () => { state.bodyPhotos = state.bodyPhotos.filter(item => item.id !== photo.id); }); },
+        onSave() {
+          const date = document.getElementById('photoDate').value;
+          if (!date) return toast('请选择照片日期');
+          photo.date = date; photo.timestamp = new Date(`${date}T12:00:00`).getTime();
+          closeModal(); render(); toast('照片日期已修改');
+        }
+      });
+    }
+
+    function showExerciseEditor(exerciseId) {
+      const existing = exerciseId ? state.exerciseLibrary.find(item => item.id === exerciseId) : null;
+      const draft = existing || { id: uid('exercise'), name: '', muscleGroup: '腿', category: 'strength', useLeftRight: false, sets: [], gifUrl: '' };
+      openModal(existing ? '修改动作' : '新增动作', `<div class="form-grid"><div class="form-group"><label class="form-label">动作名称</label><input class="field" id="exerciseName" value="${escapeHtml(draft.name)}" /></div><div class="form-group"><label class="form-label">训练部位</label><select class="select" id="exerciseMuscle">${['腿','背','胸','肩','臂','核心','有氧'].map(group => `<option ${draft.muscleGroup === group ? 'selected' : ''}>${group}</option>`).join('')}</select></div><div class="form-group"><label class="form-label">动作类型</label><select class="select" id="exerciseCategory"><option value="strength" ${draft.category === 'strength' ? 'selected' : ''}>力量训练</option><option value="cardio" ${draft.category === 'cardio' ? 'selected' : ''}>有氧运动（只记录时间）</option></select></div><div class="form-group"><label class="form-label">记录方式</label><select class="select" id="exerciseMode"><option value="normal">普通重量</option><option value="left-right" ${draft.useLeftRight ? 'selected' : ''}>左右重量分别记录</option><option value="assisted-bodyweight" ${draft.volumeMode === 'assisted-bodyweight' ? 'selected' : ''}>体重减辅助重量</option></select></div><div class="form-group full"><label class="form-label">图片路径</label><input class="field" id="exerciseGif" value="${escapeHtml(draft.gifUrl || '')}" placeholder="images/exercises/example.png" /><div class="form-hint">动作图片仍放在 App 项目内；后台只保存相对路径。</div></div></div>`, {
+        onOpen() { if (existing) deleteButton('动作', () => { state.exerciseLibrary = state.exerciseLibrary.filter(item => item.id !== existing.id); }); },
+        onSave() {
+          const name = document.getElementById('exerciseName').value.trim();
+          const category = document.getElementById('exerciseCategory').value;
+          const mode = document.getElementById('exerciseMode').value;
+          if (!name) return toast('请填写动作名称');
+          const result = { ...draft, name, muscleGroup: document.getElementById('exerciseMuscle').value, category, gifUrl: document.getElementById('exerciseGif').value.trim(), sets: [], useLeftRight: category === 'strength' && mode === 'left-right' };
+          if (category === 'strength' && mode === 'assisted-bodyweight') result.volumeMode = 'assisted-bodyweight'; else delete result.volumeMode;
+          const index = state.exerciseLibrary.findIndex(item => item.id === result.id);
+          if (index >= 0) state.exerciseLibrary[index] = result; else state.exerciseLibrary.push(result);
+          closeModal(); render(); toast('动作已保存');
+        }
+      });
+    }
+
+    function showTemplateEditor(templateId) {
+      const existing = templateId ? state.workoutTemplates.find(item => item.id === templateId) : null;
+      const draft = existing || { id: uid('template'), name: '', exerciseIds: [], createdAt: Date.now() };
+      const selectedIds = [...new Set(draft.exerciseIds)].filter(id => state.exerciseLibrary.some(exercise => exercise.id === id));
+      openModal(existing ? '修改训练模板' : '新增训练模板', `<div class="form-grid"><div class="form-group full"><label class="form-label">模板名称</label><input class="field" id="templateName" value="${escapeHtml(draft.name)}" /></div><div class="form-group full"><label class="form-label">添加动作</label><div style="display:grid;grid-template-columns:1fr 110px;gap:8px"><select class="select" id="templateExerciseSelect"><option value="">选择动作</option>${state.exerciseLibrary.map(exercise => `<option value="${escapeHtml(exercise.id)}">${escapeHtml(exercise.name)} · ${escapeHtml(exercise.muscleGroup)}</option>`).join('')}</select><button class="btn soft" id="addTemplateExercise" type="button">＋ 添加</button></div></div><div class="form-group full"><label class="form-label">训练动作与顺序</label><div class="form-hint">手机套用模板时严格按这里的顺序排列；用上下箭头调整。</div><div class="order-list" id="templateOrderList"></div></div></div>`, {
+        large: true,
+        onOpen() {
+          const list = document.getElementById('templateOrderList');
+          const renderOrder = () => {
+            list.innerHTML = selectedIds.length ? selectedIds.map((id, index) => {
+              const exercise = state.exerciseLibrary.find(item => item.id === id);
+              return `<div class="order-row" data-template-order-id="${escapeHtml(id)}"><span class="order-number">${index + 1}</span><div><strong style="font-size:13px">${escapeHtml(exercise?.name || id)}</strong><div class="cell-sub">${escapeHtml(exercise?.muscleGroup || '未分类')}</div></div><div class="action-row"><button class="btn icon small template-up" type="button" ${index === 0 ? 'disabled' : ''}>↑</button><button class="btn icon small template-down" type="button" ${index === selectedIds.length - 1 ? 'disabled' : ''}>↓</button><button class="btn icon small danger template-remove" type="button">×</button></div></div>`;
+            }).join('') : '<div class="empty" style="padding:25px">还没有动作，请从上方添加。</div>';
+          };
+          renderOrder();
+          document.getElementById('addTemplateExercise').onclick = () => {
+            const id = document.getElementById('templateExerciseSelect').value;
+            if (!id) return toast('请先选择一个动作');
+            if (selectedIds.includes(id)) return toast('这个动作已经在模板中');
+            selectedIds.push(id);
+            renderOrder();
+          };
+          list.onclick = event => {
+            const row = event.target.closest('[data-template-order-id]');
+            if (!row) return;
+            const index = selectedIds.indexOf(row.dataset.templateOrderId);
+            if (event.target.closest('.template-up') && index > 0) {
+              [selectedIds[index - 1], selectedIds[index]] = [selectedIds[index], selectedIds[index - 1]];
+              renderOrder();
+            } else if (event.target.closest('.template-down') && index < selectedIds.length - 1) {
+              [selectedIds[index + 1], selectedIds[index]] = [selectedIds[index], selectedIds[index + 1]];
+              renderOrder();
+            } else if (event.target.closest('.template-remove')) {
+              selectedIds.splice(index, 1);
+              renderOrder();
+            }
+          };
+          if (existing) deleteButton('模板', () => { state.workoutTemplates = state.workoutTemplates.filter(item => item.id !== existing.id); });
+        },
+        onSave() {
+          const name = document.getElementById('templateName').value.trim();
+          if (!name) return toast('请填写模板名称');
+          if (!selectedIds.length) return toast('请至少添加一个动作');
+          const result = { ...draft, name, exerciseIds: [...selectedIds] };
+          const index = state.workoutTemplates.findIndex(item => item.id === result.id);
+          if (index >= 0) state.workoutTemplates[index] = result; else state.workoutTemplates.push(result);
+          closeModal(); render(); toast('模板已保存');
+        }
+      });
+    }
+
+    function showNoteEditor(noteId) {
+      const existing = noteId ? state.notes.find(item => item.id === noteId) : null;
+      const draft = existing || { id: uid('note'), title: '', content: '', folderId: state.folders[0]?.id || null, createdAt: Date.now(), updatedAt: Date.now() };
+      openModal(existing ? '修改知识笔记' : '新增知识笔记', `<div class="form-grid"><div class="form-group"><label class="form-label">标题</label><input class="field" id="noteTitle" value="${escapeHtml(draft.title)}" /></div><div class="form-group"><label class="form-label">文件夹</label><select class="select" id="noteFolder"><option value="">未分类</option>${state.folders.map(folder => `<option value="${escapeHtml(folder.id)}" ${draft.folderId === folder.id ? 'selected' : ''}>${escapeHtml(folder.name)}</option>`).join('')}</select></div><div class="form-group full"><label class="form-label">正文（支持 Markdown 和双链）</label><textarea class="textarea" id="noteContent" style="min-height:260px" placeholder="输入 [[另一篇笔记标题]] 创建双链">${escapeHtml(draft.content)}</textarea><div class="form-hint">双链格式：[[笔记标题]]。引用和反向引用会自动整理在下方。</div></div><div class="form-group full"><label class="form-label">双链关系</label><div id="noteRelations"></div></div></div>`, {
+        large: true,
+        onOpen() {
+          const relations = document.getElementById('noteRelations');
+          const renderRelations = () => {
+            const currentTitle = document.getElementById('noteTitle').value.trim();
+            const outgoing = wikiLinks(document.getElementById('noteContent').value);
+            const incoming = currentTitle ? state.notes.filter(note => note.id !== draft.id && wikiLinks(note.content).some(link => link.toLocaleLowerCase() === currentTitle.toLocaleLowerCase())) : [];
+            relations.innerHTML = `<div class="check-row" style="display:block;padding:12px 14px"><span style="display:block;margin-bottom:7px">这篇笔记引用了</span>${outgoing.length ? outgoing.map(title => `<button type="button" class="tag" data-open-linked-note="${escapeHtml(title)}">[[${escapeHtml(title)}]]</button>`).join('') : '<span class="tag gray">暂无</span>'}</div><div class="check-row" style="display:block;padding:12px 14px;margin-top:8px"><span style="display:block;margin-bottom:7px">哪些笔记引用了这篇</span>${incoming.length ? incoming.map(note => `<button type="button" class="tag orange" data-open-linked-note="${escapeHtml(note.title)}">${escapeHtml(note.title)}</button>`).join('') : '<span class="tag gray">暂无反向引用</span>'}</div>`;
+          };
+          renderRelations();
+          document.getElementById('noteTitle').addEventListener('input', renderRelations);
+          document.getElementById('noteContent').addEventListener('input', renderRelations);
+          relations.onclick = event => {
+            const title = event.target.closest('[data-open-linked-note]')?.dataset.openLinkedNote;
+            if (!title) return;
+            const linked = state.notes.find(note => note.title.trim().toLocaleLowerCase() === title.trim().toLocaleLowerCase());
+            if (!linked) return toast(`还没有找到“${title}”`);
+            closeModal();
+            showNoteEditor(linked.id);
+          };
+          if (existing) deleteButton('笔记', () => { state.notes = state.notes.filter(item => item.id !== existing.id); });
+        },
+        onSave() {
+          const title = document.getElementById('noteTitle').value.trim();
+          if (!title) return toast('请填写笔记标题');
+          const result = { ...draft, title, folderId: document.getElementById('noteFolder').value || null, content: document.getElementById('noteContent').value, updatedAt: Date.now() };
+          const index = state.notes.findIndex(item => item.id === result.id);
+          if (index >= 0) state.notes[index] = result; else state.notes.push(result);
+          closeModal(); render(); toast('笔记已保存');
+        }
+      });
+    }
+
+    function showFolderEditor(folderId) {
+      const existing = folderId ? state.folders.find(item => item.id === folderId) : null;
+      const draft = existing || { id: uid('folder'), name: '', icon: 'fa-folder', color: 'green', expanded: true };
+      openModal(existing ? '设置文件夹' : '新建文件夹', `<div class="form-grid"><div class="form-group full"><label class="form-label">文件夹名称</label><input class="field" id="folderName" value="${escapeHtml(draft.name)}" placeholder="例如：力量训练" /></div><div class="form-group"><label class="form-label">颜色</label><select class="select" id="folderColor"><option value="green" ${draft.color === 'green' || draft.color === '#10B981' ? 'selected' : ''}>绿色</option><option value="amber" ${draft.color === 'amber' ? 'selected' : ''}>橙色</option><option value="blue" ${draft.color === 'blue' ? 'selected' : ''}>蓝色</option><option value="purple" ${draft.color === 'purple' ? 'selected' : ''}>紫色</option><option value="pink" ${draft.color === 'pink' ? 'selected' : ''}>粉色</option></select></div><div class="form-group"><label class="form-label">图标</label><select class="select" id="folderIcon"><option value="fa-folder">文件夹</option><option value="fa-book" ${draft.icon === 'fa-book' ? 'selected' : ''}>书本</option><option value="fa-star" ${draft.icon === 'fa-star' ? 'selected' : ''}>收藏</option><option value="fa-lightbulb" ${draft.icon === 'fa-lightbulb' ? 'selected' : ''}>灵感</option></select></div></div>`, {
+        onOpen() {
+          if (existing) deleteButton('文件夹及其中笔记', () => {
+            state.folders = state.folders.filter(item => item.id !== existing.id);
+            state.notes = state.notes.filter(note => note.folderId !== existing.id);
+          });
+        },
+        onSave() {
+          const name = document.getElementById('folderName').value.trim();
+          if (!name) return toast('请填写文件夹名称');
+          const result = { ...draft, name, color: document.getElementById('folderColor').value, icon: document.getElementById('folderIcon').value, expanded: true };
+          const index = state.folders.findIndex(item => item.id === result.id);
+          if (index >= 0) state.folders[index] = result; else state.folders.push(result);
+          closeModal(); render(); toast('文件夹已保存');
+        }
+      });
+    }
+
+    function toast(message) {
+      const element = document.getElementById('toast');
+      element.textContent = message;
+      element.classList.add('show');
+      clearTimeout(toast.timer);
+      toast.timer = setTimeout(() => element.classList.remove('show'), 2400);
+    }
+
+    function exportBackup() {
+      const clean = normalizeBackup(state);
+      const blob = new Blob([JSON.stringify(clean, null, 2)], { type: 'application/json;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `vibe-fitness-backup-${today()}.json`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+      toast(`备份已生成：${humanSize(blob.size)}`);
+    }
+
+    async function importBackup(file) {
+      if (!file) return;
+      try {
+        const text = await file.text();
+        state = normalizeBackup(JSON.parse(text));
+        currentView = 'workouts';
+        render();
+        toast(`已导入 ${file.name}`);
+      } catch (error) {
+        alert(`导入失败：${error.message}`);
+      } finally {
+        fileInput.value = '';
+      }
+    }
+
+    document.addEventListener('click', event => {
+      const view = event.target.closest('[data-view]')?.dataset.view;
+      if (view) { currentView = view; render(); return; }
+      const globalAction = event.target.closest('[data-global-action]')?.dataset.globalAction;
+      if (globalAction === 'import') { fileInput.click(); return; }
+      if (globalAction === 'export') { exportBackup(); return; }
+      if (globalAction === 'reset-local') {
+        if (!confirm('确定清除当前浏览器中的本机草稿吗？请确认已经导出需要保留的数据。')) return;
+        localStorage.removeItem(LOCAL_DRAFT_KEY);
+        state = createEmptyData();
+        currentView = 'workouts';
+        render();
+        toast('本机草稿已清除');
+        return;
+      }
+      const add = event.target.closest('[data-add]')?.dataset.add;
+      if (add === 'workout') return showWorkoutEditor();
+      if (add === 'metric') return showMetricEditor(undefined, activeMetricTab);
+      if (add === 'photo') return showPhotoAdd();
+      if (add === 'exercise') return showExerciseEditor();
+      if (add === 'template') return showTemplateEditor();
+      if (add === 'note') return showNoteEditor();
+      if (add === 'folder') return showFolderEditor();
+      const workoutId = event.target.closest('[data-edit-workout]')?.dataset.editWorkout;
+      if (workoutId) return showWorkoutEditor(workoutId);
+      const workoutDate = event.target.closest('[data-add-workout-date]')?.dataset.addWorkoutDate;
+      if (workoutDate) return showWorkoutEditor(undefined, workoutDate);
+      const metricId = event.target.closest('[data-edit-metric]')?.dataset.editMetric;
+      if (metricId) return showMetricEditor(metricId);
+      const photoId = event.target.closest('[data-edit-photo]')?.dataset.editPhoto;
+      if (photoId) return showPhotoEditor(photoId);
+      const exerciseId = event.target.closest('[data-edit-exercise]')?.dataset.editExercise;
+      if (exerciseId) return showExerciseEditor(exerciseId);
+      const templateId = event.target.closest('[data-edit-template]')?.dataset.editTemplate;
+      if (templateId) return showTemplateEditor(templateId);
+      const noteId = event.target.closest('[data-edit-note]')?.dataset.editNote;
+      if (noteId) return showNoteEditor(noteId);
+      const folderId = event.target.closest('[data-edit-folder]')?.dataset.editFolder;
+      if (folderId) return showFolderEditor(folderId);
+      const workoutMode = event.target.closest('[data-workout-mode]')?.dataset.workoutMode;
+      if (workoutMode) { workoutViewMode = workoutMode; render(); return; }
+      const monthDirection = Number(event.target.closest('[data-month-direction]')?.dataset.monthDirection || 0);
+      if (monthDirection) {
+        workoutCalendarMonth = new Date(workoutCalendarMonth.getFullYear(), workoutCalendarMonth.getMonth() + monthDirection, 1);
+        render();
+        return;
+      }
+      const metricTab = event.target.closest('[data-metric-tab]')?.dataset.metricTab;
+      if (metricTab) { activeMetricTab = metricTab; render(); return; }
+      if (event.target.closest('[data-modal-close]')) closeModal();
+    });
+
+    content.addEventListener('input', event => {
+      if (event.target.id === 'workoutSearch') {
+        const query = event.target.value.trim().toLowerCase();
+        document.querySelectorAll('#workoutRows tr').forEach(row => { row.style.display = row.dataset.search.toLowerCase().includes(query) ? '' : 'none'; });
+      }
+      if (event.target.id === 'exerciseSearch') {
+        const query = event.target.value.trim().toLowerCase();
+        document.querySelectorAll('#exerciseGrid .exercise-card').forEach(card => { card.style.display = card.dataset.search.toLowerCase().includes(query) ? '' : 'none'; });
+      }
+    });
+
+    content.addEventListener('click', event => {
+      const filter = event.target.closest('[data-filter]');
+      if (!filter) return;
+      document.querySelectorAll('#exerciseFilter .segment').forEach(button => button.classList.remove('active'));
+      filter.classList.add('active');
+      document.querySelectorAll('#exerciseGrid .exercise-card').forEach(card => { card.style.display = filter.dataset.filter === 'all' || card.dataset.exerciseCategory === filter.dataset.filter ? '' : 'none'; });
+    });
+
+    fileInput.addEventListener('change', () => importBackup(fileInput.files[0]));
+
+    photoInput.addEventListener('change', async () => {
+      const files = [...photoInput.files];
+      if (!files.length) return;
+      const results = await Promise.all(files.map(file => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve({ id: uid('photo'), uri: reader.result, date: photoDatePending, timestamp: new Date(`${photoDatePending}T12:00:00`).getTime() });
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      })));
+      state.bodyPhotos.push(...results);
+      photoInput.value = '';
+      currentView = 'photos';
+      render();
+      toast(`已添加 ${results.length} 张照片`);
+    });
+
+    modalBackdrop.addEventListener('click', event => { if (event.target === modalBackdrop) closeModal(); });
+    document.addEventListener('keydown', event => { if (event.key === 'Escape') closeModal(); });
+
+    document.addEventListener('dragover', event => {
+      const zone = document.getElementById('dropZone');
+      if (!zone) return;
+      event.preventDefault(); zone.classList.add('drag');
+    });
+    document.addEventListener('dragleave', event => { document.getElementById('dropZone')?.classList.remove('drag'); });
+    document.addEventListener('drop', event => {
+      const zone = document.getElementById('dropZone');
+      if (!zone) return;
+      event.preventDefault(); zone.classList.remove('drag');
+      importBackup(event.dataTransfer.files[0]);
+    });
+
+    render();
+  </script>
+</body>
+</html>

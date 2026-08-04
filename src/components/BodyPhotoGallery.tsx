@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { BodyPhoto } from '@/types';
 import { useAppBack } from '@/utils/navigation';
+import { groupBodyPhotosByMonth } from '@/utils/bodyPhotoGroups';
 
 interface BodyPhotoGalleryProps {
   photos: BodyPhoto[];
@@ -27,10 +28,14 @@ export function BodyPhotoGallery({
 }: BodyPhotoGalleryProps) {
   const [selecting, setSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [editingPhotoId, setEditingPhotoId] = useState<string | null>(null);
+  const [editingDate, setEditingDate] = useState('');
   const sortedPhotos = useMemo(
-    () => [...photos].sort((a, b) => b.timestamp - a.timestamp),
+    () => [...photos].sort((a, b) => b.date.localeCompare(a.date) || b.timestamp - a.timestamp),
     [photos]
   );
+  const photoGroups = useMemo(() => groupBodyPhotosByMonth(photos), [photos]);
+  const editingPhoto = photos.find((photo) => photo.id === editingPhotoId) ?? null;
 
   const togglePhoto = (photoId: string) => {
     if (!selecting) return;
@@ -51,6 +56,11 @@ export function BodyPhotoGallery({
   };
 
   useAppBack(() => {
+    if (editingPhotoId) {
+      setEditingPhotoId(null);
+      setEditingDate('');
+      return true;
+    }
     if (!selecting) return false;
     cancelSelection();
     return true;
@@ -61,6 +71,22 @@ export function BodyPhotoGallery({
     if (selectedPhotos.length < 2) return;
     onCompare(selectedPhotos);
     cancelSelection();
+  };
+
+  const openDateEditor = (photo: BodyPhoto) => {
+    setEditingPhotoId(photo.id);
+    setEditingDate(photo.date);
+  };
+
+  const closeDateEditor = () => {
+    setEditingPhotoId(null);
+    setEditingDate('');
+  };
+
+  const savePhotoDate = () => {
+    if (!editingPhoto || !editingDate) return;
+    onDateChange(editingPhoto.id, editingDate);
+    closeDateEditor();
   };
 
   return (
@@ -74,10 +100,9 @@ export function BodyPhotoGallery({
           <i className="fas fa-chevron-left"></i>
         </button>
         <h2 className="absolute left-1/2 -translate-x-1/2 text-base font-bold">身体照片</h2>
-        <span className="ml-auto text-sm text-slate-500">{photos.length} 张</span>
       </header>
 
-      <div className="scroll-content bg-slate-50 p-4">
+      <div className="scroll-content bg-white px-4 py-5">
         {selecting ? (
           <div className="bg-white rounded-2xl border border-slate-100 p-4 mb-4">
             <div className="flex items-center justify-between mb-3">
@@ -134,61 +159,137 @@ export function BodyPhotoGallery({
           >
             <i className="fas fa-camera text-2xl text-vibe-green mb-3"></i>
             <span className="text-base font-bold">上传第一张身体照片</span>
-            <span className="text-sm mt-1">日期默认使用上传当天，可随时修改</span>
           </button>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {sortedPhotos.map((photo) => {
-              const selected = selectedIds.has(photo.id);
-              return (
-                <article
-                  key={photo.id}
-                  onClick={() => togglePhoto(photo.id)}
-                  className={`bg-white rounded-2xl overflow-hidden border ${
-                    selected ? 'border-vibe-green ring-2 ring-vibe-green/20' : 'border-slate-100'
-                  }`}
-                >
-                  <div className="aspect-[3/4] relative bg-slate-100">
-                    <img src={photo.uri} alt={`${photo.date} 身体照片`} className="w-full h-full object-cover" />
-                    {selecting ? (
-                      <div
-                        className={`absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center border-2 ${
-                          selected
-                            ? 'bg-vibe-green border-vibe-green text-white'
-                            : 'bg-white/90 border-white text-transparent'
-                        }`}
-                      >
-                        <i className="fas fa-check text-xs"></i>
+          <div className="space-y-7">
+            {photoGroups.map((monthGroup) => (
+              <section key={monthGroup.key} className="border-b border-slate-100 pb-7 last:border-b-0">
+                <h3 className="mb-5 text-2xl font-medium tracking-tight text-slate-800">
+                  {monthGroup.label}
+                </h3>
+
+                <div className="space-y-5">
+                  {monthGroup.days.map((dayGroup) => (
+                    <div key={dayGroup.date} className="grid grid-cols-[44px_minmax(0,1fr)] items-start gap-2">
+                      <div className="pt-1 text-base font-medium tabular-nums text-slate-600">
+                        {dayGroup.dayLabel}
                       </div>
-                    ) : (
-                      <button
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onDelete(photo.id);
-                        }}
-                        className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/45 text-white"
-                        aria-label={`删除 ${photo.date} 的照片`}
-                      >
-                        <i className="fas fa-trash text-xs"></i>
-                      </button>
-                    )}
-                  </div>
-                  <div className="p-3">
-                    <label className="block text-xs font-semibold text-slate-500 mb-1.5">照片日期</label>
-                    <input
-                      type="date"
-                      value={photo.date}
-                      onClick={(event) => event.stopPropagation()}
-                      onChange={(event) => onDateChange(photo.id, event.target.value)}
-                      className="w-full h-9 rounded-lg bg-slate-100 px-2 text-sm font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-vibe-green/30"
-                    />
-                  </div>
-                </article>
-              );
-            })}
+
+                      <div className="grid min-w-0 grid-cols-3 gap-1.5">
+                        {dayGroup.photos.map((photo) => {
+                          const selected = selectedIds.has(photo.id);
+                          return (
+                            <article
+                              key={photo.id}
+                              onClick={() => togglePhoto(photo.id)}
+                              className={`relative aspect-square min-w-0 overflow-hidden rounded-md bg-slate-100 border ${
+                                selected
+                                  ? 'border-vibe-green ring-2 ring-vibe-green/25'
+                                  : 'border-slate-100'
+                              }`}
+                            >
+                              <img
+                                src={photo.uri}
+                                alt={`${photo.date} 身体照片`}
+                                className="h-full w-full object-cover"
+                              />
+
+                              {selecting ? (
+                                <div
+                                  className={`absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full border-2 ${
+                                    selected
+                                      ? 'border-vibe-green bg-vibe-green text-white'
+                                      : 'border-white bg-white/90 text-transparent'
+                                  }`}
+                                >
+                                  <i className="fas fa-check text-[9px]"></i>
+                                </div>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      onDelete(photo.id);
+                                    }}
+                                    className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm"
+                                    aria-label={`删除 ${photo.date} 的照片`}
+                                  >
+                                    <i className="fas fa-trash text-[9px]"></i>
+                                  </button>
+                                  <button
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      openDateEditor(photo);
+                                    }}
+                                    className="absolute bottom-1.5 right-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm"
+                                    aria-label={`修改 ${photo.date} 的照片日期`}
+                                  >
+                                    <i className="fas fa-calendar-days text-[9px]"></i>
+                                  </button>
+                                </>
+                              )}
+                            </article>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ))}
           </div>
         )}
       </div>
+
+      {editingPhoto && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50"
+          onClick={closeDateEditor}
+        >
+          <div
+            className="w-full max-w-md rounded-t-vibe-xl bg-white p-6"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-black text-slate-900">修改照片日期</h3>
+                <p className="mt-1 text-xs font-semibold text-slate-400">保存后照片会自动移到对应日期</p>
+              </div>
+              <button
+                onClick={closeDateEditor}
+                className="flex h-8 w-8 items-center justify-center text-slate-400"
+                aria-label="关闭日期修改"
+              >
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+
+            <label className="mb-2 block text-xs font-bold text-slate-500">照片日期</label>
+            <input
+              type="date"
+              value={editingDate}
+              onChange={(event) => setEditingDate(event.target.value)}
+              className="h-12 w-full rounded-xl bg-slate-100 px-4 text-base font-bold text-slate-800 outline-none focus:ring-2 focus:ring-vibe-green/30"
+            />
+
+            <div className="mt-5 flex gap-3">
+              <button
+                onClick={closeDateEditor}
+                className="h-11 flex-1 rounded-xl bg-slate-100 text-sm font-bold text-slate-600"
+              >
+                取消
+              </button>
+              <button
+                onClick={savePhotoDate}
+                disabled={!editingDate}
+                className="h-11 flex-1 rounded-xl bg-vibe-green text-sm font-bold text-white disabled:bg-slate-200 disabled:text-slate-400"
+              >
+                保存
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

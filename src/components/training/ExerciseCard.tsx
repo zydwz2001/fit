@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Exercise, Set as ExerciseSet } from '@/types';
 import { SetRow } from './SetRow';
 import { useApp } from '@/contexts/AppContext';
@@ -23,7 +24,7 @@ interface ExerciseCardProps {
   onMoveUp?: () => void;
   onMoveDown?: () => void;
   onUpdateCardio?: (
-    updates: Partial<Pick<Exercise, 'durationMinutes' | 'distanceKm' | 'intensity'>>
+    updates: Partial<Pick<Exercise, 'durationMinutes'>>
   ) => void;
   onKeyboardShow?: (setId: string, inputType: 'weight' | 'leftWeight' | 'rightWeight' | 'reps', value: string) => void;
   showKeyboard?: boolean;
@@ -58,6 +59,11 @@ export function ExerciseCard({
 }: ExerciseCardProps) {
   const { state } = useApp();
   const isCardio = exercise.category === 'cardio';
+  const isAssistedBodyweight = exercise.volumeMode === 'assisted-bodyweight';
+  const libraryMediaUrl = state.exerciseLibrary.find((item) => item.id === exercise.id)?.gifUrl;
+  const mediaUrl = libraryMediaUrl ?? exercise.gifUrl;
+  const [failedMediaUrl, setFailedMediaUrl] = useState<string>();
+  const showMedia = Boolean(mediaUrl && failedMediaUrl !== mediaUrl);
 
   const volume = !isCardio ? calculateVolume(exercise, state.weightUnit) : 0;
 
@@ -74,14 +80,15 @@ export function ExerciseCard({
             <i className="fas fa-check text-white text-xs"></i>
           </div>
         )}
-        {exercise.gifUrl ? (
+        {mediaUrl && showMedia ? (
           <img
-            src={exercise.gifUrl}
+            src={mediaUrl}
             alt={exercise.name}
-            className="w-14 h-14 object-contain rounded mb-2 bg-slate-50"
+            onError={() => setFailedMediaUrl(mediaUrl)}
+            className="w-20 h-20 object-contain rounded mb-2 bg-slate-50"
           />
         ) : (
-          <div className="w-14 h-14 bg-slate-100 rounded mb-2 flex items-center justify-center">
+          <div className="w-20 h-20 bg-slate-100 rounded mb-2 flex items-center justify-center">
             <i className={`fas ${isCardio ? 'fa-heart-pulse' : 'fa-dumbbell'} text-slate-300 text-lg`}></i>
           </div>
         )}
@@ -103,10 +110,11 @@ export function ExerciseCard({
         onClick={!isCardio ? onToggleExpand : undefined}
       >
         <div className="flex items-center gap-3 flex-1">
-          {exercise.gifUrl ? (
+          {mediaUrl && showMedia ? (
             <img
-              src={exercise.gifUrl}
+              src={mediaUrl}
               alt={exercise.name}
+              onError={() => setFailedMediaUrl(mediaUrl)}
               className="w-10 h-10 object-contain rounded-xl bg-slate-50"
             />
           ) : (
@@ -167,7 +175,7 @@ export function ExerciseCard({
                 <i className="fas fa-history text-sm"></i>
               </button>
             )}
-            {!isCardio && (
+            {!isCardio && !isAssistedBodyweight && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -196,41 +204,49 @@ export function ExerciseCard({
       </div>
 
       {isCardio && onUpdateCardio && (
-        <div className="px-3 pb-3 grid grid-cols-3 gap-2 border-t border-slate-100 pt-3">
-          {[
-            { key: 'durationMinutes' as const, label: '时长', unit: '分钟', step: '1', max: undefined },
-            { key: 'distanceKm' as const, label: '距离', unit: 'km', step: '0.1', max: undefined },
-            { key: 'intensity' as const, label: '强度', unit: '/10', step: '1', max: 10 },
-          ].map((field) => (
-            <label key={field.key} className="min-w-0">
-              <span className="text-xs font-semibold text-slate-500 block mb-1">{field.label}</span>
-              <div className="h-10 bg-slate-50 rounded-vibe px-2 flex items-center gap-1">
-                <input
-                  key={`${exercise.id}-${field.key}-${exercise[field.key] ?? ''}`}
-                  type="number"
-                  min="0"
-                  max={field.max}
-                  step={field.step}
-                  defaultValue={exercise[field.key] ?? ''}
-                  onBlur={(event) => {
-                    const parsed = Number.parseFloat(event.currentTarget.value);
-                    const value = Number.isFinite(parsed) && parsed > 0
-                      ? Math.min(field.max ?? parsed, parsed)
-                      : undefined;
-                    onUpdateCardio({ [field.key]: value });
-                  }}
-                  inputMode="decimal"
-                  className="w-full min-w-0 bg-transparent text-sm font-bold outline-none"
-                />
-                <span className="text-xs text-slate-500 flex-shrink-0">{field.unit}</span>
-              </div>
-            </label>
-          ))}
+        <div className="border-t border-slate-100 px-3 pb-3 pt-3">
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold text-slate-500">时长</span>
+            <div className="flex h-11 items-center gap-2 rounded-vibe bg-slate-50 px-3">
+              <input
+                key={`${exercise.id}-duration-${exercise.durationMinutes ?? ''}`}
+                type="number"
+                min="0"
+                step="1"
+                defaultValue={exercise.durationMinutes ?? ''}
+                onBlur={(event) => {
+                  const parsed = Number.parseFloat(event.currentTarget.value);
+                  onUpdateCardio({
+                    durationMinutes: Number.isFinite(parsed) && parsed > 0
+                      ? Math.round(parsed)
+                      : undefined,
+                  });
+                }}
+                inputMode="numeric"
+                placeholder="0"
+                aria-label={`${exercise.name}时长`}
+                className="min-w-0 flex-1 bg-transparent text-base font-bold outline-none"
+              />
+              <span className="flex-shrink-0 text-sm font-semibold text-slate-500">分钟</span>
+            </div>
+          </label>
         </div>
       )}
 
       {!isCardio && expanded && (
         <div className="px-3 pb-3 space-y-2 border-t border-slate-100 pt-3">
+          {isAssistedBodyweight && (
+            <div className="flex min-w-0 items-center gap-1 px-0.5 text-[9px] font-bold text-slate-400">
+              <span className="w-6 flex-shrink-0 text-center">组</span>
+              <div className="flex min-w-0 flex-1 items-center gap-1">
+                <span className="min-w-0 max-w-[60px] flex-1 text-center">辅助重量</span>
+                <span className="min-w-0 max-w-[60px] flex-1 text-center">次数</span>
+              </div>
+              <span className="w-7 flex-shrink-0"></span>
+              <span className="w-6 flex-shrink-0"></span>
+            </div>
+          )}
+
           {exercise.sets.map((set, index) => (
             <SetRow
               key={set.id}
@@ -238,7 +254,8 @@ export function ExerciseCard({
               index={index}
               useLeftRight={exercise.useLeftRight}
               isCardio={isCardio}
-              weightUnit={state.weightUnit}
+              weightUnit={isAssistedBodyweight ? 'kg' : state.weightUnit}
+              weightAriaLabel={isAssistedBodyweight ? '辅助重量（kg）' : '重量'}
               prevSet={index > 0 ? exercise.sets[index - 1] : undefined}
               nextSet={index < exercise.sets.length - 1 ? exercise.sets[index + 1] : undefined}
               onUpdate={(updates) => onUpdateSet(set.id, updates)}

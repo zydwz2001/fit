@@ -10,6 +10,8 @@ interface CustomKeyboardProps {
   hasFillDown?: boolean;
   allowDecimal?: boolean;
   onWeightUnitChange?: (unit: 'kg' | 'lbs') => void;
+  weightUnitLocked?: boolean;
+  simple?: boolean;
 }
 
 export function CustomKeyboard({
@@ -21,6 +23,8 @@ export function CustomKeyboard({
   hasFillDown = false,
   allowDecimal = true,
   onWeightUnitChange,
+  weightUnitLocked = false,
+  simple = false,
 }: CustomKeyboardProps) {
   const { state, dispatch } = useApp();
   const longPressTimer = useRef<number | null>(null);
@@ -83,7 +87,8 @@ export function CustomKeyboard({
 
   return (
     <div className="bg-slate-100 p-3 rounded-t-3xl border-t border-slate-200">
-      <div className="grid grid-cols-4 gap-2 mb-2">
+      {!simple && (
+        <div className="grid grid-cols-4 gap-2 mb-2">
         <button
           onClick={onFillUp}
           disabled={!hasFillUp}
@@ -112,12 +117,15 @@ export function CustomKeyboard({
 
         <button
           onClick={toggleWeightUnit}
+          disabled={weightUnitLocked}
           className="h-12 bg-white shadow-sm rounded-xl flex flex-col items-center justify-center hover:bg-slate-50 transition-colors"
         >
           <span className="text-xs font-black text-slate-800">
-            {state.weightUnit.toUpperCase()}
+            {weightUnitLocked ? 'KG' : state.weightUnit.toUpperCase()}
           </span>
-          <span className="text-[9px] font-bold text-slate-400">切换</span>
+          <span className="text-[9px] font-bold text-slate-400">
+            {weightUnitLocked ? '固定' : '切换'}
+          </span>
         </button>
 
         <button
@@ -129,7 +137,8 @@ export function CustomKeyboard({
         >
           <i className="fas fa-delete-left text-slate-600 text-lg"></i>
         </button>
-      </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-2 mb-2">
         {[1, 2, 3].map((num) => (
@@ -181,12 +190,25 @@ export function CustomKeyboard({
         >
           0
         </button>
-        <button
-          onClick={handleClear}
-          className="h-14 bg-slate-200 shadow-sm rounded-xl flex items-center justify-center text-sm font-black text-slate-500 hover:bg-slate-300 active:scale-95 transition-all"
-        >
-          清空
-        </button>
+        {simple ? (
+          <button
+            onPointerDown={handleBackspacePressStart}
+            onPointerUp={handleBackspacePressEnd}
+            onPointerLeave={handleBackspacePressCancel}
+            onPointerCancel={handleBackspacePressCancel}
+            className="h-14 bg-slate-200 shadow-sm rounded-xl flex items-center justify-center text-slate-500 hover:bg-slate-300 active:scale-95 transition-all"
+            aria-label="删除数字"
+          >
+            <i className="fas fa-delete-left text-lg"></i>
+          </button>
+        ) : (
+          <button
+            onClick={handleClear}
+            className="h-14 bg-slate-200 shadow-sm rounded-xl flex items-center justify-center text-sm font-black text-slate-500 hover:bg-slate-300 active:scale-95 transition-all"
+          >
+            清空
+          </button>
+        )}
       </div>
     </div>
   );

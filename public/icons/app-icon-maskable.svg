@@ -1,12 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title">
   <title id="title">Vibe Fitness</title>
-  <rect width="1024" height="1024" fill="#10B981"/>
-  <circle cx="512" cy="512" r="300" fill="#ffffff" opacity="0.12"/>
-  <path
-    d="M574 202 330 548h154l-34 277 245-366H542l32-257Z"
-    fill="#ffffff"
-    stroke="#ffffff"
-    stroke-linejoin="round"
-    stroke-width="24"
-  />
+  <rect width="1024" height="1024" fill="#F7F3EA"/>
+  <g transform="rotate(-45 512 512)">
+    <rect x="185" y="474" width="57" height="76" rx="19" fill="#1D2730"/>
+    <rect x="256" y="412" width="166" height="199" rx="28" fill="#12BE7B"/>
+    <rect x="441" y="469" width="142" height="85" rx="11" fill="#1D2730"/>
+    <rect x="602" y="412" width="166" height="199" rx="28" fill="#12BE7B"/>
+    <rect x="787" y="474" width="57" height="76" rx="19" fill="#1D2730"/>
+  </g>
 </svg>

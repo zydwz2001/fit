@@ -14,6 +14,7 @@ interface SetRowProps {
   onKeyboardShow?: (inputType: 'weight' | 'leftWeight' | 'rightWeight' | 'reps', value: string) => void;
   showKeyboard?: boolean;
   activeInputType?: 'weight' | 'leftWeight' | 'rightWeight' | 'reps' | null;
+  weightAriaLabel?: string;
 }
 
 export function SetRow({
@@ -28,6 +29,7 @@ export function SetRow({
   onKeyboardShow,
   showKeyboard = false,
   activeInputType,
+  weightAriaLabel = '重量',
 }: SetRowProps) {
   const getFontSize = (value: number | string | undefined) => {
     const len = (value ?? '').toString().length;
@@ -123,6 +125,7 @@ export function SetRow({
                   onBlur={!onKeyboardShow ? (e) => handleNativeCommit('weight', e.currentTarget.value) : undefined}
                   readOnly={Boolean(onKeyboardShow)}
                   inputMode="decimal"
+                  aria-label={weightAriaLabel}
                   className="text-xs font-bold text-center bg-transparent border-none outline-none w-full text-slate-800 cursor-pointer"
                   placeholder="0"
                   style={{ fontSize: getFontSize(set.weight) }}

@@ -10,11 +10,38 @@ export function calculateBMI(weight: number): number {
   return Number((weight / (heightInM * heightInM)).toFixed(1));
 }
 
+export function getLatestBodyWeightKg(metrics: BodyMetric[]): number | undefined {
+  const latest = [...metrics]
+    .filter((metric) =>
+      metric.type === 'weight' &&
+      Number.isFinite(metric.value) &&
+      metric.value > 0
+    )
+    .sort((a, b) => b.date.localeCompare(a.date) || b.timestamp - a.timestamp)[0];
+
+  return latest ? Math.round(latest.value) : undefined;
+}
+
 export function calculateVolume(
-  exercise: { sets: ExerciseSet[]; category?: 'strength' | 'cardio' },
+  exercise: {
+    sets: ExerciseSet[];
+    category?: 'strength' | 'cardio';
+    volumeMode?: 'assisted-bodyweight';
+    bodyWeightKg?: number;
+  },
   weightUnit: 'kg' | 'lbs' = 'kg'
 ): number {
   if (exercise.category === 'cardio') return 0;
+
+  if (exercise.volumeMode === 'assisted-bodyweight') {
+    const bodyWeightKg = Math.max(exercise.bodyWeightKg ?? 0, 0);
+    return exercise.sets
+      .filter(set => set.completed)
+      .reduce((sum, set) => {
+        const assistanceKg = Math.max(set.weight ?? 0, 0);
+        return sum + Math.max(bodyWeightKg - assistanceKg, 0) * set.reps;
+      }, 0);
+  }
 
   const toKg = (w: number | undefined): number => {
     if (w === undefined) return 0;

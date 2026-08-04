@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vibe-fitness-v3-mobile-preview';
+const CACHE_NAME = 'vibe-fitness-v3-production-20260804';
 const APP_ROOT = '/fit/';
 const CORE_ASSETS = [
   APP_ROOT,
@@ -8,7 +8,7 @@ const CORE_ASSETS = [
   `${APP_ROOT}icons/app-icon-512.png`,
   `${APP_ROOT}icons/app-icon-maskable-512.png`,
   `${APP_ROOT}icons/apple-touch-icon.png`,
-  `${APP_ROOT}images/exercises/%E5%8D%A7%E6%8E%A8.gif`,
+  `${APP_ROOT}images/exercises/barbell_benchpress.png`,
 ];
 
 self.addEventListener('install', (event) => {

@@ -48,7 +48,9 @@ function isValidExercise(value: unknown): boolean {
     (value.gifUrl === undefined || typeof value.gifUrl === 'string') &&
     isOptionalFiniteNumber(value.durationMinutes) &&
     isOptionalFiniteNumber(value.distanceKm) &&
-    isOptionalFiniteNumber(value.intensity)
+    isOptionalFiniteNumber(value.intensity) &&
+    (value.volumeMode === undefined || value.volumeMode === 'assisted-bodyweight') &&
+    isOptionalFiniteNumber(value.bodyWeightKg)
   );
 }
 

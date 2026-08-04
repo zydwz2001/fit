@@ -37,8 +37,6 @@ export function BodyPasswordPage() {
         <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <i className="fas fa-lock text-vibe-green text-xl"></i>
         </div>
-        <h2 className="text-xl font-bold mb-2">输入密码</h2>
-        <p className="text-sm text-slate-500">输入正确的 4 位密码后自动进入</p>
       </div>
 
       <div className="flex gap-3 mb-8">
