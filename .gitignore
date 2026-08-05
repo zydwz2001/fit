@@ -4,6 +4,8 @@ dist/
 .claude/
 *.apk
 *.apk.*
+*.p12
+*.keystore
 GIF素材提交区/
 应用图标候选/
 预览/

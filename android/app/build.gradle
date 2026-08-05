@@ -1,5 +1,11 @@
 apply plugin: 'com.android.application'
 
+def releaseKeystoreFile = System.getenv('VIBE_FITNESS_KEYSTORE_FILE')
+def releaseKeystorePassword = System.getenv('VIBE_FITNESS_KEYSTORE_PASSWORD')
+def releaseKeyAlias = System.getenv('VIBE_FITNESS_KEY_ALIAS')
+def releaseKeyPassword = System.getenv('VIBE_FITNESS_KEY_PASSWORD')
+def releaseSigningEnabled = releaseKeystoreFile && releaseKeystorePassword && releaseKeyAlias && releaseKeyPassword
+
 android {
     namespace = "com.vibefitness.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -16,8 +22,22 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        if (releaseSigningEnabled) {
+            release {
+                storeFile file(releaseKeystoreFile)
+                storePassword releaseKeystorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+                storeType 'PKCS12'
+            }
+        }
+    }
     buildTypes {
         release {
+            if (releaseSigningEnabled) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

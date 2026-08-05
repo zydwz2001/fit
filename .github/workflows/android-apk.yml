@@ -39,9 +39,22 @@ jobs:
       - name: Sync Android application
         run: npm run android:sync
 
-      - name: Build debug APK
+      - name: Prepare release signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/vibe-fitness-release.p12
+          chmod 600 android/app/vibe-fitness-release.p12
+
+      - name: Build signed release APK
         working-directory: android
-        run: ./gradlew assembleDebug
+        env:
+          VIBE_FITNESS_KEYSTORE_FILE: ${{ github.workspace }}/android/app/vibe-fitness-release.p12
+          VIBE_FITNESS_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          VIBE_FITNESS_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          VIBE_FITNESS_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease
 
       - name: Verify APK signature
         run: |
@@ -49,7 +62,7 @@ jobs:
           "$ANDROID_HOME/build-tools/$build_tools_version/apksigner" verify \
             --verbose \
             --print-certs \
-            android/app/build/outputs/apk/debug/app-debug.apk
+            android/app/build/outputs/apk/release/app-release.apk
 
       - name: Prepare download
         id: package
@@ -57,7 +70,7 @@ jobs:
           version_name=$(sed -n 's/.*versionName "\([^"]*\)".*/\1/p' android/app/build.gradle)
           test -n "$version_name"
           apk_name="Vibe-Fitness-${version_name}.apk"
-          cp android/app/build/outputs/apk/debug/app-debug.apk "$apk_name"
+          cp android/app/build/outputs/apk/release/app-release.apk "$apk_name"
           sha256sum "$apk_name"
           echo "version_name=$version_name" >> "$GITHUB_OUTPUT"
           echo "apk_name=$apk_name" >> "$GITHUB_OUTPUT"
