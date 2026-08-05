@@ -2,7 +2,7 @@ name: Build Android APK
 
 on:
   push:
-    branches: [agent/android-apk]
+    branches: [main, agent/android-apk]
   workflow_dispatch:
 
 permissions:
@@ -52,15 +52,21 @@ jobs:
             android/app/build/outputs/apk/debug/app-debug.apk
 
       - name: Prepare download
+        id: package
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk Vibe-Fitness-Android-Preview.apk
-          sha256sum Vibe-Fitness-Android-Preview.apk
+          version_name=$(sed -n 's/.*versionName "\([^"]*\)".*/\1/p' android/app/build.gradle)
+          test -n "$version_name"
+          apk_name="Vibe-Fitness-${version_name}.apk"
+          cp android/app/build/outputs/apk/debug/app-debug.apk "$apk_name"
+          sha256sum "$apk_name"
+          echo "version_name=$version_name" >> "$GITHUB_OUTPUT"
+          echo "apk_name=$apk_name" >> "$GITHUB_OUTPUT"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Vibe-Fitness-Android-Preview
-          path: Vibe-Fitness-Android-Preview.apk
+          name: Vibe-Fitness-${{ steps.package.outputs.version_name }}
+          path: ${{ steps.package.outputs.apk_name }}
           if-no-files-found: error
           retention-days: 14
 
@@ -69,18 +75,18 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          version_name=$(sed -n 's/.*versionName "\([^"]*\)".*/\1/p' android/app/build.gradle)
+          version_name="${{ steps.package.outputs.version_name }}"
+          apk_name="${{ steps.package.outputs.apk_name }}"
           test -n "$version_name"
           tag="v${version_name}"
           release_title="Vibe Fitness ${version_name}"
-          release_notes="Android 预览测试包。下载 Vibe-Fitness-Android-Preview.apk 后直接安装。"
+          release_notes="Vibe Fitness Android 可安装包。下载 APK 后可直接安装。"
 
           if gh release view "$tag" >/dev/null 2>&1; then
-            gh release upload "$tag" Vibe-Fitness-Android-Preview.apk --clobber
+            gh release upload "$tag" "$apk_name" --clobber
           else
-            gh release create "$tag" Vibe-Fitness-Android-Preview.apk \
+            gh release create "$tag" "$apk_name" \
               --target "$GITHUB_SHA" \
               --title "$release_title" \
-              --notes "$release_notes" \
-              --prerelease
+              --notes "$release_notes"
           fi

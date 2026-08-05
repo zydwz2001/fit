@@ -314,7 +314,8 @@ function BodyContent() {
           <ZoomableChart
             key={activeMetric}
             data={chartData}
-            height={180}
+            height={230}
+            unit={activeMetric === 'weight' ? 'kg' : activeMetric === 'bmi' ? '' : 'cm'}
           />
         </div>
 

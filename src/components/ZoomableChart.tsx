@@ -1,14 +1,24 @@
-import { useState, useRef, useMemo } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 const BASE_WIDTH = 300;
-const MIN_SCALE = 1;
-const MAX_SCALE = 4;
-const EXACT_DATE_SCALE = 2.5;
+const SVG_HEIGHT = 140;
+const PLOT_TOP = 10;
+const PLOT_BOTTOM = 113;
+const SIDE_PADDING = 16;
+
+export type ChartRange = 'all' | '1y' | '6m' | '3m';
+
+const RANGE_MONTHS: Record<Exclude<ChartRange, 'all'>, number> = {
+  '1y': 12,
+  '6m': 6,
+  '3m': 3,
+};
 
 interface ZoomableChartProps {
   data: { date: string; value: number }[];
   color?: string;
   height?: number;
+  unit?: string;
 }
 
 interface ChartPoint {
@@ -16,17 +26,13 @@ interface ChartPoint {
   y: number;
 }
 
-function parseDate(date: string): Date {
-  return new Date(`${date}T00:00:00`);
+interface RenderedPoint extends ChartPoint {
+  date: string;
+  value: number;
 }
 
-function evenlySpacedIndexes(length: number, count: number): number[] {
-  if (length <= count) return Array.from({ length }, (_, index) => index);
-  return [...new Set(
-    Array.from({ length: count }, (_, index) =>
-      Math.round((index / (count - 1)) * (length - 1))
-    )
-  )];
+function parseDate(date: string): Date {
+  return new Date(`${date}T00:00:00`);
 }
 
 export function normalizeChartData(
@@ -82,9 +88,20 @@ export function buildSmoothPath(points: ChartPoint[]): string {
   return path;
 }
 
+export function rollingAverageValues(values: number[], radius = 1): number[] {
+  if (values.length < 3 || radius < 1) return [...values];
+
+  return values.map((_, index) => {
+    const start = Math.max(0, index - radius);
+    const end = Math.min(values.length - 1, index + radius);
+    const window = values.slice(start, end + 1);
+    return window.reduce((sum, value) => sum + value, 0) / window.length;
+  });
+}
+
 export function formatChartDateLabel(
   date: string,
-  mode: 'overview' | 'detail' | 'exact',
+  mode: 'year' | 'overview' | 'detail' | 'exact',
   spansYears = false
 ): string {
   const value = parseDate(date);
@@ -93,222 +110,398 @@ export function formatChartDateLabel(
   const day = value.getDate();
 
   if (mode === 'exact') return date;
-  if (mode === 'detail') return `${month}月${day}日`;
+  if (mode === 'year') return `${year}年`;
+  if (mode === 'detail') {
+    return spansYears ? `${year}年${month}月` : `${month}月${day}日`;
+  }
   return spansYears ? `${year}年${month}月` : `${month}月`;
+}
+
+export function filterChartDataByRange(
+  data: { date: string; value: number }[],
+  range: ChartRange,
+  windowEndDate?: string
+): { date: string; value: number }[] {
+  const normalized = normalizeChartData(data);
+  if (range === 'all' || normalized.length === 0) return normalized;
+
+  const end = parseDate(windowEndDate ?? normalized[normalized.length - 1].date);
+  const start = shiftDateByMonths(end, -RANGE_MONTHS[range]);
+
+  return normalized.filter((item) => {
+    const date = parseDate(item.date);
+    return date > start && date <= end;
+  });
+}
+
+function shiftDateByMonths(date: Date, months: number): Date {
+  const shifted = new Date(date);
+  const originalDay = shifted.getDate();
+  shifted.setDate(1);
+  shifted.setMonth(shifted.getMonth() + months);
+  const lastDay = new Date(
+    shifted.getFullYear(),
+    shifted.getMonth() + 1,
+    0
+  ).getDate();
+  shifted.setDate(Math.min(originalDay, lastDay));
+  return shifted;
+}
+
+function toDateText(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+export function getChartWindow(
+  range: Exclude<ChartRange, 'all'>,
+  latestDate: string,
+  offset = 0
+): { startDate: string; endDate: string } {
+  const months = RANGE_MONTHS[range];
+  const latest = parseDate(latestDate);
+  const end = shiftDateByMonths(latest, -months * offset);
+  const start = shiftDateByMonths(end, -months);
+  return { startDate: toDateText(start), endDate: toDateText(end) };
+}
+
+function formatTick(date: Date, range: ChartRange): string {
+  if (range === 'all') return String(date.getFullYear());
+  if (range === '3m') return `${date.getMonth() + 1}/${date.getDate()}`;
+  return `${date.getMonth() + 1}月`;
+}
+
+function formatPeriod(firstDate: string, lastDate: string): string {
+  const first = parseDate(firstDate);
+  const last = parseDate(lastDate);
+  return `${first.getFullYear()}.${String(first.getMonth() + 1).padStart(2, '0')} — ${last.getFullYear()}.${String(last.getMonth() + 1).padStart(2, '0')}`;
 }
 
 export function ZoomableChart({
   data,
   color = '#10B981',
-  height = 180
+  height = 220,
+  unit = '',
 }: ZoomableChartProps) {
-  const [scale, setScale] = useState(1);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const lastDistanceRef = useRef<number>(0);
-  const lastScaleRef = useRef(1);
+  const [range, setRange] = useState<ChartRange>('all');
+  const [windowOffset, setWindowOffset] = useState(0);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const swipeStartXRef = useRef<number | null>(null);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 2) {
-      const distance = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      lastDistanceRef.current = distance;
-      lastScaleRef.current = scale;
+  const chartData = useMemo(() => normalizeChartData(data), [data]);
+  const latestDate = chartData[chartData.length - 1]?.date;
+  const chartWindow = useMemo(() => {
+    if (range === 'all' || !latestDate) return null;
+    return getChartWindow(range, latestDate, windowOffset);
+  }, [latestDate, range, windowOffset]);
+  const visibleData = useMemo(
+    () => filterChartDataByRange(chartData, range, chartWindow?.endDate),
+    [chartData, chartWindow?.endDate, range]
+  );
+
+  const timeDomain = useMemo(() => {
+    if (chartWindow) {
+      return {
+        start: parseDate(chartWindow.startDate),
+        end: parseDate(chartWindow.endDate),
+      };
     }
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (e.touches.length === 2 && lastDistanceRef.current > 0) {
-      if (e.cancelable) e.preventDefault();
-      const distance = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      const scaleDelta = distance / lastDistanceRef.current;
-      const newScale = Math.min(
-        Math.max(lastScaleRef.current * scaleDelta, MIN_SCALE),
-        MAX_SCALE
-      );
-      setScale(newScale);
-    }
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (e.touches.length < 2) lastDistanceRef.current = 0;
-  };
-
-  const chartData = useMemo(() => {
-    return normalizeChartData(data);
-  }, [data]);
+    if (chartData.length === 0) return null;
+    return {
+      start: parseDate(chartData[0].date),
+      end: parseDate(chartData[chartData.length - 1].date),
+    };
+  }, [chartData, chartWindow]);
 
   const geometry = useMemo(() => {
-    const width = BASE_WIDTH * scale;
-    if (chartData.length === 0) return { width, points: [], path: '' };
+    if (visibleData.length === 0) {
+      return {
+        points: [] as RenderedPoint[],
+        path: '',
+        areaPath: '',
+        average: 0,
+        averageY: 0,
+      };
+    }
 
-    const values = chartData.map(d => d.value);
+    const values = visibleData.map((item) => item.value);
     const rawMin = Math.min(...values);
     const rawMax = Math.max(...values);
-    const valuePadding = rawMax === rawMin
-      ? Math.max(Math.abs(rawMin) * 0.05, 1)
-      : (rawMax - rawMin) * 0.1;
-    const minVal = rawMin - valuePadding;
-    const maxVal = rawMax + valuePadding;
-    const range = maxVal - minVal || 1;
-    const times = chartData.map((item) => parseDate(item.date).getTime());
-    const firstTime = times[0];
-    const lastTime = times[times.length - 1];
-    const timeRange = lastTime - firstTime;
-    const sidePadding = 12;
-    const plotTop = 10;
-    const plotBottom = scale >= EXACT_DATE_SCALE ? height - 52 : height - 30;
+    const average = values.reduce((sum, value) => sum + value, 0) / values.length;
+    const minimumVisualRange = Math.max(Math.abs(average) * 0.08, 2);
+    const visualRange = Math.max((rawMax - rawMin) * 1.3, minimumVisualRange);
+    const center = (rawMin + rawMax) / 2;
+    const minValue = center - visualRange / 2;
+    const valueRange = visualRange || 1;
+    const times = visibleData.map((item) => parseDate(item.date).getTime());
+    const firstTime = timeDomain?.start.getTime() ?? times[0];
+    const timeRange = (timeDomain?.end.getTime() ?? times[times.length - 1]) - firstTime;
+    const yForValue = (value: number) =>
+      PLOT_BOTTOM - ((value - minValue) / valueRange) * (PLOT_BOTTOM - PLOT_TOP);
 
-    const points = chartData.map((d, i) => {
-      const x = timeRange === 0
-        ? width / 2
-        : sidePadding + ((times[i] - firstTime) / timeRange) * (width - sidePadding * 2);
-      const y = plotBottom - ((d.value - minVal) / range) * (plotBottom - plotTop);
-      return { ...d, x, y };
+    const points = visibleData.map((item, index) => ({
+      ...item,
+      x: timeRange === 0
+        ? BASE_WIDTH / 2
+        : SIDE_PADDING + ((times[index] - firstTime) / timeRange) * (BASE_WIDTH - SIDE_PADDING * 2),
+      y: yForValue(item.value),
+    }));
+
+    const smoothingRadius = range === 'all'
+      ? Math.max(1, Math.ceil(values.length / 55))
+      : range === '1y'
+        ? 1
+        : 0;
+    const renderedValues = rollingAverageValues(values, smoothingRadius);
+    const pathPoints = points.map((point, index) => ({
+      x: point.x,
+      y: yForValue(renderedValues[index]),
+    }));
+    const path = buildSmoothPath(pathPoints);
+    const areaPath = path && pathPoints.length > 1
+      ? `${path} L ${pathPoints[pathPoints.length - 1].x} ${PLOT_BOTTOM} L ${pathPoints[0].x} ${PLOT_BOTTOM} Z`
+      : '';
+
+    return {
+      points,
+      path,
+      areaPath,
+      average,
+      averageY: yForValue(average),
+    };
+  }, [range, timeDomain, visibleData]);
+
+  const axisTicks = useMemo(() => {
+    if (!timeDomain) return [];
+    const startTime = timeDomain.start.getTime();
+    const timeRange = timeDomain.end.getTime() - startTime;
+    const count = range === '3m' ? 5 : 6;
+    return Array.from({ length: count }, (_, index) => {
+      const ratio = index / (count - 1);
+      const date = new Date(startTime + timeRange * ratio);
+      return {
+        x: SIDE_PADDING + ratio * (BASE_WIDTH - SIDE_PADDING * 2),
+        label: formatTick(date, range),
+      };
     });
+  }, [range, timeDomain]);
+  const selectedPoint = selectedDate
+    ? geometry.points.find((point) => point.date === selectedDate)
+    : undefined;
+  const showPoints = range === '3m';
+  const periodText = timeDomain
+    ? formatPeriod(toDateText(timeDomain.start), toDateText(timeDomain.end))
+    : '';
+  const rangeOptions: { id: ChartRange; label: string }[] = [
+    { id: 'all', label: '全部' },
+    { id: '1y', label: '1年' },
+    { id: '6m', label: '6个月' },
+    { id: '3m', label: '3个月' },
+  ];
 
-    if (points.length < 2) return { width, points, path: '' };
+  const selectRange = (nextRange: ChartRange) => {
+    setRange(nextRange);
+    setWindowOffset(0);
+    setSelectedDate(null);
+  };
 
-    return { width, points, path: buildSmoothPath(points) };
-  }, [chartData, height, scale]);
+  const canGoOlder = Boolean(
+    range !== 'all' &&
+    chartWindow &&
+    chartData[0] &&
+    parseDate(chartData[0].date) < parseDate(chartWindow.startDate)
+  );
+  const canGoNewer = range !== 'all' && windowOffset > 0;
 
-  const labelMode = scale >= EXACT_DATE_SCALE
-    ? 'exact'
-    : scale >= 1.5
-      ? 'detail'
-      : 'overview';
-  const spansYears = chartData.length > 1 &&
-    parseDate(chartData[0].date).getFullYear() !==
-      parseDate(chartData[chartData.length - 1].date).getFullYear();
-  const tickIndexes = (() => {
-    if (labelMode === 'exact') {
-      return geometry.points.map((_, index) => index);
-    }
-    if (labelMode === 'detail') {
-      return evenlySpacedIndexes(geometry.points.length, 8);
-    }
+  const goOlder = () => {
+    if (!canGoOlder) return;
+    setWindowOffset((current) => current + 1);
+    setSelectedDate(null);
+  };
 
-    const monthIndexes: number[] = [];
-    let previousLabel = '';
-    geometry.points.forEach((point, index) => {
-      const label = formatChartDateLabel(point.date, 'overview', spansYears);
-      if (label !== previousLabel) {
-        monthIndexes.push(index);
-        previousLabel = label;
-      }
-    });
-    return evenlySpacedIndexes(monthIndexes.length, 4).map((index) => monthIndexes[index]);
-  })();
+  const goNewer = () => {
+    if (!canGoNewer) return;
+    setWindowOffset((current) => Math.max(0, current - 1));
+    setSelectedDate(null);
+  };
 
-  const resetView = () => {
-    setScale(MIN_SCALE);
-    scrollRef.current?.scrollTo({ left: 0, behavior: 'smooth' });
+  const handleTouchStart = (event: React.TouchEvent) => {
+    swipeStartXRef.current = event.touches[0]?.clientX ?? null;
+  };
+
+  const handleTouchEnd = (event: React.TouchEvent) => {
+    const startX = swipeStartXRef.current;
+    const endX = event.changedTouches[0]?.clientX;
+    swipeStartXRef.current = null;
+    if (range === 'all' || startX === null || endX === undefined) return;
+
+    const distance = endX - startX;
+    if (Math.abs(distance) < 50) return;
+    if (distance > 0) goOlder();
+    else goNewer();
   };
 
   return (
     <div
-      className="w-full relative bg-slate-50/50 rounded-2xl overflow-hidden"
-      style={{ height }}
+      className="w-full rounded-2xl border border-slate-100 bg-slate-50/70 p-3"
+      style={{ minHeight: height }}
     >
-      <div
-        ref={scrollRef}
-        className="w-full h-full px-3 overflow-x-auto overflow-y-hidden no-scrollbar"
-        style={{ touchAction: 'pan-x' }}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
-        <svg
-          className="h-full max-w-none"
-          viewBox={`0 0 ${geometry.width} ${height}`}
-          style={{
-            width: `${100 * scale}%`,
-            minWidth: `${geometry.width}px`,
-            transition: 'width 0.1s',
-          }}
-          aria-label="身体记录趋势图"
-        >
-          {tickIndexes.map((pointIndex) => {
-            const point = geometry.points[pointIndex];
-            if (!point) return null;
-            const isExact = labelMode === 'exact';
-            const isFirst = pointIndex === tickIndexes[0];
-            const isLast = pointIndex === tickIndexes[tickIndexes.length - 1];
-            const textAnchor = isExact
-              ? (isFirst ? 'start' : 'end')
-              : (isFirst ? 'start' : isLast ? 'end' : 'middle');
-            const transform = isExact
-              ? `rotate(-35 ${point.x} ${height - 7})`
-              : undefined;
+      <div className="grid grid-cols-4 gap-1 rounded-xl bg-white/90 p-1">
+        {rangeOptions.map((option) => (
+          <button
+            key={option.id}
+            onClick={() => selectRange(option.id)}
+            className={`h-7 rounded-lg text-[10px] font-bold transition-colors ${
+              range === option.id
+                ? 'bg-slate-900 text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
 
-            return (
-              <g key={`tick-${point.date}-${pointIndex}`}>
-                <line
-                  x1={point.x}
-                  y1="8"
-                  x2={point.x}
-                  y2={height - 24}
-                  stroke="#e2e8f0"
-                  strokeWidth="1"
-                  opacity="0.55"
-                />
+      <div className="mt-3 grid grid-cols-[28px_1fr_28px] items-center">
+        <button
+          onClick={goOlder}
+          disabled={!canGoOlder}
+          className={`grid h-7 w-7 place-items-center rounded-lg text-slate-400 disabled:opacity-20 ${range === 'all' ? 'invisible' : ''}`}
+          aria-label="查看上一时间区间"
+        >
+          <i className="fas fa-chevron-left text-[10px]" />
+        </button>
+        <span className="text-center text-[10px] font-bold text-slate-400">
+          {periodText}
+        </span>
+        <button
+          onClick={goNewer}
+          disabled={!canGoNewer}
+          className={`grid h-7 w-7 place-items-center rounded-lg text-slate-400 disabled:opacity-20 ${range === 'all' ? 'invisible' : ''}`}
+          aria-label="查看下一时间区间"
+        >
+          <i className="fas fa-chevron-right text-[10px]" />
+        </button>
+      </div>
+
+      <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+        {visibleData.length > 0 ? (
+          <>
+            <div className="mt-1 flex items-center justify-between px-1 text-[10px] font-semibold text-slate-400">
+              <span>
+                {selectedPoint
+                  ? `${selectedPoint.date} · ${selectedPoint.value.toFixed(1)}${unit ? ` ${unit}` : ''}`
+                  : `${visibleData.length} 条记录`}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-4 border-t border-dashed border-slate-400" />
+                平均 {geometry.average.toFixed(1)}{unit ? ` ${unit}` : ''}
+              </span>
+            </div>
+
+            <svg
+              className="mt-1 w-full"
+              viewBox={`0 0 ${BASE_WIDTH} ${SVG_HEIGHT}`}
+              style={{ height: Math.max(height - 104, 122) }}
+              aria-label="身体记录趋势图"
+              onClick={() => setSelectedDate(null)}
+            >
+            <defs>
+              <linearGradient id="body-chart-area" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={color} stopOpacity="0.16" />
+                <stop offset="100%" stopColor={color} stopOpacity="0" />
+              </linearGradient>
+            </defs>
+
+            {geometry.areaPath && <path d={geometry.areaPath} fill="url(#body-chart-area)" />}
+
+            <line
+              x1={SIDE_PADDING}
+              y1={geometry.averageY}
+              x2={BASE_WIDTH - SIDE_PADDING}
+              y2={geometry.averageY}
+              stroke="#94a3b8"
+              strokeWidth="1"
+              strokeDasharray="5 5"
+              opacity="0.65"
+            />
+
+            {geometry.path && (
+              <path
+                d={geometry.path}
+                fill="none"
+                stroke={color}
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            )}
+
+            {selectedPoint && (
+              <line
+                x1={selectedPoint.x}
+                y1={PLOT_TOP}
+                x2={selectedPoint.x}
+                y2={PLOT_BOTTOM}
+                stroke={color}
+                strokeWidth="1"
+                strokeDasharray="3 4"
+                opacity="0.35"
+              />
+            )}
+
+            {showPoints && geometry.points.map((point) => {
+              const selected = point.date === selectedDate;
+              return (
+                <g
+                  key={point.date}
+                  role="button"
+                  aria-label={`${point.date} ${point.value.toFixed(1)}${unit ? ` ${unit}` : ''}`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setSelectedDate(point.date);
+                  }}
+                  className="cursor-pointer"
+                >
+                  <circle cx={point.x} cy={point.y} r="10" fill="transparent" />
+                  <circle
+                    cx={point.x}
+                    cy={point.y}
+                    r={selected ? 5 : 3}
+                    fill={selected ? color : 'white'}
+                    stroke={color}
+                    strokeWidth="2"
+                  />
+                  <title>{point.date} · {point.value.toFixed(1)}{unit ? ` ${unit}` : ''}</title>
+                </g>
+              );
+            })}
+
+            {axisTicks.map((tick, index) => {
+              const isFirst = index === 0;
+              const isLast = index === axisTicks.length - 1;
+              return (
                 <text
-                  x={point.x}
-                  y={height - 7}
-                  fontSize={isExact ? 8 : 9}
+                  key={`tick-${index}-${tick.label}`}
+                  x={tick.x}
+                  y="136"
+                  fontSize="8.5"
                   fill="#94a3b8"
-                  textAnchor={textAnchor}
-                  transform={transform}
+                  textAnchor={isFirst ? 'start' : isLast ? 'end' : 'middle'}
                   fontWeight="600"
                 >
-                  {formatChartDateLabel(point.date, labelMode, spansYears)}
+                  {tick.label}
                 </text>
-              </g>
-            );
-          })}
-          {geometry.path && (
-            <path
-              d={geometry.path}
-              fill="none"
-              stroke={color}
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          )}
-          {geometry.points.map((point, index) => (
-            <circle
-              key={`${point.date}-${index}`}
-              cx={point.x}
-              cy={point.y}
-              r="3.5"
-              fill="white"
-              stroke={color}
-              strokeWidth="2"
-            >
-              <title>{point.date} · {point.value}</title>
-            </circle>
-          ))}
-        </svg>
+              );
+            })}
+            </svg>
+
+          </>
+        ) : (
+          <div className="flex min-h-32 items-center justify-center text-sm text-slate-400">
+            该区间暂无记录
+          </div>
+        )}
       </div>
-      {scale > MIN_SCALE + 0.01 && (
-        <button
-          onClick={resetView}
-          className="absolute top-2 right-2 px-3 h-7 bg-white/95 rounded-lg text-[10px] font-bold text-slate-500 shadow-sm"
-          aria-label="重置图表缩放"
-        >
-          重置视图
-        </button>
-      )}
-      {chartData.length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center text-slate-400 text-sm">
-          暂无数据
-        </div>
-      )}
     </div>
   );
 }

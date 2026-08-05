@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vibe-fitness-v3-production-20260804';
+const CACHE_NAME = 'vibe-fitness-v3-production-20260805-306';
 const APP_ROOT = '/fit/';
 const CORE_ASSETS = [
   APP_ROOT,

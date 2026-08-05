@@ -4,7 +4,7 @@ import { Capacitor } from '@capacitor/core';
 import { App } from './App';
 import './styles/index.css';
 
-if (!Capacitor.isNativePlatform() && 'serviceWorker' in navigator) {
+if (import.meta.env.PROD && !Capacitor.isNativePlatform() && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/fit/sw.js').catch(() => undefined);
   });
