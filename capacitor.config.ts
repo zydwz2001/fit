@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.vibefitness.app',
-  appName: 'Vibe Fitness',
+  appName: 'My Keep',
   webDir: 'dist',
 };
 
