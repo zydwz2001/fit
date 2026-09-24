@@ -1,9 +1,10 @@
 import type { AppState } from '@/types';
+import { BODY_METRIC_IMPORT_FORMAT, mergeBodyMetrics } from './bodyMetricImport';
 
 const STORAGE_KEY = 'vibe-fitness-data';
 
 type ImportResult =
-  | { success: true; data: Partial<AppState> }
+  | { success: true; data: Partial<AppState>; kind?: 'body-metrics'; addedCount?: number }
   | { success: false; message: string };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -81,7 +82,7 @@ function isValidWorkoutTemplate(value: unknown): boolean {
   );
 }
 
-const METRIC_TYPES = new Set(['weight', 'bmi', 'waist', 'arm', 'chest', 'hip', 'thigh']);
+const METRIC_TYPES = new Set(['weight', 'bmi', 'waist', 'arm', 'chest', 'hip', 'thigh', 'calf']);
 
 function isMetricType(value: unknown): boolean {
   return typeof value === 'string' && METRIC_TYPES.has(value);
@@ -218,12 +219,41 @@ export async function exportData(data?: Partial<AppState>): Promise<string> {
   return JSON.stringify(payload, null, 2);
 }
 
-export async function importData(jsonString: string): Promise<ImportResult> {
+export async function importData(jsonString: string, currentState?: AppState): Promise<ImportResult> {
   let parsed: unknown;
   try {
     parsed = JSON.parse(jsonString);
   } catch {
     return { success: false, message: 'JSON 格式无效，请检查文件内容。' };
+  }
+
+  if (isRecord(parsed) && parsed.format === BODY_METRIC_IMPORT_FORMAT) {
+    const metrics = isRecord(parsed.data) ? parsed.data.bodyMetrics : undefined;
+    const circumferenceTypes = new Set(['waist', 'arm', 'chest', 'hip', 'thigh', 'calf']);
+    if (
+      parsed.version !== 1 || parsed.mode !== 'merge' || !Array.isArray(metrics) ||
+      metrics.length === 0 || !metrics.every((metric: unknown) => {
+        if (!isRecord(metric) || !isValidBodyMetric(metric)) return false;
+        const date = metric.date as string;
+        const timestamp = metric.timestamp as number;
+        return circumferenceTypes.has(metric.type as string) &&
+          (metric.id as string).trim().length > 0 && (metric.value as number) > 0 &&
+          /^\d{4}-\d{2}-\d{2}$/.test(date) &&
+          Number.isFinite(Date.parse(date)) && new Date(date).toISOString().slice(0, 10) === date &&
+          Number.isSafeInteger(timestamp) && Number.isFinite(new Date(timestamp).getTime());
+      }) || new Set(metrics.map((metric) => metric.id)).size !== metrics.length
+    ) {
+      return { success: false, message: '身体围度导入包无效，未更改已有数据。' };
+    }
+    if (!currentState) {
+      return { success: false, message: '请等待当前数据加载完成后再导入身体围度。' };
+    }
+    const merged = mergeBodyMetrics(currentState.bodyMetrics, metrics);
+    const data: AppState = { ...currentState, bodyMetrics: merged, bodyUnlocked: false };
+    if (!await saveData(data)) {
+      return { success: false, message: '浏览器存储空间不足，导入未完成。' };
+    }
+    return { success: true, kind: 'body-metrics', data, addedCount: merged.length - currentState.bodyMetrics.length };
   }
 
   if (!isValidBackup(parsed)) {

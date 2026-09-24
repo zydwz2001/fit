@@ -11,6 +11,7 @@ import type { BodyMetric, MetricTarget, MetricType, Exercise, Set as ExerciseSet
 import { DEFAULT_EXERCISES } from '@/types';
 import { loadData, saveData } from '@/utils/storage';
 import { createInitialState } from '@/utils/initialState';
+import { mergeBodyMetrics } from '@/utils/bodyMetricImport';
 
 interface AppContextType {
   state: AppState;
@@ -60,6 +61,7 @@ type Action =
   | { type: 'REPLACE_EXERCISE_LIBRARY'; payload: { exercises: Exercise[] } }
   | { type: 'RESET_EXERCISE_LIBRARY' }
   | { type: 'IMPORT_APP_STATE'; payload: Partial<AppState> }
+  | { type: 'IMPORT_BODY_METRICS'; payload: BodyMetric[] }
   | { type: 'ARCHIVE_DAILY_WORKOUT' };
 
 function getWorkoutName(firstMuscleGroup: string): string {
@@ -895,6 +897,8 @@ export function appReducer(state: AppState, action: Action): AppState {
       return { ...state, exerciseLibrary: DEFAULT_EXERCISES };
     case 'IMPORT_APP_STATE':
       return mergeWithInitialState(action.payload);
+    case 'IMPORT_BODY_METRICS':
+      return { ...state, bodyMetrics: mergeBodyMetrics(state.bodyMetrics, action.payload), bodyUnlocked: false };
     case 'ARCHIVE_DAILY_WORKOUT': {
       if (!state.dailyWorkout) return state;
       const archivedWorkout = normalizeWorkout(state.dailyWorkout, state.weightUnit);

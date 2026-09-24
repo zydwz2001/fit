@@ -18,7 +18,8 @@ const DEFAULT_METRICS: { type: MetricType; label: string }[] = [
   { type: 'arm', label: '臂围 (cm)' },
   { type: 'chest', label: '胸围 (cm)' },
   { type: 'hip', label: '臀围 (cm)' },
-  { type: 'thigh', label: '腿围 (cm)' },
+  { type: 'thigh', label: '大腿围 (cm)' },
+  { type: 'calf', label: '小腿围 (cm)' },
 ];
 
 type EditableMetricType = Exclude<MetricType, 'bmi'>;

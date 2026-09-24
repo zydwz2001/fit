@@ -161,13 +161,19 @@ export function KnowledgePage() {
 
   const handleImport = async () => {
     try {
-      const result = await importData(importText);
+      const result = await importData(importText, state);
       if (result.success) {
-        dispatch({ type: 'IMPORT_APP_STATE', payload: result.data });
+        if (result.kind === 'body-metrics') {
+          dispatch({ type: 'IMPORT_BODY_METRICS', payload: result.data.bodyMetrics ?? [] });
+        } else {
+          dispatch({ type: 'IMPORT_APP_STATE', payload: result.data });
+        }
         setShowImportModal(false);
         setShowMenu(false);
         setImportText('');
-        alert('数据导入成功！');
+        alert(result.kind === 'body-metrics'
+          ? `已新增 ${result.addedCount ?? 0} 条围度记录，原有数据已保留。`
+          : '数据导入成功！');
       } else {
         alert(result.message);
       }
@@ -423,7 +429,7 @@ export function KnowledgePage() {
             </div>
 
             <div className="space-y-4">
-              <p className="text-sm text-slate-600">选择一个 JSON 备份文件导入，或者粘贴 JSON 内容：</p>
+              <p className="text-sm text-slate-600">选择 JSON 备份或身体围度导入包，也可以粘贴内容。围度包会追加记录，重复导入不会重复新增；整份备份会替换当前数据。</p>
 
               <input
                 ref={importFileRef}

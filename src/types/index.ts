@@ -48,7 +48,7 @@ export interface WorkoutTemplate {
   createdAt: number;
 }
 
-export type MetricType = 'weight' | 'bmi' | 'waist' | 'arm' | 'chest' | 'hip' | 'thigh';
+export type MetricType = 'weight' | 'bmi' | 'waist' | 'arm' | 'chest' | 'hip' | 'thigh' | 'calf';
 
 export interface BodyMetric {
   id: string;
