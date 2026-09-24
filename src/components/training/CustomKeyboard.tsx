@@ -11,6 +11,7 @@ interface CustomKeyboardProps {
   allowDecimal?: boolean;
   onWeightUnitChange?: (unit: 'kg' | 'lbs') => void;
   weightUnitLocked?: boolean;
+  fixedWeightUnit?: 'kg' | 'lbs' | null;
   simple?: boolean;
 }
 
@@ -24,6 +25,7 @@ export function CustomKeyboard({
   allowDecimal = true,
   onWeightUnitChange,
   weightUnitLocked = false,
+  fixedWeightUnit,
   simple = false,
 }: CustomKeyboardProps) {
   const { state, dispatch } = useApp();
@@ -117,14 +119,14 @@ export function CustomKeyboard({
 
         <button
           onClick={toggleWeightUnit}
-          disabled={weightUnitLocked}
+          disabled={weightUnitLocked || fixedWeightUnit !== undefined}
           className="h-12 bg-white shadow-sm rounded-xl flex flex-col items-center justify-center hover:bg-slate-50 transition-colors"
         >
           <span className="text-xs font-black text-slate-800">
-            {weightUnitLocked ? 'KG' : state.weightUnit.toUpperCase()}
+            {fixedWeightUnit === null ? '单位未记' : (fixedWeightUnit ?? (weightUnitLocked ? 'kg' : state.weightUnit)).toUpperCase()}
           </span>
           <span className="text-[9px] font-bold text-slate-400">
-            {weightUnitLocked ? '固定' : '切换'}
+            {weightUnitLocked || fixedWeightUnit !== undefined ? '固定' : '切换'}
           </span>
         </button>
 

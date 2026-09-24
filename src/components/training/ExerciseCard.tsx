@@ -254,11 +254,11 @@ export function ExerciseCard({
               key={set.id}
               set={set}
               index={index}
-              useLeftRight={exercise.useLeftRight}
+              useLeftRight={set.weightUnit !== undefined ? set.leftWeight !== undefined || set.rightWeight !== undefined : exercise.useLeftRight}
               isCardio={isCardio}
-              hideWeight={isRepsOnly}
-              weightUnit={isAssistedBodyweight ? 'kg' : state.weightUnit}
-              weightAriaLabel={isAssistedBodyweight ? '辅助重量（kg）' : isAdditionalWeight ? '附加重量' : '重量'}
+              hideWeight={isRepsOnly || set.weightMode === 'not_displayed'}
+              weightUnit={set.weightUnit === null ? '单位未记' : set.weightUnit ?? (isAssistedBodyweight ? 'kg' : state.weightUnit)}
+              weightAriaLabel={isAssistedBodyweight ? '辅助重量' : isAdditionalWeight ? '附加重量' : '重量'}
               prevSet={index > 0 ? exercise.sets[index - 1] : undefined}
               nextSet={index < exercise.sets.length - 1 ? exercise.sets[index + 1] : undefined}
               onUpdate={(updates) => onUpdateSet(set.id, updates)}
@@ -269,6 +269,8 @@ export function ExerciseCard({
               activeInputType={showKeyboard && activeSetId === set.id ? activeInputType : null}
             />
           ))}
+
+          {exercise.notes?.map((note, index) => <p key={index} className="text-xs text-slate-500 whitespace-pre-wrap">{note}</p>)}
 
           {!isCardio && (
             <button

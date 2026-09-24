@@ -11,10 +11,18 @@ export const DESIGN = {
 export interface Set {
   id: string;
   weight?: number;
-  reps: number;
+  reps: number | null;
   leftWeight?: number;
   rightWeight?: number;
   completed: boolean;
+  // Imported sets retain their own unit; null explicitly means not displayed.
+  weightUnit?: 'kg' | 'lbs' | null;
+  weightMode?: 'not_displayed' | 'numeric_load_without_displayed_unit' | 'additional_to_bodyweight';
+  warmup?: boolean;
+  restSeconds?: number;
+  sourceLabel?: string;
+  sourcePage?: string;
+  emptyDisplayedSet?: boolean;
 }
 
 export interface Exercise {
@@ -32,6 +40,8 @@ export interface Exercise {
   intensity?: number;
   volumeMode?: 'assisted-bodyweight';
   bodyWeightKg?: number;
+  sourceName?: string;
+  notes?: string[];
 }
 
 export interface DailyWorkout {
@@ -43,6 +53,12 @@ export interface DailyWorkout {
   totalVolume: number;
   muscleGroups: string[];
   cardioName?: string;
+  durationMinutes?: number;
+  source?: {
+    app: 'xunji';
+    recordId: string;
+    original: Record<string, unknown>;
+  };
 }
 
 export interface WorkoutTemplate {

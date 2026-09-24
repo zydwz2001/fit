@@ -37,28 +37,29 @@ export function calculateVolume(
   if (exercise.volumeMode === 'assisted-bodyweight') {
     const bodyWeightKg = Math.max(exercise.bodyWeightKg ?? 0, 0);
     return exercise.sets
-      .filter(set => set.completed)
+      .filter(set => set.completed && !set.warmup && set.weightUnit !== null)
       .reduce((sum, set) => {
-        const assistanceKg = Math.max(set.weight ?? 0, 0);
-        return sum + Math.max(bodyWeightKg - assistanceKg, 0) * set.reps;
+        const assistanceKg = Math.max(set.weight ?? 0, 0) * (set.weightUnit === 'lbs' ? POUNDS_TO_KG : 1);
+        return sum + Math.max(bodyWeightKg - assistanceKg, 0) * (set.reps ?? 0);
       }, 0);
   }
 
-  const toKg = (w: number | undefined): number => {
+  const toKg = (w: number | undefined, unit: 'kg' | 'lbs'): number => {
     if (w === undefined) return 0;
-    if (weightUnit === 'lbs') {
+    if (unit === 'lbs') {
       return w * POUNDS_TO_KG;
     }
     return w;
   };
 
   return exercise.sets
-    .filter(set => set.completed)
+    .filter(set => set.completed && !set.warmup && set.weightUnit !== null)
     .reduce((sum, set) => {
-      if (set.leftWeight !== undefined && set.rightWeight !== undefined) {
-        return sum + (toKg(set.leftWeight) + toKg(set.rightWeight)) * set.reps;
+      const unit = set.weightUnit ?? weightUnit;
+      if (set.leftWeight !== undefined || set.rightWeight !== undefined) {
+        return sum + (toKg(set.leftWeight, unit) + toKg(set.rightWeight, unit)) * (set.reps ?? 0);
       }
-      return sum + toKg(set.weight) * set.reps;
+      return sum + toKg(set.weight, unit) * (set.reps ?? 0);
     }, 0);
 }
 

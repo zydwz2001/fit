@@ -13,6 +13,7 @@ import { XUNJI_ADDITIONAL_EXERCISES } from '@/data/xunjiExercises';
 import { loadData, saveData } from '@/utils/storage';
 import { createInitialState } from '@/utils/initialState';
 import { mergeBodyMetrics } from '@/utils/bodyMetricImport';
+import { withImportedWorkouts } from '@/utils/workoutImport';
 
 interface AppContextType {
   state: AppState;
@@ -63,6 +64,7 @@ type Action =
   | { type: 'RESET_EXERCISE_LIBRARY' }
   | { type: 'IMPORT_APP_STATE'; payload: Partial<AppState> }
   | { type: 'IMPORT_BODY_METRICS'; payload: BodyMetric[] }
+  | { type: 'IMPORT_WORKOUT_HISTORY'; payload: DailyWorkout[] }
   | { type: 'ARCHIVE_DAILY_WORKOUT' };
 
 function getWorkoutName(firstMuscleGroup: string): string {
@@ -306,7 +308,7 @@ export function appReducer(state: AppState, action: Action): AppState {
           ? ex
           : {
               ...ex,
-              sets: ex.sets.map(set => ({
+              sets: ex.sets.map(set => set.weightUnit !== undefined ? set : ({
                 ...set,
                 weight: convertWeight(set.weight, oldUnit, newUnit),
                 leftWeight: convertWeight(set.leftWeight, oldUnit, newUnit),
@@ -716,7 +718,9 @@ export function appReducer(state: AppState, action: Action): AppState {
               };
             } else {
               return {
-                id: set.id,
+                ...set,
+                leftWeight: undefined,
+                rightWeight: undefined,
                 weight: set.leftWeight ?? set.rightWeight ?? 0,
                 reps: set.reps,
                 completed: set.completed,
@@ -780,6 +784,7 @@ export function appReducer(state: AppState, action: Action): AppState {
       );
       const workout = normalizeWorkout({
         ...sourceWorkout,
+        source: undefined,
         id: generateId(),
         date: getTodayString(),
         exercises,
@@ -905,6 +910,8 @@ export function appReducer(state: AppState, action: Action): AppState {
       return mergeWithInitialState(action.payload);
     case 'IMPORT_BODY_METRICS':
       return { ...state, bodyMetrics: mergeBodyMetrics(state.bodyMetrics, action.payload), bodyUnlocked: false };
+    case 'IMPORT_WORKOUT_HISTORY':
+      return withImportedWorkouts(state, action.payload);
     case 'ARCHIVE_DAILY_WORKOUT': {
       if (!state.dailyWorkout) return state;
       const archivedWorkout = normalizeWorkout(state.dailyWorkout, state.weightUnit);

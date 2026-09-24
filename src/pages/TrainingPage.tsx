@@ -14,6 +14,7 @@ import {
 import { useAppBack } from '@/utils/navigation';
 import type { Set as ExerciseSet, Exercise, DailyWorkout } from '@/types';
 import { matchesExerciseQuery, formatExerciseSet, formatExerciseSummary } from '@/utils/exerciseCatalog';
+import { getWorkoutsForDate } from '@/utils/workoutImport';
 
 const SUB_TABS = [
   { id: 'today', label: '今日健身' },
@@ -149,6 +150,9 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
       id: generateId(),
       weight: lastSet?.weight || 0,
       reps: lastSet?.reps || 0,
+      weightUnit: lastSet?.weightUnit,
+      weightMode: lastSet?.weightMode,
+      restSeconds: lastSet?.restSeconds,
       leftWeight: lastSet?.leftWeight,
       rightWeight: lastSet?.rightWeight,
       completed: false,
@@ -231,6 +235,7 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
     return {
       exercise,
       setIndex,
+      set: exercise.sets[setIndex],
       prevSet: setIndex > 0 ? exercise.sets[setIndex - 1] : undefined,
       nextSet: setIndex < exercise.sets.length - 1 ? exercise.sets[setIndex + 1] : undefined,
     };
@@ -384,6 +389,7 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
               allowDecimal={keyboardState.inputType !== 'reps'}
               onWeightUnitChange={handleWeightUnitChange}
               weightUnitLocked={getCurrentEditingData()?.exercise.volumeMode === 'assisted-bodyweight'}
+              fixedWeightUnit={getCurrentEditingData()?.set.weightUnit}
             />
             <button
               onClick={() => setKeyboardState(null)}
@@ -702,7 +708,14 @@ function HistoryTab({ onShowDayDetail }: HistoryTabProps) {
   const getWorkoutForDay = (date: Date | null) => {
     if (!date) return null;
     const dateStr = formatDate(date);
-    return workouts.find((w) => w.date === dateStr);
+    const dayWorkouts = getWorkoutsForDate(workouts, dateStr);
+    if (dayWorkouts.length === 0) return null;
+    return {
+      ...dayWorkouts[0],
+      exercises: dayWorkouts.flatMap((workout) => workout.exercises),
+      totalVolume: dayWorkouts.reduce((sum, workout) => sum + workout.totalVolume, 0),
+      sessionCount: dayWorkouts.length,
+    };
   };
 
   const getWorkoutLabels = (workout: DailyWorkout) => {
@@ -787,6 +800,7 @@ function HistoryTab({ onShowDayDetail }: HistoryTabProps) {
               onClick={() => date && onShowDayDetail(formatDate(date), !!workout)}
             >
               <span className="text-xs font-bold">{date?.getDate()}</span>
+              {workout && workout.sessionCount > 1 && <span className="text-[9px] text-slate-500">{workout.sessionCount} 次训练</span>}
               {workout && (
                 <div className="flex flex-col gap-1 mt-1 w-full min-w-0">
                   <div className="flex flex-wrap justify-center gap-0.5 w-full">
@@ -1100,7 +1114,7 @@ function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailM
       return;
     }
 
-    const original = workouts.find((item) => item.date === date);
+    const original = workouts.find((item) => item.id === workout?.id);
     setWorkout(original ? JSON.parse(JSON.stringify(original)) : null);
   };
 
@@ -1149,6 +1163,9 @@ function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailM
       id: generateId(),
       weight: lastSet?.weight || 0,
       reps: lastSet?.reps || 0,
+      weightUnit: lastSet?.weightUnit,
+      weightMode: lastSet?.weightMode,
+      restSeconds: lastSet?.restSeconds,
       leftWeight: lastSet?.leftWeight,
       rightWeight: lastSet?.rightWeight,
       completed: false,
@@ -1211,7 +1228,9 @@ function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailM
               return { ...set, leftWeight: set.weight, rightWeight: set.weight };
             } else {
               return {
-                id: set.id,
+                ...set,
+                leftWeight: undefined,
+                rightWeight: undefined,
                 weight: set.leftWeight ?? set.rightWeight ?? 0,
                 reps: set.reps,
                 completed: set.completed,
@@ -1340,7 +1359,7 @@ function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailM
               <div className="space-y-2">
                 {exercise.sets.map((set, idx) => (
                   <div key={set.id} className="flex justify-between items-center text-sm">
-                    <span className="text-slate-400 font-bold">第{idx + 1}组</span>
+                    <span className="text-slate-400 font-bold">第{idx + 1}组{set.completed ? '' : '（未完成）'}</span>
                     <span className="text-slate-600">
                       {formatExerciseSet(exercise, set, state.weightUnit)}
                     </span>
@@ -1348,6 +1367,7 @@ function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailM
                 ))}
               </div>
             )}
+            {exercise.notes?.map((note, index) => <p key={index} className="mt-2 text-xs text-slate-500 whitespace-pre-wrap">{note}</p>)}
             {isCardio && (
               <div className="text-[10px] font-bold text-slate-500">
                 {exercise.durationMinutes ? (
@@ -1387,9 +1407,28 @@ function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailM
               </div>
             </div>
 
+            <p className="mt-2 text-sm text-slate-600">{workout.name}</p>
+            {getWorkoutsForDate(workouts, date).length > 1 && (
+              <select aria-label="当天训练记录" value={workout.id} disabled={isEditing}
+                onChange={(event) => {
+                  const selected = workouts.find((item) => item.id === event.target.value);
+                  if (selected) setWorkout(JSON.parse(JSON.stringify(selected)));
+                }} className="mt-3 h-10 w-full rounded-xl bg-slate-100 px-2 text-sm">
+                {getWorkoutsForDate(workouts, date).map((item, index) => <option key={item.id} value={item.id}>{index + 1}. {item.name}</option>)}
+              </select>
+            )}
+            {workout.source && (
+              <p className="mt-2 text-xs text-slate-500">
+                训记原记录
+                {typeof workout.source.original.displayedVolumeKg === 'number' && ` · 容量 ${workout.source.original.displayedVolumeKg} kg`}
+                {workout.durationMinutes !== undefined && ` · ${workout.durationMinutes} 分钟`}
+                {workout.exercises.length === 0 && ' · 未包含动作'}
+              </p>
+            )}
+
             {(!isEditing || !hasWorkout) && (
               <div className="mt-4">
-                <p className="text-[9px] font-black text-slate-400 uppercase">Total Volume</p>
+                <p className="text-[9px] font-black text-slate-400 uppercase">{workout.source ? '可计算容量（已完成非热身组）' : 'Total Volume'}</p>
                 <p className="text-2xl font-black text-vibe-green">
                   {workout.totalVolume.toLocaleString()}
                 </p>

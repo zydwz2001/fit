@@ -6,7 +6,7 @@ interface SetRowProps {
   useLeftRight: boolean;
   isCardio?: boolean;
   hideWeight?: boolean;
-  weightUnit?: 'kg' | 'lbs';
+  weightUnit?: 'kg' | 'lbs' | '单位未记';
   prevSet?: ExerciseSet;
   nextSet?: ExerciseSet;
   onUpdate: (updates: Partial<ExerciseSet>) => void;
@@ -33,7 +33,7 @@ export function SetRow({
   activeInputType,
   weightAriaLabel = '重量',
 }: SetRowProps) {
-  const getFontSize = (value: number | string | undefined) => {
+  const getFontSize = (value: number | string | null | undefined) => {
     const len = (value ?? '').toString().length;
     return len > 4 ? '12px' : '14px';
   };
@@ -74,7 +74,7 @@ export function SetRow({
   return (
     <div className="flex items-center gap-1 min-w-0">
       <span className="w-6 text-[10px] font-bold text-slate-400 text-center flex-shrink-0">
-        {index + 1}
+        {set.warmup ? '热' : index + 1}
       </span>
 
       {!isCardio ? (

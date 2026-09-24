@@ -1,10 +1,11 @@
 import type { AppState } from '@/types';
 import { BODY_METRIC_IMPORT_FORMAT, mergeBodyMetrics } from './bodyMetricImport';
+import { WORKOUT_IMPORT_FORMAT, withImportedWorkouts } from './workoutImport';
 
 const STORAGE_KEY = 'vibe-fitness-data';
 
 type ImportResult =
-  | { success: true; data: Partial<AppState>; kind?: 'body-metrics'; addedCount?: number }
+  | { success: true; data: Partial<AppState>; kind?: 'body-metrics' | 'workouts'; addedCount?: number }
   | { success: false; message: string };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -27,12 +28,18 @@ function isValidSet(value: unknown): boolean {
   if (!isRecord(value)) return false;
   return (
     typeof value.id === 'string' &&
-    isFiniteNumber(value.reps) &&
-    value.reps >= 0 &&
+    ((isFiniteNumber(value.reps) && value.reps >= 0) || (value.reps === null && value.emptyDisplayedSet === true)) &&
     typeof value.completed === 'boolean' &&
     isOptionalFiniteNumber(value.weight) &&
     isOptionalFiniteNumber(value.leftWeight) &&
-    isOptionalFiniteNumber(value.rightWeight)
+    isOptionalFiniteNumber(value.rightWeight) &&
+    (value.weightUnit === undefined || value.weightUnit === null || value.weightUnit === 'kg' || value.weightUnit === 'lbs') &&
+    (value.weightMode === undefined || ['not_displayed', 'numeric_load_without_displayed_unit', 'additional_to_bodyweight'].includes(value.weightMode as string)) &&
+    (value.warmup === undefined || typeof value.warmup === 'boolean') &&
+    (value.emptyDisplayedSet === undefined || typeof value.emptyDisplayedSet === 'boolean') &&
+    (value.restSeconds === undefined || (isFiniteNumber(value.restSeconds) && value.restSeconds >= 0)) &&
+    (value.sourceLabel === undefined || typeof value.sourceLabel === 'string') &&
+    (value.sourcePage === undefined || typeof value.sourcePage === 'string')
   );
 }
 
@@ -53,11 +60,13 @@ function isValidExercise(value: unknown): boolean {
     isOptionalFiniteNumber(value.distanceKm) &&
     isOptionalFiniteNumber(value.intensity) &&
     (value.volumeMode === undefined || value.volumeMode === 'assisted-bodyweight') &&
-    isOptionalFiniteNumber(value.bodyWeightKg)
+    isOptionalFiniteNumber(value.bodyWeightKg) &&
+    (value.sourceName === undefined || typeof value.sourceName === 'string') &&
+    (value.notes === undefined || (Array.isArray(value.notes) && value.notes.every((note) => typeof note === 'string')))
   );
 }
 
-function isValidWorkout(value: unknown): boolean {
+function isValidWorkout(value: unknown): value is AppState['workoutHistory'][number] {
   if (!isRecord(value)) return false;
   return (
     typeof value.id === 'string' &&
@@ -69,7 +78,10 @@ function isValidWorkout(value: unknown): boolean {
     isFiniteNumber(value.totalVolume) &&
     Array.isArray(value.muscleGroups) &&
     value.muscleGroups.every((group) => typeof group === 'string') &&
-    (value.cardioName === undefined || typeof value.cardioName === 'string')
+    (value.cardioName === undefined || typeof value.cardioName === 'string') &&
+    isOptionalFiniteNumber(value.durationMinutes) &&
+    (value.source === undefined || (isRecord(value.source) && value.source.app === 'xunji' &&
+      typeof value.source.recordId === 'string' && isRecord(value.source.original)))
   );
 }
 
@@ -256,6 +268,30 @@ export async function importData(jsonString: string, currentState?: AppState): P
       return { success: false, message: '浏览器存储空间不足，导入未完成。' };
     }
     return { success: true, kind: 'body-metrics', data, addedCount: merged.length - currentState.bodyMetrics.length };
+  }
+
+  if (isRecord(parsed) && parsed.format === WORKOUT_IMPORT_FORMAT) {
+    const workouts = isRecord(parsed.data) ? parsed.data.workoutHistory : undefined;
+    if (parsed.version !== 1 || parsed.mode !== 'merge' || !Array.isArray(workouts) || workouts.length === 0 ||
+        !workouts.every((workout: unknown) => {
+          if (!isValidWorkout(workout)) return false;
+          return workout.id.trim().length > 0 && workout.source?.recordId === workout.id &&
+            /^\d{4}-\d{2}-\d{2}$/.test(workout.date) && Number.isFinite(Date.parse(workout.date)) &&
+            new Date(workout.date).toISOString().slice(0, 10) === workout.date &&
+            new Set(workout.exercises.map((exercise) => exercise.id)).size === workout.exercises.length &&
+            workout.exercises.every((exercise) =>
+              new Set(exercise.sets.map((set) => set.id)).size === exercise.sets.length &&
+              exercise.sets.every((set) => set.id.trim().length > 0 && set.weightUnit !== undefined &&
+                (Number.isInteger(set.reps) || (set.reps === null && set.emptyDisplayedSet === true)) &&
+                [set.weight, set.leftWeight, set.rightWeight].every((weight) => weight === undefined || weight >= 0))
+            );
+        }) || new Set(workouts.map((workout) => workout.id)).size !== workouts.length) {
+      return { success: false, message: '训练记录导入包无效，未更改已有数据。' };
+    }
+    if (!currentState) return { success: false, message: '请等待当前数据加载完成后再导入训练记录。' };
+    const data = withImportedWorkouts(currentState, workouts);
+    if (!await saveData(data)) return { success: false, message: '存储空间不足，导入未完成。' };
+    return { success: true, kind: 'workouts', data, addedCount: data.workoutHistory.length - currentState.workoutHistory.length };
   }
 
   if (!isValidBackup(parsed)) {
