@@ -47,6 +47,8 @@ function isValidExercise(value: unknown): boolean {
     Array.isArray(value.sets) &&
     value.sets.every(isValidSet) &&
     (value.gifUrl === undefined || typeof value.gifUrl === 'string') &&
+    (value.aliases === undefined || (Array.isArray(value.aliases) && value.aliases.every((alias) => typeof alias === 'string'))) &&
+    (value.recordingMode === undefined || value.recordingMode === 'reps-only' || value.recordingMode === 'additional-weight') &&
     isOptionalFiniteNumber(value.durationMinutes) &&
     isOptionalFiniteNumber(value.distanceKm) &&
     isOptionalFiniteNumber(value.intensity) &&

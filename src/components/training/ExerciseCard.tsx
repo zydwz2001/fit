@@ -60,6 +60,8 @@ export function ExerciseCard({
   const { state } = useApp();
   const isCardio = exercise.category === 'cardio';
   const isAssistedBodyweight = exercise.volumeMode === 'assisted-bodyweight';
+  const isRepsOnly = exercise.recordingMode === 'reps-only';
+  const isAdditionalWeight = exercise.recordingMode === 'additional-weight';
   const libraryMediaUrl = state.exerciseLibrary.find((item) => item.id === exercise.id)?.gifUrl;
   const mediaUrl = libraryMediaUrl ?? exercise.gifUrl;
   const [failedMediaUrl, setFailedMediaUrl] = useState<string>();
@@ -175,7 +177,7 @@ export function ExerciseCard({
                 <i className="fas fa-history text-sm"></i>
               </button>
             )}
-            {!isCardio && !isAssistedBodyweight && (
+            {!isCardio && !isAssistedBodyweight && !exercise.recordingMode && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -235,11 +237,11 @@ export function ExerciseCard({
 
       {!isCardio && expanded && (
         <div className="px-3 pb-3 space-y-2 border-t border-slate-100 pt-3">
-          {isAssistedBodyweight && (
+          {(isAssistedBodyweight || isAdditionalWeight) && (
             <div className="flex min-w-0 items-center gap-1 px-0.5 text-[9px] font-bold text-slate-400">
               <span className="w-6 flex-shrink-0 text-center">组</span>
               <div className="flex min-w-0 flex-1 items-center gap-1">
-                <span className="min-w-0 max-w-[60px] flex-1 text-center">辅助重量</span>
+                <span className="min-w-0 max-w-[60px] flex-1 text-center">{isAssistedBodyweight ? '辅助重量' : '附加重量'}</span>
                 <span className="min-w-0 max-w-[60px] flex-1 text-center">次数</span>
               </div>
               <span className="w-7 flex-shrink-0"></span>
@@ -254,8 +256,9 @@ export function ExerciseCard({
               index={index}
               useLeftRight={exercise.useLeftRight}
               isCardio={isCardio}
+              hideWeight={isRepsOnly}
               weightUnit={isAssistedBodyweight ? 'kg' : state.weightUnit}
-              weightAriaLabel={isAssistedBodyweight ? '辅助重量（kg）' : '重量'}
+              weightAriaLabel={isAssistedBodyweight ? '辅助重量（kg）' : isAdditionalWeight ? '附加重量' : '重量'}
               prevSet={index > 0 ? exercise.sets[index - 1] : undefined}
               nextSet={index < exercise.sets.length - 1 ? exercise.sets[index + 1] : undefined}
               onUpdate={(updates) => onUpdateSet(set.id, updates)}

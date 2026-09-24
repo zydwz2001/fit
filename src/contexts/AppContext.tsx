@@ -9,6 +9,7 @@ import {
 } from '@/utils/constants';
 import type { BodyMetric, MetricTarget, MetricType, Exercise, Set as ExerciseSet, DailyWorkout } from '@/types';
 import { DEFAULT_EXERCISES } from '@/types';
+import { XUNJI_ADDITIONAL_EXERCISES } from '@/data/xunjiExercises';
 import { loadData, saveData } from '@/utils/storage';
 import { createInitialState } from '@/utils/initialState';
 import { mergeBodyMetrics } from '@/utils/bodyMetricImport';
@@ -89,6 +90,7 @@ const NEW_BUILT_IN_EXERCISE_IDS = [
   'barbell_curl',
   'rope_pushdown',
   'assisted_dip',
+  ...XUNJI_ADDITIONAL_EXERCISES.map((exercise) => exercise.id),
 ] as const;
 
 const REMOVED_BUILT_IN_EXERCISE_IDS = new Set([
@@ -129,10 +131,14 @@ export function mergeExerciseLibrary(saved: Exercise[] | undefined): Exercise[] 
 
   const merged = activeExercises.map((exercise) => {
     const currentDefault = defaultsById.get(exercise.id);
-    return currentDefault?.gifUrl
+    return currentDefault
       ? {
           ...refreshBuiltInExerciseName(exercise),
-          gifUrl: currentDefault.gifUrl,
+          gifUrl: currentDefault.gifUrl ?? exercise.gifUrl,
+          aliases: exercise.aliases || currentDefault.aliases
+            ? [...new Set([...(exercise.aliases ?? []), ...(currentDefault.aliases ?? [])])]
+            : undefined,
+          recordingMode: currentDefault.recordingMode,
           volumeMode: currentDefault.volumeMode,
         }
       : refreshBuiltInExerciseName(exercise);
@@ -699,7 +705,7 @@ export function appReducer(state: AppState, action: Action): AppState {
       if (!state.dailyWorkout) return state;
       const newExercises = state.dailyWorkout.exercises.map((ex) => {
         if (ex.id === action.payload.exerciseId) {
-          if (ex.volumeMode === 'assisted-bodyweight') return ex;
+          if (ex.volumeMode === 'assisted-bodyweight' || ex.recordingMode) return ex;
           const newUseLeftRight = !ex.useLeftRight;
           const newSets = ex.sets.map((set) => {
             if (newUseLeftRight) {

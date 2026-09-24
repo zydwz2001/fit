@@ -5,6 +5,7 @@ interface SetRowProps {
   index: number;
   useLeftRight: boolean;
   isCardio?: boolean;
+  hideWeight?: boolean;
   weightUnit?: 'kg' | 'lbs';
   prevSet?: ExerciseSet;
   nextSet?: ExerciseSet;
@@ -22,6 +23,7 @@ export function SetRow({
   index,
   useLeftRight,
   isCardio = false,
+  hideWeight = false,
   weightUnit = 'kg',
   onUpdate,
   onToggleCompleted,
@@ -77,7 +79,7 @@ export function SetRow({
 
       {!isCardio ? (
         <div className="flex items-center gap-1 flex-1 min-w-0">
-          {useLeftRight ? (
+          {!hideWeight && (useLeftRight ? (
             <>
               <div className="flex items-center gap-0.5 flex-1 min-w-0">
                 <div className={`flex-1 h-10 bg-slate-50 rounded-vibe px-0.5 flex items-center min-w-0 ${isInputActive('leftWeight') ? 'ring-2 ring-vibe-green' : ''}`}>
@@ -133,7 +135,7 @@ export function SetRow({
               </div>
               <span className="text-xs text-slate-500 flex-shrink-0">{weightUnit}</span>
             </div>
-          )}
+          ))}
 
           <div className="flex items-center gap-0.5 flex-1 min-w-0 max-w-[60px]">
             <div className={`flex-1 h-10 bg-slate-50 rounded-vibe px-0.5 flex items-center min-w-0 ${isInputActive('reps') ? 'ring-2 ring-vibe-green' : ''}`}>
@@ -144,6 +146,7 @@ export function SetRow({
                 onClick={onKeyboardShow ? (e) => handleFocus('reps', e) : undefined}
                 onBlur={!onKeyboardShow ? (e) => handleNativeCommit('reps', e.currentTarget.value) : undefined}
                 readOnly={Boolean(onKeyboardShow)}
+                aria-label="次数"
                 inputMode="numeric"
                 className="text-xs font-bold text-center bg-transparent border-none outline-none w-full text-slate-800 cursor-pointer"
                 placeholder="0"

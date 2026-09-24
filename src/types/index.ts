@@ -1,3 +1,5 @@
+import { XUNJI_ADDITIONAL_EXERCISES } from '@/data/xunjiExercises';
+
 export const DESIGN = {
   BRAND_COLOR: '#10B981',
   COMPONENT_HEIGHT: 40,
@@ -21,6 +23,8 @@ export interface Exercise {
   muscleGroup: string;
   category: 'strength' | 'cardio';
   gifUrl?: string;
+  aliases?: string[];
+  recordingMode?: 'reps-only' | 'additional-weight';
   sets: Set[];
   useLeftRight: boolean;
   durationMinutes?: number;
@@ -99,8 +103,8 @@ export const MUSCLE_GROUP_NAMES: Record<string, string> = {
 export const DEFAULT_EXERCISES: Exercise[] = [
   { id: 'squat', name: '深蹲', muscleGroup: '腿', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/squat.png' },
   { id: 'deadlift', name: '硬拉', muscleGroup: '腿', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/deadlift.png' },
-  { id: 'hip_abduction', name: '髋外展', muscleGroup: '腿', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/hip_abduction.png' },
-  { id: 'hip_adduction', name: '髋内收', muscleGroup: '腿', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/hip_adduction.png' },
+  { id: 'hip_abduction', aliases: ['坐姿髋外展'], name: '髋外展', muscleGroup: '腿', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/hip_abduction.png' },
+  { id: 'hip_adduction', aliases: ['坐姿髋内收'], name: '髋内收', muscleGroup: '腿', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/hip_adduction.png' },
   { id: 'bulgarian_squat', name: '保加利亚深蹲', muscleGroup: '腿', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/bulgarian_squat.png' },
   { id: 'single_leg_dumbbell_deadlift', name: '单腿哑铃硬拉', muscleGroup: '腿', category: 'strength', useLeftRight: true, sets: [], gifUrl: 'images/exercises/single_leg_dumbbell_deadlift.png' },
 
@@ -109,21 +113,21 @@ export const DEFAULT_EXERCISES: Exercise[] = [
   { id: 'barbell_row', name: '杠铃划船', muscleGroup: '背', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/barbell_row.png' },
   { id: 'dumbbell_row', name: '哑铃划船', muscleGroup: '背', category: 'strength', useLeftRight: true, sets: [], gifUrl: 'images/exercises/dumbbell_row.png' },
   { id: 'tbar_row', name: 'T杠划船', muscleGroup: '背', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/tbar_row.png' },
-  { id: 'romanian_deadlift', name: '罗马尼亚硬拉', muscleGroup: '背', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/romanian_deadlift.png' },
+  { id: 'romanian_deadlift', aliases: ['杠铃罗马尼亚硬拉'], name: '罗马尼亚硬拉', muscleGroup: '背', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/romanian_deadlift.png' },
   { id: 'lat_pulldown', name: '高位下拉', muscleGroup: '背', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/lat_pulldown.png' },
   { id: 'reverse_lat_pulldown', name: '反手高位下拉', muscleGroup: '背', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/reverse_lat_pulldown.png' },
 
   { id: 'barbell_benchpress', name: '杠铃卧推', muscleGroup: '胸', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/barbell_benchpress.png' },
-  { id: 'dumbbell_benchpress', name: '哑铃卧推', muscleGroup: '胸', category: 'strength', useLeftRight: true, sets: [], gifUrl: 'images/exercises/dumbbell_benchpress.png' },
-  { id: 'pushup', name: '俯卧撑', muscleGroup: '胸', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/pushup.png' },
-  { id: 'incline_dumbbell_press', name: '哑铃上斜卧推', muscleGroup: '胸', category: 'strength', useLeftRight: true, sets: [], gifUrl: 'images/exercises/incline_dumbbell_press.png' },
+  { id: 'dumbbell_benchpress', aliases: ['平躺哑铃卧推'], name: '哑铃卧推', muscleGroup: '胸', category: 'strength', useLeftRight: true, sets: [], gifUrl: 'images/exercises/dumbbell_benchpress.png' },
+  { id: 'pushup', recordingMode: 'reps-only', name: '俯卧撑', muscleGroup: '胸', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/pushup.png' },
+  { id: 'incline_dumbbell_press', aliases: ['上斜哑铃卧推'], name: '哑铃上斜卧推', muscleGroup: '胸', category: 'strength', useLeftRight: true, sets: [], gifUrl: 'images/exercises/incline_dumbbell_press.png' },
   { id: 'cable_fly', name: '器械飞鸟', muscleGroup: '胸', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/cable_fly.png' },
-  { id: 'assisted_dip', name: '双杠臂屈伸', muscleGroup: '胸', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/assisted_dip.png', volumeMode: 'assisted-bodyweight' },
+  { id: 'assisted_dip', aliases: ['双杠臂屈伸（辅助）'], name: '双杠臂屈伸', muscleGroup: '胸', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/assisted_dip.png', volumeMode: 'assisted-bodyweight' },
 
-  { id: 'dumbbell_lateral_raise', name: '哑铃侧平举', muscleGroup: '肩', category: 'strength', useLeftRight: true, sets: [], gifUrl: 'images/exercises/dumbbell_lateral_raise.png' },
+  { id: 'dumbbell_lateral_raise', aliases: ['侧平举'], name: '哑铃侧平举', muscleGroup: '肩', category: 'strength', useLeftRight: true, sets: [], gifUrl: 'images/exercises/dumbbell_lateral_raise.png' },
   { id: 'dumbbell_shoulder_press', name: '哑铃推肩', muscleGroup: '肩', category: 'strength', useLeftRight: true, sets: [], gifUrl: 'images/exercises/dumbbell_shoulder_press.png' },
-  { id: 'standing_overhead_press', name: '站姿实力推', muscleGroup: '肩', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/standing_overhead_press.png' },
-  { id: 'bent_over_dumbbell_reverse_fly', name: '俯身侧平举', muscleGroup: '肩', category: 'strength', useLeftRight: true, sets: [], gifUrl: 'images/exercises/bent_over_dumbbell_reverse_fly.png' },
+  { id: 'standing_overhead_press', aliases: ['站姿杠铃推举'], name: '站姿实力推', muscleGroup: '肩', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/standing_overhead_press.png' },
+  { id: 'bent_over_dumbbell_reverse_fly', aliases: ['俯身飞鸟'], name: '俯身侧平举', muscleGroup: '肩', category: 'strength', useLeftRight: true, sets: [], gifUrl: 'images/exercises/bent_over_dumbbell_reverse_fly.png' },
 
   { id: 'dumbbell_curl', name: '哑铃弯举', muscleGroup: '臂', category: 'strength', useLeftRight: true, sets: [], gifUrl: 'images/exercises/dumbbell_curl.png' },
   { id: 'barbell_curl', name: '杠铃弯举', muscleGroup: '臂', category: 'strength', useLeftRight: false, sets: [], gifUrl: 'images/exercises/barbell_curl.png' },
@@ -136,7 +140,11 @@ export const DEFAULT_EXERCISES: Exercise[] = [
   { id: 'kickboxing', name: '自由搏击', muscleGroup: '有氧', category: 'cardio', useLeftRight: false, sets: [], gifUrl: 'images/exercises/kickboxing.png' },
   { id: 'hill_climbing', name: '爬坡', muscleGroup: '有氧', category: 'cardio', useLeftRight: false, sets: [], gifUrl: 'images/exercises/hill_climbing.png' },
   { id: 'stair_climber', name: '爬楼机', muscleGroup: '有氧', category: 'cardio', useLeftRight: false, sets: [], gifUrl: 'images/exercises/stair_climber.png' },
+  ...XUNJI_ADDITIONAL_EXERCISES,
 ];
+
+const groupOrder = ['腿', '背', '胸', '肩', '臂', '核心', '拉伸放松', '有氧'];
+DEFAULT_EXERCISES.sort((a, b) => groupOrder.indexOf(a.muscleGroup) - groupOrder.indexOf(b.muscleGroup));
 
 export interface AppState {
   dailyWorkout: DailyWorkout | null;

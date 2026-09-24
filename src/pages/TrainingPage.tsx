@@ -13,7 +13,7 @@ import {
 } from '@/utils/constants';
 import { useAppBack } from '@/utils/navigation';
 import type { Set as ExerciseSet, Exercise, DailyWorkout } from '@/types';
-import { DEFAULT_EXERCISES } from '@/types';
+import { matchesExerciseQuery, formatExerciseSet, formatExerciseSummary } from '@/utils/exerciseCatalog';
 
 const SUB_TABS = [
   { id: 'today', label: '今日健身' },
@@ -522,8 +522,7 @@ function LibraryTab({ onGoToToday, hasTodayWorkout }: LibraryTabProps) {
   const hasSelectedExercises = selectedExercises.length > 0;
 
   const filteredExercises = state.exerciseLibrary.filter((ex) =>
-    ex.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    ex.muscleGroup.includes(searchQuery)
+    matchesExerciseQuery(ex, searchQuery)
   );
 
   const muscleGroups = [...new Set(filteredExercises.map((ex) => ex.muscleGroup))];
@@ -902,6 +901,7 @@ function ExerciseTrendTab() {
           volume: calculateVolume(exercise, state.weightUnit),
           useLeftRight: exercise.useLeftRight,
           volumeMode: exercise.volumeMode,
+          recordingMode: exercise.recordingMode,
           bodyWeightKg: exercise.bodyWeightKg,
           sets: completedSets,
         };
@@ -912,6 +912,7 @@ function ExerciseTrendTab() {
         volume: number;
         useLeftRight: boolean;
         volumeMode: 'assisted-bodyweight' | undefined;
+        recordingMode: Exercise['recordingMode'];
         bodyWeightKg: number | undefined;
         sets: ExerciseSet[];
       } => record !== null)
@@ -951,9 +952,9 @@ function ExerciseTrendTab() {
             <div className="flex justify-between items-center mb-3">
               <p className="text-sm font-black">{record.date}</p>
               <div className="text-right">
-                <p className="text-[9px] font-bold text-slate-400">总容量</p>
+                <p className="text-[9px] font-bold text-slate-400">{record.recordingMode === 'reps-only' ? '总次数' : '总容量'}</p>
                 <p className="text-sm font-black text-vibe-green">
-                  {record.volume.toLocaleString(undefined, { maximumFractionDigits: 1 })} kg
+                  {formatExerciseSummary(record, state.weightUnit)}
                 </p>
               </div>
             </div>
@@ -962,12 +963,7 @@ function ExerciseTrendTab() {
                 <div key={set.id} className="flex justify-between items-center text-sm">
                   <span className="font-bold text-slate-400">第{index + 1}组</span>
                   <span className="font-black text-slate-700">
-                    {record.volumeMode === 'assisted-bodyweight'
-                      ? `体重 ${record.bodyWeightKg ?? 0} kg / 辅助 ${set.weight ?? 0} kg`
-                      : record.useLeftRight
-                      ? `左 ${set.leftWeight ?? 0} / 右 ${set.rightWeight ?? 0} ${state.weightUnit}`
-                      : `${set.weight ?? 0} ${state.weightUnit}`}
-                    {' × '}{set.reps} 次
+                    {formatExerciseSet(record, set, state.weightUnit)}
                   </span>
                 </div>
               ))}
@@ -1013,7 +1009,7 @@ function ExerciseHistoryModal({ exerciseId, onClose }: ExerciseHistoryModalProps
               <div className="flex justify-between items-center mb-3">
                 <span className="text-sm font-black">{workout.date}</span>
                 <span className="text-vibe-green text-sm font-bold">
-                  {calculateVolume(exercise, state.weightUnit).toLocaleString()} kg
+                  {formatExerciseSummary(exercise, state.weightUnit)}
                 </span>
               </div>
               <div className="space-y-2">
@@ -1023,12 +1019,7 @@ function ExerciseHistoryModal({ exerciseId, onClose }: ExerciseHistoryModalProps
                       第{index + 1}组{set.completed ? '' : '（未完成）'}
                     </span>
                     <span>
-                      {exercise.volumeMode === 'assisted-bodyweight'
-                        ? `体重 ${exercise.bodyWeightKg ?? 0}kg / 辅助 ${set.weight ?? 0}kg`
-                        : exercise.useLeftRight
-                        ? `${set.leftWeight ?? 0}/${set.rightWeight ?? 0}${state.weightUnit}`
-                        : `${set.weight ?? 0}${state.weightUnit}`}
-                      {' × '}{set.reps}次
+                      {formatExerciseSet(exercise, set, state.weightUnit)}
                     </span>
                   </div>
                 ))}
@@ -1213,6 +1204,7 @@ function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailM
       ...workout,
       exercises: workout.exercises.map((ex) => {
         if (ex.id === exerciseId) {
+          if (ex.volumeMode === 'assisted-bodyweight' || ex.recordingMode) return ex;
           const newUseLeftRight = !ex.useLeftRight;
           const newSets = ex.sets.map((set) => {
             if (newUseLeftRight) {
@@ -1325,7 +1317,6 @@ function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailM
     <div className="space-y-4">
       {workout.exercises.map((exercise) => {
         const isCardio = exercise.category === 'cardio';
-        const isAssistedBodyweight = exercise.volumeMode === 'assisted-bodyweight';
         const exerciseVolume = calculateVolume(exercise, state.weightUnit);
 
         return (
@@ -1351,12 +1342,7 @@ function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailM
                   <div key={set.id} className="flex justify-between items-center text-sm">
                     <span className="text-slate-400 font-bold">第{idx + 1}组</span>
                     <span className="text-slate-600">
-                      {isAssistedBodyweight
-                        ? `辅助 ${set.weight ?? 0}kg × ${set.reps}次`
-                        : exercise.useLeftRight
-                        ? `${set.leftWeight || 0}/${set.rightWeight || 0}${state.weightUnit} × ${set.reps}次`
-                        : `${set.weight}${state.weightUnit} × ${set.reps}次`
-                      }
+                      {formatExerciseSet(exercise, set, state.weightUnit)}
                     </span>
                   </div>
                 ))}
@@ -1501,7 +1487,8 @@ function DayDetailLibraryModal({ workout, activeGroup, setActiveGroup, onSelectE
   const libraryListRef = React.useRef<HTMLDivElement>(null);
   const librarySectionRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
 
-  const filteredExercises = DEFAULT_EXERCISES.filter(
+  const { state } = useApp();
+  const filteredExercises = state.exerciseLibrary.filter(
     (ex) => !workout.exercises.some((wex) => wex.id === ex.id)
   );
   const muscleGroups = [...new Set(filteredExercises.map((ex) => ex.muscleGroup))];

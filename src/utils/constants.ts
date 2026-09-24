@@ -27,11 +27,12 @@ export function calculateVolume(
     sets: ExerciseSet[];
     category?: 'strength' | 'cardio';
     volumeMode?: 'assisted-bodyweight';
+    recordingMode?: 'reps-only' | 'additional-weight';
     bodyWeightKg?: number;
   },
   weightUnit: 'kg' | 'lbs' = 'kg'
 ): number {
-  if (exercise.category === 'cardio') return 0;
+  if (exercise.category === 'cardio' || exercise.recordingMode === 'reps-only') return 0;
 
   if (exercise.volumeMode === 'assisted-bodyweight') {
     const bodyWeightKg = Math.max(exercise.bodyWeightKg ?? 0, 0);
