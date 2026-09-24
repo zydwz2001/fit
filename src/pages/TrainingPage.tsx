@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { SubTabBar, Card, Button } from '@/components';
-import { ExerciseCard } from '@/components/training';
+import { ExerciseCard, ExerciseImage } from '@/components/training';
 import { CustomKeyboard } from '@/components/training';
 import {
   generateId,
@@ -13,7 +13,7 @@ import {
 } from '@/utils/constants';
 import { useAppBack } from '@/utils/navigation';
 import type { Set as ExerciseSet, Exercise, DailyWorkout } from '@/types';
-import { matchesExerciseQuery, formatExerciseSet, formatExerciseSummary } from '@/utils/exerciseCatalog';
+import { getLibraryExercises, formatExerciseSet, formatExerciseSummary } from '@/utils/exerciseCatalog';
 import { getWorkoutsForDate } from '@/utils/workoutImport';
 
 const SUB_TABS = [
@@ -509,6 +509,8 @@ interface LibraryTabProps {
 function LibraryTab({ onGoToToday, hasTodayWorkout }: LibraryTabProps) {
   const { state, dispatch } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
+  const [showHidden, setShowHidden] = useState(false);
+  const [isManaging, setIsManaging] = useState(false);
   const [activeGroup, setActiveGroup] = useState<string>('');
   const exerciseListRef = React.useRef<HTMLDivElement>(null);
   const sectionRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
@@ -527,9 +529,11 @@ function LibraryTab({ onGoToToday, hasTodayWorkout }: LibraryTabProps) {
   const selectedExercises = state.dailyWorkout?.exercises || [];
   const hasSelectedExercises = selectedExercises.length > 0;
 
-  const filteredExercises = state.exerciseLibrary.filter((ex) =>
-    matchesExerciseQuery(ex, searchQuery)
-  );
+  const filteredExercises = getLibraryExercises(state.exerciseLibrary, showHidden, searchQuery);
+  const hiddenCount = state.exerciseLibrary.filter((exercise) => exercise.hidden).length;
+  const toggleHidden = (exercise: Exercise) => dispatch({
+    type: 'SET_EXERCISE_HIDDEN', payload: { exerciseId: exercise.id, hidden: !exercise.hidden },
+  });
 
   const muscleGroups = [...new Set(filteredExercises.map((ex) => ex.muscleGroup))];
 
@@ -596,9 +600,23 @@ function LibraryTab({ onGoToToday, hasTodayWorkout }: LibraryTabProps) {
             placeholder="输入动作名字搜索"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-transparent border-none outline-none text-xs flex-1"
+            className="bg-transparent border-none outline-none text-xs flex-1 min-w-0"
           />
+          <button onClick={() => setIsManaging(!isManaging)} className="shrink-0 text-xs font-bold text-vibe-green">
+            {isManaging ? '完成管理' : '管理'}
+          </button>
         </div>
+        <div className="mt-3 flex gap-2 text-xs font-bold">
+          <button onClick={() => setShowHidden(false)} aria-pressed={!showHidden}
+            className={`flex-1 rounded-xl py-2 ${!showHidden ? 'bg-vibe-green text-white' : 'bg-slate-100 text-slate-500'}`}>
+            常用动作 {state.exerciseLibrary.length - hiddenCount}
+          </button>
+          <button onClick={() => setShowHidden(true)} aria-pressed={showHidden}
+            className={`flex-1 rounded-xl py-2 ${showHidden ? 'bg-vibe-green text-white' : 'bg-slate-100 text-slate-500'}`}>
+            已隐藏 {hiddenCount}
+          </button>
+        </div>
+        {(showHidden || isManaging) && <p className="mt-2 text-xs text-slate-400">隐藏仅影响动作选择，历史训练仍保留。点“恢复”可重新使用。</p>}
       </div>
       <div className="flex flex-1 min-h-0 overflow-hidden mt-2">
         <div className="w-24 bg-slate-50 flex flex-col items-center py-4 pl-4 pr-3 gap-6 overflow-y-auto flex-shrink-0">
@@ -621,6 +639,9 @@ function LibraryTab({ onGoToToday, hasTodayWorkout }: LibraryTabProps) {
           onScroll={handleExerciseListScroll}
           className="flex-1 p-4 overflow-y-auto pb-4 min-w-0"
         >
+          {filteredExercises.length === 0 && <p className="py-8 text-center text-sm text-slate-400">
+            {searchQuery ? '没有匹配的动作' : showHidden ? '暂无隐藏动作' : '暂无常用动作，可到“已隐藏”恢复'}
+          </p>}
           {muscleGroups.map((group) => (
             <div
               key={group}
@@ -637,8 +658,10 @@ function LibraryTab({ onGoToToday, hasTodayWorkout }: LibraryTabProps) {
                   <ExerciseCard
                     key={exercise.id}
                     exercise={exercise}
-                    isSelected={isExerciseSelected(exercise.id)}
+                    isSelected={!showHidden && isExerciseSelected(exercise.id)}
                     onSelect={() => handleSelectExercise(exercise)}
+                    selectionDisabled={showHidden || isManaging}
+                    onToggleHidden={showHidden || isManaging ? () => toggleHidden(exercise) : undefined}
                     onUpdateSet={() => {}}
                     onToggleSetCompleted={() => {}}
                     onAddSet={() => {}}
@@ -958,6 +981,11 @@ function ExerciseTrendTab() {
             <option key={exercise.id} value={exercise.id}>{exercise.name}</option>
           ))}
         </select>
+        {availableExercises.find((exercise) => exercise.id === resolvedExerciseId) && (
+          <div className="mt-3 flex justify-center">
+            <ExerciseImage exercise={availableExercises.find((exercise) => exercise.id === resolvedExerciseId)!} className="h-20 w-20" />
+          </div>
+        )}
       </div>
 
       <div className="space-y-3">
@@ -1012,7 +1040,10 @@ function ExerciseHistoryModal({ exerciseId, onClose }: ExerciseHistoryModalProps
     <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50" onClick={onClose}>
       <div className="bg-white w-full max-w-md rounded-t-vibe-xl p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-lg font-black">{exerciseName}历史</h3>
+          <div className="flex items-center gap-2">
+            {records[0] && <ExerciseImage exercise={records[0].exercise} />}
+            <h3 className="text-lg font-black">{exerciseName}历史</h3>
+          </div>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-slate-400">
             <i className="fas fa-times"></i>
           </button>
@@ -1342,9 +1373,7 @@ function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailM
           <div key={exercise.id} className="bg-slate-50 rounded-vibe p-4">
             <div className="flex justify-between items-center mb-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
-                  <i className={`fas ${isCardio ? 'fa-heart-pulse' : 'fa-dumbbell'} text-slate-300`}></i>
-                </div>
+                <ExerciseImage exercise={exercise} />
                 <div>
                   <h4 className="font-black text-sm text-slate-800">{exercise.name}</h4>
                   <p className="text-[10px] font-bold text-slate-400">{exercise.muscleGroup}</p>
@@ -1527,7 +1556,7 @@ function DayDetailLibraryModal({ workout, activeGroup, setActiveGroup, onSelectE
   const librarySectionRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
 
   const { state } = useApp();
-  const filteredExercises = state.exerciseLibrary.filter(
+  const filteredExercises = getLibraryExercises(state.exerciseLibrary).filter(
     (ex) => !workout.exercises.some((wex) => wex.id === ex.id)
   );
   const muscleGroups = [...new Set(filteredExercises.map((ex) => ex.muscleGroup))];

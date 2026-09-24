@@ -19,6 +19,17 @@ export function matchesExerciseQuery(exercise: Exercise, query: string): boolean
     .some((candidate) => normalizeName(candidate).includes(normalized));
 }
 
+export function getLibraryExercises(library: Exercise[], hidden = false, query = ''): Exercise[] {
+  return library.filter((exercise) => Boolean(exercise.hidden) === hidden && matchesExerciseQuery(exercise, query));
+}
+
+// Hidden only affects library selection; history always resolves the current artwork.
+export function getExerciseImageUrl(exercise: Pick<Exercise, 'id' | 'gifUrl'>, library: Exercise[]): string | undefined {
+  return library.find((item) => item.id === exercise.id)?.gifUrl
+    ?? DEFAULT_EXERCISES.find((item) => item.id === exercise.id)?.gifUrl
+    ?? exercise.gifUrl;
+}
+
 export function formatExerciseSet(
   exercise: Pick<Exercise, 'useLeftRight' | 'volumeMode' | 'bodyWeightKg' | 'recordingMode'>,
   set: ExerciseSet,

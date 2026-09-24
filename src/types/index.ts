@@ -31,6 +31,7 @@ export interface Exercise {
   muscleGroup: string;
   category: 'strength' | 'cardio';
   gifUrl?: string;
+  hidden?: boolean;
   aliases?: string[];
   recordingMode?: 'reps-only' | 'additional-weight';
   sets: Set[];

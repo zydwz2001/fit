@@ -62,6 +62,7 @@ type Action =
   | { type: 'APPLY_WORKOUT_TEMPLATE'; payload: { templateId: string } }
   | { type: 'REPLACE_EXERCISE_LIBRARY'; payload: { exercises: Exercise[] } }
   | { type: 'RESET_EXERCISE_LIBRARY' }
+  | { type: 'SET_EXERCISE_HIDDEN'; payload: { exerciseId: string; hidden: boolean } }
   | { type: 'IMPORT_APP_STATE'; payload: Partial<AppState> }
   | { type: 'IMPORT_BODY_METRICS'; payload: BodyMetric[] }
   | { type: 'IMPORT_WORKOUT_HISTORY'; payload: DailyWorkout[] }
@@ -137,6 +138,7 @@ export function mergeExerciseLibrary(saved: Exercise[] | undefined): Exercise[] 
       ? {
           ...refreshBuiltInExerciseName(exercise),
           gifUrl: currentDefault.gifUrl ?? exercise.gifUrl,
+          hidden: exercise.hidden ?? currentDefault.hidden,
           aliases: exercise.aliases || currentDefault.aliases
             ? [...new Set([...(exercise.aliases ?? []), ...(currentDefault.aliases ?? [])])]
             : undefined,
@@ -906,6 +908,12 @@ export function appReducer(state: AppState, action: Action): AppState {
     }
     case 'RESET_EXERCISE_LIBRARY':
       return { ...state, exerciseLibrary: DEFAULT_EXERCISES };
+    case 'SET_EXERCISE_HIDDEN':
+      return {
+        ...state,
+        exerciseLibrary: state.exerciseLibrary.map((exercise) => exercise.id === action.payload.exerciseId
+          ? { ...exercise, hidden: action.payload.hidden } : exercise),
+      };
     case 'IMPORT_APP_STATE':
       return mergeWithInitialState(action.payload);
     case 'IMPORT_BODY_METRICS':

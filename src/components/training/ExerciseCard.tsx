@@ -1,6 +1,6 @@
-import { useState } from 'react';
 import type { Exercise, Set as ExerciseSet } from '@/types';
 import { SetRow } from './SetRow';
+import { ExerciseImage } from './ExerciseImage';
 import { useApp } from '@/contexts/AppContext';
 import { calculateVolume } from '@/utils/constants';
 
@@ -17,6 +17,8 @@ interface ExerciseCardProps {
   onRemoveSet?: (setId: string) => void;
   onShowHistory?: () => void;
   onSelect?: () => void;
+  selectionDisabled?: boolean;
+  onToggleHidden?: () => void;
   showControls?: boolean;
   onDragStart?: (e: React.DragEvent) => void;
   onDragEnd?: () => void;
@@ -45,6 +47,8 @@ export function ExerciseCard({
   onRemoveSet,
   onShowHistory,
   onSelect,
+  selectionDisabled = false,
+  onToggleHidden,
   showControls = true,
   onDragStart,
   onDragEnd,
@@ -62,38 +66,31 @@ export function ExerciseCard({
   const isAssistedBodyweight = exercise.volumeMode === 'assisted-bodyweight';
   const isRepsOnly = exercise.recordingMode === 'reps-only';
   const isAdditionalWeight = exercise.recordingMode === 'additional-weight';
-  const libraryMediaUrl = state.exerciseLibrary.find((item) => item.id === exercise.id)?.gifUrl;
-  const mediaUrl = libraryMediaUrl ?? exercise.gifUrl;
-  const [failedMediaUrl, setFailedMediaUrl] = useState<string>();
-  const showMedia = Boolean(mediaUrl && failedMediaUrl !== mediaUrl);
 
   const volume = !isCardio ? calculateVolume(exercise, state.weightUnit) : 0;
 
   if (onSelect) {
     return (
       <div
-        onClick={onSelect}
-        className={`bg-white p-3 rounded-2xl shadow-sm flex flex-col items-center relative h-36 cursor-pointer transition-all ${
+        onClick={selectionDisabled ? undefined : onSelect}
+        className={`bg-white p-3 rounded-2xl shadow-sm flex flex-col items-center relative min-h-[160px] cursor-pointer transition-all ${
           isSelected ? 'ring-2 ring-vibe-green' : ''
         }`}
       >
+        {onToggleHidden && (
+          <button type="button" onClick={(event) => { event.stopPropagation(); onToggleHidden(); }}
+            aria-label={`${exercise.hidden ? '恢复' : '隐藏'}${exercise.name}`}
+            className="absolute left-1 top-1 z-10 rounded-lg bg-white/95 px-2 py-1 text-[11px] font-bold text-slate-600 shadow-sm">
+            <i aria-hidden="true" className={`fas ${exercise.hidden ? 'fa-eye' : 'fa-eye-slash'} mr-1`}></i>
+            {exercise.hidden ? '恢复' : '隐藏'}
+          </button>
+        )}
         {isSelected && (
           <div className="absolute top-2 right-2 w-6 h-6 bg-vibe-green rounded-full flex items-center justify-center">
             <i className="fas fa-check text-white text-xs"></i>
           </div>
         )}
-        {mediaUrl && showMedia ? (
-          <img
-            src={mediaUrl}
-            alt={exercise.name}
-            onError={() => setFailedMediaUrl(mediaUrl)}
-            className="w-20 h-20 object-contain rounded mb-2 bg-slate-50"
-          />
-        ) : (
-          <div className="w-20 h-20 bg-slate-100 rounded mb-2 flex items-center justify-center">
-            <i className={`fas ${isCardio ? 'fa-heart-pulse' : 'fa-dumbbell'} text-slate-300 text-lg`}></i>
-          </div>
-        )}
+        <ExerciseImage exercise={exercise} className="h-20 w-20 mb-2" />
         <p className="text-[11px] font-black text-slate-800 text-center">{exercise.name}</p>
         <p className="text-[9px] text-slate-400 font-bold mt-1">{exercise.muscleGroup}</p>
       </div>
@@ -112,18 +109,7 @@ export function ExerciseCard({
         onClick={!isCardio ? onToggleExpand : undefined}
       >
         <div className="flex items-center gap-3 flex-1">
-          {mediaUrl && showMedia ? (
-            <img
-              src={mediaUrl}
-              alt={exercise.name}
-              onError={() => setFailedMediaUrl(mediaUrl)}
-              className="w-10 h-10 object-contain rounded-xl bg-slate-50"
-            />
-          ) : (
-            <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center">
-              <i className={`fas ${isCardio ? 'fa-heart-pulse' : 'fa-dumbbell'} text-slate-300`}></i>
-            </div>
-          )}
+          <ExerciseImage exercise={exercise} />
           <div>
             <h3 className="font-bold text-slate-800 text-base">{exercise.name}</h3>
             <div className="flex items-center gap-2">

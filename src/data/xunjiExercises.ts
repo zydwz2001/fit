@@ -8,7 +8,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "腿",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_smith_squat.png"
   },
   {
     "id": "xunji_dumbbell_bulgarian_squat",
@@ -16,7 +18,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "腿",
     "category": "strength",
     "useLeftRight": true,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_dumbbell_bulgarian_squat.png"
   },
   {
     "id": "xunji_dumbbell_squat",
@@ -24,7 +28,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "腿",
     "category": "strength",
     "useLeftRight": true,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_dumbbell_squat.png"
   },
   {
     "id": "xunji_dumbbell_sumo_squat",
@@ -32,7 +38,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "腿",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_dumbbell_sumo_squat.png"
   },
   {
     "id": "xunji_dumbbell_lunge",
@@ -40,7 +48,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "腿",
     "category": "strength",
     "useLeftRight": true,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_dumbbell_lunge.png"
   },
   {
     "id": "xunji_goblet_squat",
@@ -48,7 +58,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "腿",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_goblet_squat.png"
   },
   {
     "id": "xunji_leg_press",
@@ -56,7 +68,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "腿",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_leg_press.png"
   },
   {
     "id": "xunji_leg_extension",
@@ -64,7 +78,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "腿",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_leg_extension.png"
   },
   {
     "id": "xunji_seated_leg_curl",
@@ -72,7 +88,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "腿",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_seated_leg_curl.png"
   },
   {
     "id": "xunji_leg_curl",
@@ -80,7 +98,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "腿",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_leg_curl.png"
   },
   {
     "id": "xunji_band_lying_leg_curl",
@@ -89,7 +109,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "category": "strength",
     "useLeftRight": false,
     "sets": [],
-    "recordingMode": "reps-only"
+    "recordingMode": "reps-only",
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_band_lying_leg_curl.png"
   },
   {
     "id": "xunji_band_leg_raise",
@@ -98,7 +120,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "category": "strength",
     "useLeftRight": false,
     "sets": [],
-    "recordingMode": "reps-only"
+    "recordingMode": "reps-only",
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_band_leg_raise.png"
   },
   {
     "id": "xunji_band_standing_leg_curl",
@@ -107,7 +131,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "category": "strength",
     "useLeftRight": false,
     "sets": [],
-    "recordingMode": "reps-only"
+    "recordingMode": "reps-only",
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_band_standing_leg_curl.png"
   },
   {
     "id": "xunji_band_standing_kick",
@@ -116,7 +142,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "category": "strength",
     "useLeftRight": false,
     "sets": [],
-    "recordingMode": "reps-only"
+    "recordingMode": "reps-only",
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_band_standing_kick.png"
   },
   {
     "id": "xunji_good_morning",
@@ -124,7 +152,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "腿",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_good_morning.png"
   },
   {
     "id": "xunji_barbell_hip_thrust",
@@ -132,7 +162,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "腿",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_barbell_hip_thrust.png"
   },
   {
     "id": "xunji_barbell_glute_bridge",
@@ -140,7 +172,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "腿",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_barbell_glute_bridge.png"
   },
   {
     "id": "xunji_standing_dumbbell_calf_raise",
@@ -148,7 +182,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "腿",
     "category": "strength",
     "useLeftRight": true,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_standing_dumbbell_calf_raise.png"
   },
   {
     "id": "xunji_narrow_tbar_row",
@@ -156,7 +192,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "背",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_narrow_tbar_row.png"
   },
   {
     "id": "xunji_vbar_pulldown",
@@ -164,7 +202,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "背",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_vbar_pulldown.png"
   },
   {
     "id": "xunji_vbar_row",
@@ -172,7 +212,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "背",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_vbar_row.png"
   },
   {
     "id": "xunji_prone_tbar_row",
@@ -180,7 +222,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "背",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_prone_tbar_row.png"
   },
   {
     "id": "xunji_prone_dumbbell_row",
@@ -188,7 +232,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "背",
     "category": "strength",
     "useLeftRight": true,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_prone_dumbbell_row.png"
   },
   {
     "id": "xunji_prone_hammer_dumbbell_row",
@@ -196,7 +242,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "背",
     "category": "strength",
     "useLeftRight": true,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_prone_hammer_dumbbell_row.png"
   },
   {
     "id": "xunji_reverse_barbell_row",
@@ -204,7 +252,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "背",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_reverse_barbell_row.png"
   },
   {
     "id": "xunji_smith_assisted_pullup",
@@ -213,7 +263,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "category": "strength",
     "useLeftRight": false,
     "sets": [],
-    "recordingMode": "reps-only"
+    "recordingMode": "reps-only",
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_smith_assisted_pullup.png"
   },
   {
     "id": "xunji_supported_dumbbell_row",
@@ -221,7 +273,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "背",
     "category": "strength",
     "useLeftRight": true,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_supported_dumbbell_row.png"
   },
   {
     "id": "xunji_machine_pulldown_v2",
@@ -229,7 +283,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "背",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_machine_pulldown_v2.png"
   },
   {
     "id": "xunji_seated_row",
@@ -237,7 +293,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "背",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_seated_row.png"
   },
   {
     "id": "xunji_wide_reverse_pulldown",
@@ -245,7 +303,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "背",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_wide_reverse_pulldown.png"
   },
   {
     "id": "xunji_wide_pulldown",
@@ -253,7 +313,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "背",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_wide_pulldown.png"
   },
   {
     "id": "xunji_back_extension",
@@ -262,7 +324,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "category": "strength",
     "useLeftRight": false,
     "sets": [],
-    "recordingMode": "additional-weight"
+    "recordingMode": "additional-weight",
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_back_extension.png"
   },
   {
     "id": "xunji_lying_dumbbell_pullover",
@@ -270,7 +334,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "背",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_lying_dumbbell_pullover.png"
   },
   {
     "id": "xunji_assisted_pullup",
@@ -279,7 +345,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "category": "strength",
     "useLeftRight": false,
     "sets": [],
-    "volumeMode": "assisted-bodyweight"
+    "volumeMode": "assisted-bodyweight",
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_assisted_pullup.png"
   },
   {
     "id": "xunji_hammer_row_v1",
@@ -287,7 +355,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "背",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_hammer_row_v1.png"
   },
   {
     "id": "xunji_hammer_high_row",
@@ -295,7 +365,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "背",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_hammer_high_row.png"
   },
   {
     "id": "xunji_horizontal_back_extension",
@@ -304,7 +376,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "category": "strength",
     "useLeftRight": false,
     "sets": [],
-    "recordingMode": "additional-weight"
+    "recordingMode": "additional-weight",
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_horizontal_back_extension.png"
   },
   {
     "id": "xunji_narrow_pulldown",
@@ -312,7 +386,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "背",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_narrow_pulldown.png"
   },
   {
     "id": "xunji_standing_dumbbell_row",
@@ -320,7 +396,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "背",
     "category": "strength",
     "useLeftRight": true,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_standing_dumbbell_row.png"
   },
   {
     "id": "xunji_straight_arm_pulldown",
@@ -328,7 +406,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "背",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_straight_arm_pulldown.png"
   },
   {
     "id": "xunji_behind_neck_pulldown",
@@ -336,7 +416,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "背",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_behind_neck_pulldown.png"
   },
   {
     "id": "xunji_incline_pushup",
@@ -345,7 +427,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "category": "strength",
     "useLeftRight": false,
     "sets": [],
-    "recordingMode": "reps-only"
+    "recordingMode": "reps-only",
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_incline_pushup.png"
   },
   {
     "id": "xunji_incline_smith_press",
@@ -353,7 +437,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "胸",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_incline_smith_press.png"
   },
   {
     "id": "xunji_incline_dumbbell_fly",
@@ -361,7 +447,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "胸",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_incline_dumbbell_fly.png"
   },
   {
     "id": "xunji_incline_barbell_press",
@@ -369,7 +457,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "胸",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_incline_barbell_press.png"
   },
   {
     "id": "xunji_weighted_dip",
@@ -378,7 +468,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "category": "strength",
     "useLeftRight": false,
     "sets": [],
-    "recordingMode": "additional-weight"
+    "recordingMode": "additional-weight",
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_weighted_dip.png"
   },
   {
     "id": "xunji_smith_press",
@@ -386,7 +478,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "胸",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_smith_press.png"
   },
   {
     "id": "xunji_dumbbell_fly",
@@ -397,7 +491,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "sets": [],
     "aliases": [
       "平躺哑铃飞鸟"
-    ]
+    ],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_dumbbell_fly.png"
   },
   {
     "id": "xunji_machine_chest_press",
@@ -405,7 +501,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "胸",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_machine_chest_press.png"
   },
   {
     "id": "xunji_hammer_floor_press",
@@ -413,7 +511,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "胸",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_hammer_floor_press.png"
   },
   {
     "id": "xunji_plate_squeeze_press",
@@ -421,7 +521,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "胸",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_plate_squeeze_press.png"
   },
   {
     "id": "xunji_narrow_dumbbell_press",
@@ -429,7 +531,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "胸",
     "category": "strength",
     "useLeftRight": true,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_narrow_dumbbell_press.png"
   },
   {
     "id": "xunji_cable_fly",
@@ -437,7 +541,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "胸",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_cable_fly.png"
   },
   {
     "id": "xunji_kneeling_pushup",
@@ -446,7 +552,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "category": "strength",
     "useLeftRight": false,
     "sets": [],
-    "recordingMode": "reps-only"
+    "recordingMode": "reps-only",
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_kneeling_pushup.png"
   },
   {
     "id": "xunji_front_raise",
@@ -454,7 +562,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "肩",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_front_raise.png"
   },
   {
     "id": "xunji_half_bent_lateral_raise",
@@ -462,7 +572,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "肩",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_half_bent_lateral_raise.png"
   },
   {
     "id": "xunji_dumbbell_upright_row",
@@ -470,7 +582,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "肩",
     "category": "strength",
     "useLeftRight": true,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_dumbbell_upright_row.png"
   },
   {
     "id": "xunji_machine_lateral_raise",
@@ -478,7 +592,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "肩",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_machine_lateral_raise.png"
   },
   {
     "id": "xunji_machine_shoulder_press",
@@ -486,7 +602,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "肩",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_machine_shoulder_press.png"
   },
   {
     "id": "xunji_single_cable_lateral_raise",
@@ -494,7 +612,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "肩",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_single_cable_lateral_raise.png"
   },
   {
     "id": "xunji_reverse_pec_deck",
@@ -502,7 +622,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "肩",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_reverse_pec_deck.png"
   },
   {
     "id": "xunji_arnold_press",
@@ -510,7 +632,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "肩",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_arnold_press.png"
   },
   {
     "id": "xunji_face_pull",
@@ -518,7 +642,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "肩",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_face_pull.png"
   },
   {
     "id": "xunji_ez_bar_curl",
@@ -526,7 +652,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "臂",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_ez_bar_curl.png"
   },
   {
     "id": "xunji_single_dumbbell_overhead_extension",
@@ -534,7 +662,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "臂",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_single_dumbbell_overhead_extension.png"
   },
   {
     "id": "xunji_machine_triceps_pushdown",
@@ -542,7 +672,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "臂",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_machine_triceps_pushdown.png"
   },
   {
     "id": "xunji_floor_dumbbell_skullcrusher",
@@ -550,7 +682,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "臂",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_floor_dumbbell_skullcrusher.png"
   },
   {
     "id": "xunji_single_preacher_curl",
@@ -558,7 +692,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "臂",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_single_preacher_curl.png"
   },
   {
     "id": "xunji_bench_dip",
@@ -567,7 +703,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "category": "strength",
     "useLeftRight": false,
     "sets": [],
-    "recordingMode": "reps-only"
+    "recordingMode": "reps-only",
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_bench_dip.png"
   },
   {
     "id": "xunji_bent_knee_bench_dip",
@@ -576,7 +714,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "category": "strength",
     "useLeftRight": false,
     "sets": [],
-    "recordingMode": "reps-only"
+    "recordingMode": "reps-only",
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_bent_knee_bench_dip.png"
   },
   {
     "id": "xunji_preacher_curl",
@@ -584,7 +724,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "臂",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_preacher_curl.png"
   },
   {
     "id": "xunji_hammer_preacher_curl",
@@ -592,7 +734,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "臂",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_hammer_preacher_curl.png"
   },
   {
     "id": "xunji_straight_bar_pushdown",
@@ -600,7 +744,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "臂",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_straight_bar_pushdown.png"
   },
   {
     "id": "xunji_skullcrusher",
@@ -608,7 +754,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "臂",
     "category": "strength",
     "useLeftRight": true,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_skullcrusher.png"
   },
   {
     "id": "xunji_cable_triceps_extension",
@@ -616,7 +764,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "臂",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_cable_triceps_extension.png"
   },
   {
     "id": "xunji_concentration_curl",
@@ -624,7 +774,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "臂",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_concentration_curl.png"
   },
   {
     "id": "xunji_machine_crunch",
@@ -632,7 +784,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "核心",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_machine_crunch.png"
   },
   {
     "id": "xunji_leg_raise",
@@ -641,7 +795,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "category": "strength",
     "useLeftRight": false,
     "sets": [],
-    "recordingMode": "additional-weight"
+    "recordingMode": "additional-weight",
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_leg_raise.png"
   },
   {
     "id": "xunji_cable_crunch",
@@ -649,7 +805,9 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "核心",
     "category": "strength",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_cable_crunch.png"
   },
   {
     "id": "xunji_upper_body_release",
@@ -657,6 +815,8 @@ export const XUNJI_ADDITIONAL_EXERCISES: Exercise[] = [
     "muscleGroup": "拉伸放松",
     "category": "cardio",
     "useLeftRight": false,
-    "sets": []
+    "sets": [],
+    "hidden": true,
+    "gifUrl": "images/exercises/xunji_upper_body_release.png"
   }
 ];
