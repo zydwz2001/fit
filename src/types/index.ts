@@ -167,6 +167,8 @@ export interface AppState {
   dailyWorkout: DailyWorkout | null;
   workoutHistory: DailyWorkout[];
   exerciseLibrary: Exercise[];
+  // Explicit library removals survive built-in catalog upgrades and backup restores.
+  deletedExerciseIds?: string[];
   workoutTemplates: WorkoutTemplate[];
 
   bodyMetrics: BodyMetric[];

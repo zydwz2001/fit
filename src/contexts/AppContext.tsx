@@ -119,14 +119,15 @@ function refreshWorkoutExerciseNames(workout: DailyWorkout): DailyWorkout {
   };
 }
 
-export function mergeExerciseLibrary(saved: Exercise[] | undefined): Exercise[] {
-  if (!Array.isArray(saved)) return DEFAULT_EXERCISES;
+export function mergeExerciseLibrary(saved: Exercise[] | undefined, deletedExerciseIds: string[] = []): Exercise[] {
+  const deletedIds = new Set(deletedExerciseIds);
+  if (!Array.isArray(saved)) return DEFAULT_EXERCISES.filter((exercise) => !deletedIds.has(exercise.id));
   if (saved.length === 0) return saved;
 
   const defaultsById = new Map(DEFAULT_EXERCISES.map((exercise) => [exercise.id, exercise]));
   const newBuiltInIds = new Set<string>(NEW_BUILT_IN_EXERCISE_IDS);
   const activeExercises = saved.filter(
-    (exercise) => !REMOVED_BUILT_IN_EXERCISE_IDS.has(exercise.id)
+    (exercise) => !REMOVED_BUILT_IN_EXERCISE_IDS.has(exercise.id) && !deletedIds.has(exercise.id)
   );
   const oldBuiltInCount = activeExercises.filter(
     (exercise) => defaultsById.has(exercise.id) && !newBuiltInIds.has(exercise.id)
@@ -154,7 +155,7 @@ export function mergeExerciseLibrary(saved: Exercise[] | undefined): Exercise[] 
 
   const existingIds = new Set(merged.map((exercise) => exercise.id));
   const addedExercises = NEW_BUILT_IN_EXERCISE_IDS
-    .filter((id) => !existingIds.has(id))
+    .filter((id) => !existingIds.has(id) && !deletedIds.has(id))
     .map((id) => defaultsById.get(id))
     .filter((exercise): exercise is Exercise => Boolean(exercise));
 
@@ -212,6 +213,7 @@ export function mergeWithInitialState(saved: Partial<AppState>): AppState {
   const dailyWorkout = cleanedSaved.dailyWorkout === undefined
     ? defaultState.dailyWorkout
     : cleanedSaved.dailyWorkout;
+  const deletedExerciseIds = [...new Set(savedArray(cleanedSaved.deletedExerciseIds, []))];
 
   const restoredState: AppState = {
     ...defaultState,
@@ -219,7 +221,8 @@ export function mergeWithInitialState(saved: Partial<AppState>): AppState {
     dailyWorkout: dailyWorkout ? refreshWorkoutExerciseNames(dailyWorkout) : null,
     workoutHistory: savedArray(cleanedSaved.workoutHistory, defaultState.workoutHistory)
       .map(refreshWorkoutExerciseNames),
-    exerciseLibrary: mergeExerciseLibrary(cleanedSaved.exerciseLibrary),
+    exerciseLibrary: mergeExerciseLibrary(cleanedSaved.exerciseLibrary, deletedExerciseIds),
+    deletedExerciseIds,
     workoutTemplates: savedArray(cleanedSaved.workoutTemplates, defaultState.workoutTemplates),
     bodyMetrics: savedArray(cleanedSaved.bodyMetrics, defaultState.bodyMetrics),
     metricTargets: savedArray(cleanedSaved.metricTargets, defaultState.metricTargets),
@@ -932,10 +935,16 @@ export function appReducer(state: AppState, action: Action): AppState {
             sets: [],
           };
         });
-      return exercises.length > 0 ? { ...state, exerciseLibrary: exercises } : state;
+      if (exercises.length === 0 && action.payload.exercises.length > 0) return state;
+      const retainedIds = new Set(exercises.map((exercise) => exercise.id));
+      const deletedExerciseIds = [...new Set([
+        ...(state.deletedExerciseIds ?? []),
+        ...state.exerciseLibrary.filter((exercise) => !retainedIds.has(exercise.id)).map((exercise) => exercise.id),
+      ])].filter((id) => !retainedIds.has(id));
+      return { ...state, exerciseLibrary: exercises, deletedExerciseIds };
     }
     case 'RESET_EXERCISE_LIBRARY':
-      return { ...state, exerciseLibrary: DEFAULT_EXERCISES };
+      return { ...state, exerciseLibrary: DEFAULT_EXERCISES, deletedExerciseIds: [] };
     case 'SET_EXERCISE_HIDDEN':
       return {
         ...state,

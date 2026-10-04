@@ -9,6 +9,7 @@ export function createInitialState(): AppState {
       ...exercise,
       sets: [],
     })),
+    deletedExerciseIds: [],
     workoutTemplates: [],
     bodyMetrics: [],
     metricTargets: [],

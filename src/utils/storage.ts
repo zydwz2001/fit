@@ -184,6 +184,10 @@ function isValidBackup(value: unknown): value is Partial<AppState> {
   if (!hasValidItems(value, 'workoutHistory', isValidWorkout)) return false;
   if (!hasValidItems(value, 'workoutTemplates', isValidWorkoutTemplate)) return false;
   if (!hasValidItems(value, 'exerciseLibrary', isValidExercise)) return false;
+  if (value.deletedExerciseIds !== undefined && (
+    !Array.isArray(value.deletedExerciseIds) ||
+    !value.deletedExerciseIds.every((id) => typeof id === 'string' && id.trim().length > 0)
+  )) return false;
   if (!hasValidItems(value, 'bodyMetrics', isValidBodyMetric)) return false;
   if (!hasValidItems(value, 'metricTargets', isValidMetricTarget)) return false;
   if (!hasValidItems(value, 'bodyPhotos', isValidBodyPhoto)) return false;

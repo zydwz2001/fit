@@ -627,7 +627,7 @@ function LibraryTab({ onGoToToday, hasTodayWorkout }: LibraryTabProps) {
         <div className="mt-3 flex gap-2 text-xs font-bold">
           <button onClick={() => setShowHidden(false)} aria-pressed={!showHidden}
             className={`flex-1 rounded-xl py-2 ${!showHidden ? 'bg-vibe-green text-white' : 'bg-slate-100 text-slate-500'}`}>
-            常用动作 {state.exerciseLibrary.length - hiddenCount}
+            目前保留的 {state.exerciseLibrary.length - hiddenCount}
           </button>
           <button onClick={() => setShowHidden(true)} aria-pressed={showHidden}
             className={`flex-1 rounded-xl py-2 ${showHidden ? 'bg-vibe-green text-white' : 'bg-slate-100 text-slate-500'}`}>
@@ -658,7 +658,7 @@ function LibraryTab({ onGoToToday, hasTodayWorkout }: LibraryTabProps) {
           className="flex-1 p-4 overflow-y-auto pb-4 min-w-0"
         >
           {filteredExercises.length === 0 && <p className="py-8 text-center text-sm text-slate-400">
-            {searchQuery ? '没有匹配的动作' : showHidden ? '暂无隐藏动作' : '暂无常用动作，可到“已隐藏”恢复'}
+            {searchQuery ? '没有匹配的动作' : showHidden ? '暂无隐藏动作' : '暂无保留动作，可到“已隐藏”恢复'}
           </p>}
           {muscleGroups.map((group) => (
             <div
