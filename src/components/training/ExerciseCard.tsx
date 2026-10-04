@@ -99,7 +99,7 @@ export function ExerciseCard({
 
   return (
     <div
-      className={`bg-white rounded-2xl shadow-sm border border-slate-100 mb-3 overflow-hidden ${showDragHandle && onDragStart ? 'cursor-grab active:cursor-grabbing' : ''}`}
+      className={`training-exercise-card bg-white rounded-2xl shadow-sm border border-slate-100 mb-3 overflow-hidden ${showDragHandle && onDragStart ? 'cursor-grab active:cursor-grabbing' : ''}`}
       draggable={!!(showDragHandle && onDragStart)}
       onDragStart={showDragHandle && onDragStart ? onDragStart : undefined}
       onDragEnd={showDragHandle && onDragEnd ? onDragEnd : undefined}
@@ -198,10 +198,9 @@ export function ExerciseCard({
             <div className="flex h-11 items-center gap-2 rounded-vibe bg-slate-50 px-3">
               <input
                 key={`${exercise.id}-duration-${exercise.durationMinutes ?? ''}`}
-                type="number"
-                min="0"
-                step="1"
+                type="text"
                 defaultValue={exercise.durationMinutes ?? ''}
+                onFocus={(event) => event.currentTarget.select()}
                 onBlur={(event) => {
                   const parsed = Number.parseFloat(event.currentTarget.value);
                   onUpdateCardio({
@@ -261,7 +260,7 @@ export function ExerciseCard({
           {!isCardio && (
             <button
               onClick={onAddSet}
-              className="mt-2 w-full h-10 border border-slate-200 rounded-xl flex items-center justify-center gap-2 text-slate-600 hover:border-vibe-green hover:text-vibe-green transition-colors"
+              className="training-add-set mt-2 w-full h-10 border border-slate-200 rounded-xl flex items-center justify-center gap-2 text-slate-600 hover:border-vibe-green hover:text-vibe-green transition-colors"
             >
               <i className="fas fa-plus text-sm"></i>
               <span className="text-xs font-bold">添加组</span>

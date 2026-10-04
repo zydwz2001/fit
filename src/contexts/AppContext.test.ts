@@ -208,6 +208,120 @@ describe('body photos reducer', () => {
 });
 
 describe('workout reducer', () => {
+  it('prefills a newly added exercise from its latest completed sets, skipping unfinished attempts', () => {
+    const exercise = strengthExercise({ id: 'barbell_row', sets: [] });
+    const makeWorkout = (id: string, date: string, sets: Exercise['sets']): DailyWorkout => ({
+      id,
+      date,
+      name: '背部训练',
+      exercises: [strengthExercise({ id: exercise.id, sets })],
+      totalVolume: 0,
+      muscleGroups: ['背'],
+    });
+    const older = makeWorkout('older', '2026-07-01', [
+      { id: 'older-set', weight: 40, reps: 10, completed: true },
+    ]);
+    const latestCompleted = makeWorkout('latest-completed', '2026-08-01', [
+      { id: 'completed-1', weight: 55, reps: 10, completed: true, weightUnit: 'kg', sourcePage: 'import-page' },
+      { id: 'unfinished', weight: 90, reps: 3, completed: false },
+      { id: 'completed-2', weight: 60, reps: 8, completed: true, weightUnit: 'kg' },
+    ]);
+    const newerUnfinished = makeWorkout('newer-unfinished', '2026-09-01', [
+      { id: 'newer-set', weight: 100, reps: 1, completed: false },
+    ]);
+    const state = {
+      ...createInitialState(),
+      dailyWorkout: null,
+      workoutHistory: [latestCompleted, newerUnfinished, older],
+    };
+
+    const next = appReducer(state, { type: 'ADD_EXERCISE_TO_WORKOUT', payload: exercise });
+    const sets = next.dailyWorkout?.exercises[0].sets ?? [];
+
+    expect(sets.map(({ weight, reps, completed, weightUnit }) => ({ weight, reps, completed, weightUnit }))).toEqual([
+      { weight: 55, reps: 10, completed: false, weightUnit: 'kg' },
+      { weight: 60, reps: 8, completed: false, weightUnit: 'kg' },
+    ]);
+    expect(sets.map((set) => set.id)).not.toEqual(['completed-1', 'completed-2']);
+    expect(sets[0]).not.toHaveProperty('sourcePage');
+    expect(next.workoutHistory).toEqual(state.workoutHistory);
+  });
+
+  it('uses the last completed duplicate exercise from the last same-day workout', () => {
+    const exercise = strengthExercise({ id: 'barbell_row', sets: [] });
+    const sameDay = '2026-08-01';
+    const firstWorkout: DailyWorkout = {
+      id: 'first-workout', date: sameDay, name: '早训',
+      exercises: [strengthExercise({
+        id: exercise.id,
+        sets: [{ id: 'morning-set', weight: 40, reps: 12, completed: true }],
+      })],
+      totalVolume: 0, muscleGroups: ['背'],
+    };
+    const secondWorkout: DailyWorkout = {
+      id: 'second-workout', date: sameDay, name: '晚训',
+      exercises: [
+        strengthExercise({
+          id: exercise.id,
+          sets: [{ id: 'unfinished-first-duplicate', weight: 50, reps: 10, completed: false }],
+        }),
+        strengthExercise({
+          id: exercise.id,
+          sets: [{ id: 'completed-last-duplicate', weight: 60, reps: 8, completed: true }],
+        }),
+      ],
+      totalVolume: 0, muscleGroups: ['背'],
+    };
+    const state = {
+      ...createInitialState(), dailyWorkout: null,
+      workoutHistory: [firstWorkout, secondWorkout],
+    };
+
+    const next = appReducer(state, { type: 'ADD_EXERCISE_TO_WORKOUT', payload: exercise });
+    expect(next.dailyWorkout?.exercises[0].sets).toMatchObject([
+      { weight: 60, reps: 8, completed: false },
+    ]);
+  });
+
+  it('restores left and right loads inside an existing workout and starts blank without completed history', () => {
+    const exercise = strengthExercise({ id: 'dumbbell_row', useLeftRight: true, sets: [] });
+    const priorWorkout: DailyWorkout = {
+      id: 'previous-dumbbell-row',
+      date: '2026-08-01',
+      name: '背部训练',
+      exercises: [strengthExercise({
+        id: exercise.id,
+        useLeftRight: true,
+        sets: [{ id: 'bilateral-set', leftWeight: 16, rightWeight: 18, reps: 9, completed: true }],
+      })],
+      totalVolume: 0,
+      muscleGroups: ['背'],
+    };
+    const state = {
+      ...createInitialState(),
+      dailyWorkout: {
+        id: 'today', date: getTodayString(), name: '背部训练',
+        exercises: [strengthExercise({ id: 'other-exercise' })],
+        totalVolume: 0, muscleGroups: ['背'],
+      },
+      workoutHistory: [priorWorkout],
+    };
+
+    const next = appReducer(state, { type: 'ADD_EXERCISE_TO_WORKOUT', payload: exercise });
+    expect(next.dailyWorkout?.exercises[1]).toMatchObject({
+      id: exercise.id,
+      useLeftRight: true,
+      sets: [{ leftWeight: 16, rightWeight: 18, reps: 9, completed: false }],
+    });
+
+    const blank = appReducer({ ...state, workoutHistory: [] }, {
+      type: 'ADD_EXERCISE_TO_WORKOUT', payload: exercise,
+    });
+    expect(blank.dailyWorkout?.exercises[1].sets).toMatchObject([
+      { weight: 0, reps: 0, completed: false },
+    ]);
+  });
+
   it('persists a workout and derives volume, muscle groups, and cardio name', () => {
     const cardio: Exercise = {
       id: 'test-cardio',

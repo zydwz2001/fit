@@ -72,7 +72,7 @@ export function SetRow({
   };
 
   return (
-    <div className="flex items-center gap-1 min-w-0">
+    <div className="flex items-center gap-1 min-w-0" data-completed={set.completed}>
       <span className="w-6 text-[10px] font-bold text-slate-400 text-center flex-shrink-0">
         {set.warmup ? '热' : index + 1}
       </span>
@@ -88,8 +88,10 @@ export function SetRow({
                     value={onKeyboardShow ? (set.leftWeight ?? '') : undefined}
                     defaultValue={onKeyboardShow ? undefined : (set.leftWeight ?? '')}
                     onClick={onKeyboardShow ? (e) => handleFocus('leftWeight', e) : undefined}
+                    onFocus={!onKeyboardShow ? (e) => e.currentTarget.select() : undefined}
                     onBlur={!onKeyboardShow ? (e) => handleNativeCommit('leftWeight', e.currentTarget.value) : undefined}
                     readOnly={Boolean(onKeyboardShow)}
+                    data-workout-numeric-input=""
                     inputMode="decimal"
                     className="text-xs font-bold text-center bg-transparent border-none outline-none w-full text-slate-800 cursor-pointer"
                     placeholder="0"
@@ -105,8 +107,10 @@ export function SetRow({
                     value={onKeyboardShow ? (set.rightWeight ?? '') : undefined}
                     defaultValue={onKeyboardShow ? undefined : (set.rightWeight ?? '')}
                     onClick={onKeyboardShow ? (e) => handleFocus('rightWeight', e) : undefined}
+                    onFocus={!onKeyboardShow ? (e) => e.currentTarget.select() : undefined}
                     onBlur={!onKeyboardShow ? (e) => handleNativeCommit('rightWeight', e.currentTarget.value) : undefined}
                     readOnly={Boolean(onKeyboardShow)}
+                    data-workout-numeric-input=""
                     inputMode="decimal"
                     className="text-xs font-bold text-center bg-transparent border-none outline-none w-full text-slate-800 cursor-pointer"
                     placeholder="0"
@@ -124,8 +128,10 @@ export function SetRow({
                   value={onKeyboardShow ? (set.weight ?? '') : undefined}
                   defaultValue={onKeyboardShow ? undefined : (set.weight ?? '')}
                   onClick={onKeyboardShow ? (e) => handleFocus('weight', e) : undefined}
+                  onFocus={!onKeyboardShow ? (e) => e.currentTarget.select() : undefined}
                   onBlur={!onKeyboardShow ? (e) => handleNativeCommit('weight', e.currentTarget.value) : undefined}
                   readOnly={Boolean(onKeyboardShow)}
+                  data-workout-numeric-input=""
                   inputMode="decimal"
                   aria-label={weightAriaLabel}
                   className="text-xs font-bold text-center bg-transparent border-none outline-none w-full text-slate-800 cursor-pointer"
@@ -144,8 +150,10 @@ export function SetRow({
                 value={onKeyboardShow ? (set.reps ?? '') : undefined}
                 defaultValue={onKeyboardShow ? undefined : (set.reps ?? '')}
                 onClick={onKeyboardShow ? (e) => handleFocus('reps', e) : undefined}
+                onFocus={!onKeyboardShow ? (e) => e.currentTarget.select() : undefined}
                 onBlur={!onKeyboardShow ? (e) => handleNativeCommit('reps', e.currentTarget.value) : undefined}
                 readOnly={Boolean(onKeyboardShow)}
+                data-workout-numeric-input=""
                 aria-label="次数"
                 inputMode="numeric"
                 className="text-xs font-bold text-center bg-transparent border-none outline-none w-full text-slate-800 cursor-pointer"

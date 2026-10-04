@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { SubTabBar, Card, Button } from '@/components';
 import { ExerciseCard, ExerciseImage } from '@/components/training';
@@ -118,6 +118,23 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
     inputType: 'weight' | 'leftWeight' | 'rightWeight' | 'reps';
     value: string;
   } | null>(null);
+
+  useEffect(() => {
+    if (!keyboardState) return;
+
+    const dismissOnOutsideTap = (event: PointerEvent) => {
+      if (
+        event.target instanceof Element &&
+        event.target.closest('[data-workout-numeric-input], [data-workout-keyboard]')
+      ) return;
+
+      setKeyboardState(null);
+    };
+
+    document.addEventListener('pointerdown', dismissOnOutsideTap);
+    return () => document.removeEventListener('pointerdown', dismissOnOutsideTap);
+  }, [keyboardState]);
+
   useAppBack(() => {
     if (keyboardState) {
       setKeyboardState(null);
@@ -378,8 +395,9 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
       </div>
 
       {keyboardState && (
-        <div className="fixed bottom-0 left-0 right-0 z-50">
+        <div className="fixed bottom-0 left-0 right-0 z-50" data-workout-keyboard="">
             <CustomKeyboard
+              key={`${keyboardState.exerciseId}:${keyboardState.setId}:${keyboardState.inputType}`}
               value={keyboardState.value}
               onChange={handleKeyboardUpdate}
               onFillUp={handleFillUp}

@@ -264,6 +264,44 @@ function initializeExerciseForWorkout(exercise: Exercise, state: AppState): Exer
   };
 }
 
+function createExerciseFromLastCompletedWorkout(exercise: Exercise, state: AppState): Exercise {
+  if (exercise.category === 'cardio') {
+    return initializeExerciseForWorkout(keepCardioDurationOnly({ ...exercise, sets: [] }), state);
+  }
+
+  // A newer workout or a later occurrence within it can be unfinished. Keep
+  // same-day workout order and use the latest completed occurrence of this ID.
+  const previousExercise = state.workoutHistory
+    .map((workout, index) => ({ workout, index }))
+    .sort((a, b) => b.workout.date.localeCompare(a.workout.date) || b.index - a.index)
+    .map(({ workout }) => [...workout.exercises].reverse().find((item) =>
+      item.id === exercise.id && item.sets.some((set) => set.completed && set.reps !== null)
+    ))
+    .find((item) => item !== undefined);
+  const completedSets = previousExercise?.sets.filter((set) => set.completed && set.reps !== null) ?? [];
+
+  const sets: ExerciseSet[] = completedSets.length > 0
+    ? completedSets.map((set) => ({
+        id: generateId(),
+        weight: set.weight,
+        leftWeight: set.leftWeight,
+        rightWeight: set.rightWeight,
+        weightUnit: set.weightUnit,
+        reps: set.reps,
+        warmup: set.warmup,
+        restSeconds: set.restSeconds,
+        completed: false,
+      }))
+    : [{ id: generateId(), weight: 0, reps: 0, completed: false }];
+  const useLeftRight = completedSets.some((set) => set.leftWeight !== undefined || set.rightWeight !== undefined)
+    ? true
+    : completedSets.some((set) => set.weight !== undefined)
+      ? false
+      : exercise.useLeftRight;
+
+  return initializeExerciseForWorkout({ ...exercise, useLeftRight, sets }, state);
+}
+
 function syncCurrentWorkoutBodyWeight(state: AppState): AppState {
   if (!state.dailyWorkout) return state;
 
@@ -522,12 +560,7 @@ export function appReducer(state: AppState, action: Action): AppState {
     }
     case 'ADD_EXERCISE_TO_WORKOUT': {
       if (!state.dailyWorkout) {
-        const newExercise = initializeExerciseForWorkout(keepCardioDurationOnly({
-          ...action.payload,
-          sets: action.payload.category === 'cardio' ? [] : [
-            { id: generateId(), weight: 0, reps: 0, completed: false },
-          ],
-        }), state);
+        const newExercise = createExerciseFromLastCompletedWorkout(action.payload, state);
         const workout = normalizeWorkout({
           id: generateId(),
           date: getTodayString(),
@@ -557,12 +590,7 @@ export function appReducer(state: AppState, action: Action): AppState {
         };
       }
 
-      const newExercise = initializeExerciseForWorkout(keepCardioDurationOnly({
-        ...action.payload,
-        sets: action.payload.category === 'cardio' ? [] : [
-          { id: generateId(), weight: 0, reps: 0, completed: false },
-        ],
-      }), state);
+      const newExercise = createExerciseFromLastCompletedWorkout(action.payload, state);
       const newExercises = [...state.dailyWorkout.exercises, newExercise];
       return {
         ...state,

@@ -234,3 +234,76 @@ body {
 .fab:active {
   transform: scale(0.9);
 }
+
+/* Keep the training log compact while giving its controls clearer states. */
+.training-page .training-exercise-card {
+  border-color: #e8edf1;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.045) !important;
+}
+
+.training-page [data-completed] .bg-slate-50:has(> input) {
+  background-color: #f8fafb;
+  border: 1px solid #e3e9ed;
+  box-shadow: inset 0 1px 1px rgba(15, 23, 42, 0.025);
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.training-page [data-completed] .bg-slate-50:has(> input).ring-2 {
+  border-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.18);
+}
+
+.training-page [data-completed="true"] .bg-slate-50:has(> input) {
+  background-color: #e3f7eb;
+  border-color: #86d5a8;
+}
+
+.training-page [data-completed="true"] .bg-slate-50:has(> input) input,
+.training-page [data-completed="true"] .bg-slate-50:has(> input) + span {
+  color: #047857;
+}
+
+.training-page [data-completed="true"] .bg-slate-50:has(> input) input::placeholder {
+  color: #4f9b72;
+}
+
+.training-page [data-completed="true"] > button:first-of-type {
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.22);
+}
+
+.training-page .training-add-set {
+  border-style: dashed;
+  background-color: #fbfefc;
+}
+
+.training-page .training-add-set:hover {
+  background-color: #f0fbf5;
+}
+
+.training-page .training-add-set:active {
+  transform: scale(0.99);
+}
+
+.training-page .training-exercise-card button[title]:hover {
+  background-color: #f3f7f5;
+  border-radius: 9px;
+}
+
+.training-page button:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+
+.training-keyboard {
+  background-color: #f4f7f8;
+  border-color: #e0e7e8;
+}
+
+.training-keyboard button:not(:disabled) {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.075) !important;
+}
+
+.training-keyboard button:active:not(:disabled) {
+  filter: brightness(0.97);
+}

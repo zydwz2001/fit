@@ -11,6 +11,29 @@ function AppContent() {
   const isNativeApp = Capacitor.isNativePlatform();
 
   useEffect(() => {
+    const dismissNativeKeyboardOnOutsideTap = (event: PointerEvent) => {
+      const focused = document.activeElement;
+      if (
+        !(focused instanceof HTMLInputElement) &&
+        !(focused instanceof HTMLTextAreaElement) &&
+        !(focused instanceof HTMLElement && focused.isContentEditable)
+      ) return;
+
+      const target = event.target;
+      if (!(target instanceof Node) || focused.contains(target)) return;
+      if (
+        target instanceof Element &&
+        target.closest('input, textarea, select, [contenteditable]')
+      ) return;
+
+      focused.blur();
+    };
+
+    document.addEventListener('pointerdown', dismissNativeKeyboardOnOutsideTap);
+    return () => document.removeEventListener('pointerdown', dismissNativeKeyboardOnOutsideTap);
+  }, []);
+
+  useEffect(() => {
     if (!isNativeApp) return;
 
     let disposed = false;

@@ -17,11 +17,11 @@ export function Button({
   onClick,
   disabled = false,
 }: ButtonProps) {
-  const baseStyles = 'h-10 rounded-vibe font-bold text-sm transition-all flex items-center justify-center gap-2';
+  const baseStyles = 'h-10 rounded-vibe font-bold text-sm transition-all flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-green/40 focus-visible:ring-offset-2 active:scale-[0.98] disabled:active:scale-100';
 
   const variantStyles = {
-    primary: disabled ? 'bg-slate-300 text-slate-50 cursor-not-allowed' : 'bg-vibe-green text-white hover:opacity-90',
-    secondary: disabled ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-slate-100 text-slate-800 hover:bg-slate-200',
+    primary: disabled ? 'bg-slate-300 text-slate-50 cursor-not-allowed' : 'bg-vibe-green text-white shadow-[0_3px_9px_rgba(16,185,129,0.18)] hover:bg-emerald-600',
+    secondary: disabled ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300',
     ghost: disabled ? 'bg-transparent text-slate-300 cursor-not-allowed' : 'bg-transparent text-slate-600 hover:bg-slate-100',
   };
 

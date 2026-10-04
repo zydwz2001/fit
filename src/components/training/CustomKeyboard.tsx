@@ -30,22 +30,32 @@ export function CustomKeyboard({
 }: CustomKeyboardProps) {
   const { state, dispatch } = useApp();
   const longPressTimer = useRef<number | null>(null);
+  const replaceOnNextDigit = useRef(true);
 
   const handleNumberPress = (num: string) => {
-    if (value.length >= 6) return;
-    onChange(value + num);
+    const nextValue = replaceOnNextDigit.current ? num : value + num;
+    if (nextValue.length > 6) return;
+    replaceOnNextDigit.current = false;
+    onChange(nextValue);
   };
 
   const handleDecimalPress = () => {
+    if (replaceOnNextDigit.current) {
+      replaceOnNextDigit.current = false;
+      onChange('0.');
+      return;
+    }
     if (value.includes('.')) return;
     onChange(value === '' ? '0.' : value + '.');
   };
 
   const handleBackspace = () => {
+    replaceOnNextDigit.current = false;
     onChange(value.slice(0, -1));
   };
 
   const handleClear = () => {
+    replaceOnNextDigit.current = false;
     onChange('');
   };
 
@@ -88,7 +98,7 @@ export function CustomKeyboard({
   };
 
   return (
-    <div className="bg-slate-100 p-3 rounded-t-3xl border-t border-slate-200">
+    <div className="training-keyboard bg-slate-100 p-3 rounded-t-3xl border-t border-slate-200">
       {!simple && (
         <div className="grid grid-cols-4 gap-2 mb-2">
         <button
