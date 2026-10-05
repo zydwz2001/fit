@@ -1,5 +1,6 @@
 export { StatusBar } from './StatusBar';
 export { BottomNav } from './BottomNav';
+export { MainNav } from './MainNav';
 export { Button } from './Button';
 export { Input } from './Input';
 export { Card } from './Card';

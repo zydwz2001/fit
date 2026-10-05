@@ -364,7 +364,6 @@ function BodyContent() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-base font-bold text-slate-900">身体照片</h3>
-                <p className="mt-1 text-sm text-slate-500">上传照片，记录身体变化</p>
               </div>
               <span className="text-sm font-bold text-vibe-green flex items-center gap-2">
                 进入

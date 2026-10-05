@@ -1,27 +1,31 @@
+export type TrainingTab = 'today' | 'history' | 'library' | 'trends';
+
 interface BottomNavProps {
-  activeTab: 'training' | 'body' | 'knowledge';
-  onTabChange: (tab: 'training' | 'body' | 'knowledge') => void;
+  activeTab: TrainingTab | null;
+  onTabChange: (tab: TrainingTab) => void;
 }
 
 export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   const tabs = [
-    { id: 'training', icon: 'fa-bolt', label: '训练' },
-    { id: 'body', icon: 'fa-chart-pie', label: '身体' },
-    { id: 'knowledge', icon: 'fa-brain', label: '知识' },
+    { id: 'today', label: '今日健身' },
+    { id: 'history', label: '月视图' },
+    { id: 'library', label: '动作库' },
+    { id: 'trends', label: '动作趋势' },
   ] as const;
 
   return (
-    <div className="bottom-nav">
+    <nav className="bottom-nav" aria-label="训练导航">
       {tabs.map((tab) => (
-        <div
+        <button
           key={tab.id}
+          type="button"
           className={`nav-item ${activeTab === tab.id ? 'active' : ''}`}
+          aria-current={activeTab === tab.id ? 'page' : undefined}
           onClick={() => onTabChange(tab.id)}
         >
-          <i className={`fas ${tab.icon}`}></i>
-          <span className="text-xs font-bold">{tab.label}</span>
-        </div>
+          {tab.label}
+        </button>
       ))}
-    </div>
+    </nav>
   );
 }

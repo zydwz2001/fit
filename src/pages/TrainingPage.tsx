@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '@/contexts/AppContext';
-import { SubTabBar, Card, Button } from '@/components';
+import { Card, Button } from '@/components';
+import type { TrainingTab as TrainingTabId } from '@/components/BottomNav';
 import { ExerciseCard, ExerciseImage } from '@/components/training';
 import { CustomKeyboard } from '@/components/training';
 import {
@@ -17,16 +18,11 @@ import { getLibraryExercises, formatExerciseSet, formatExerciseSummary } from '@
 import { getWorkoutsForDate } from '@/utils/workoutImport';
 import './history.css';
 
-const SUB_TABS = [
-  { id: 'today', label: '今日健身' },
-  { id: 'history', label: '月视图回顾' },
-  { id: 'library', label: '动作库' },
-  { id: 'trends', label: '动作趋势' },
-];
-
-export function TrainingPage() {
+export function TrainingPage({ subTab, onSubTabChange: setSubTab }: {
+  subTab: TrainingTabId;
+  onSubTabChange: (tab: TrainingTabId) => void;
+}) {
   const { state } = useApp();
-  const [subTab, setSubTab] = useState('today');
   const [showHistoryModal, setShowHistoryModal] = useState<string | null>(null);
   const [showDayDetailModal, setShowDayDetailModal] = useState<{ date: string; hasWorkout: boolean } | null>(null);
 
@@ -48,12 +44,6 @@ export function TrainingPage() {
 
   return (
     <div className="training-page flex flex-col min-h-0">
-      <SubTabBar
-        tabs={SUB_TABS}
-        activeTab={subTab}
-        onTabChange={setSubTab}
-        className="flex-shrink-0"
-      />
       {subTab === 'today' && (
         <div className="flex-1 min-h-0 overflow-y-auto p-4 pb-6">
           <TodayTab
@@ -318,7 +308,6 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
           </div>
           <div className="text-center">
             <h3 className="text-xl font-black mb-2">开始今日训练</h3>
-            <p className="text-slate-400 text-sm mb-6">选择动作或套用训练模板</p>
           </div>
           <div className="flex gap-3">
             <Button onClick={onGoToLibrary}>
@@ -343,7 +332,6 @@ function TodayTab({ onGoToLibrary, onShowHistory }: TodayTabProps) {
           <h2 className="text-2xl font-bold truncate">{displayDate}</h2>
         </div>
         <div className="text-right flex-shrink-0 ml-4">
-          <p className="text-xs font-semibold text-slate-500">训练容量</p>
           <p className="text-xl font-bold text-vibe-green">
             {(state.dailyWorkout?.totalVolume || 0).toLocaleString()} kg
           </p>
@@ -462,7 +450,6 @@ function WorkoutTemplateModal({ onClose }: { onClose: () => void }) {
         <div className="flex justify-between items-center mb-5">
           <div>
             <h3 className="text-lg font-black">训练模板</h3>
-            <p className="text-[10px] font-bold text-slate-400 mt-1">每个动作沿用各自最近一次的重量、组数和次数</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-slate-400">
             <i className="fas fa-times"></i>
@@ -635,7 +622,6 @@ function LibraryTab({ onGoToToday, hasTodayWorkout }: LibraryTabProps) {
             已隐藏 {hiddenCount}
           </button>
         </div>
-        {(showHidden || isManaging) && <p className="mt-2 text-xs text-slate-400">隐藏仅影响动作选择，历史训练仍保留。点“恢复”可重新使用。</p>}
       </div>
       <div className="flex flex-1 min-h-0 overflow-hidden mt-2">
         <div className="w-24 bg-slate-50 flex flex-col items-center py-4 pl-4 pr-3 gap-6 overflow-y-auto flex-shrink-0">
@@ -659,7 +645,7 @@ function LibraryTab({ onGoToToday, hasTodayWorkout }: LibraryTabProps) {
           className="flex-1 p-4 overflow-y-auto pb-4 min-w-0"
         >
           {filteredExercises.length === 0 && <p className="py-8 text-center text-sm text-slate-400">
-            {searchQuery ? '没有匹配的动作' : showHidden ? '暂无隐藏动作' : '暂无保留动作，可到“已隐藏”恢复'}
+            {searchQuery ? '没有匹配的动作' : showHidden ? '暂无隐藏动作' : '暂无保留动作'}
           </p>}
           {muscleGroups.map((group) => (
             <div
@@ -727,10 +713,6 @@ function HistoryTab({ onShowDayDetail }: HistoryTabProps) {
     ...(state.dailyWorkout ? [state.dailyWorkout] : []),
   ], [state.workoutHistory, state.dailyWorkout]);
 
-  const monthPrefix = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`;
-  const monthWorkouts = workouts.filter((workout) => workout.date.startsWith(monthPrefix));
-  const trainingDays = new Set(monthWorkouts.map((workout) => workout.date)).size;
-  const monthVolume = monthWorkouts.reduce((sum, workout) => sum + workout.totalVolume, 0);
   const today = getTodayString();
 
   const calendarDays = useMemo(() => {
@@ -798,11 +780,6 @@ function HistoryTab({ onShowDayDetail }: HistoryTabProps) {
           </button>
         </div>
 
-        <div className="history-month-summary">
-          <div><span>训练天数</span><strong>{trainingDays}<small>天</small></strong></div>
-          <div><span>累计容量</span><strong>{Math.round(monthVolume).toLocaleString()}<small>kg</small></strong></div>
-        </div>
-
         <div
           className="history-calendar-body"
           onTouchStart={(event) => {
@@ -844,12 +821,7 @@ function HistoryTab({ onShowDayDetail }: HistoryTabProps) {
           </div>
         </div>
 
-        <div className="history-calendar-footer">
-          <span><span className="history-legend-dot" />训练日</span>
-          <span>容量单位 kg</span>
-        </div>
       </section>
-      {trainingDays === 0 && <p className="history-month-empty">本月还没有训练记录，点选日期即可添加。</p>}
 
       {showMonthPicker && (
         <div className="history-overlay fixed inset-0" onClick={() => setShowMonthPicker(false)}>
@@ -950,7 +922,6 @@ function ExerciseTrendTab() {
           <i className="fas fa-chart-line text-slate-300 text-xl"></i>
         </div>
         <h3 className="font-black mb-2">暂无动作趋势</h3>
-        <p className="text-sm text-slate-400">完成力量训练组后，这里会显示每次动作记录。</p>
       </div>
     );
   }
@@ -958,8 +929,8 @@ function ExerciseTrendTab() {
   return (
     <div>
       <div className="mb-5">
-        <label className="text-[10px] font-black text-slate-400 block mb-2">选择动作</label>
         <select
+          aria-label="选择动作"
           value={resolvedExerciseId}
           onChange={(event) => setSelectedExerciseId(event.target.value)}
           className="w-full h-10 bg-slate-100 rounded-vibe px-3 text-sm font-black outline-none"
@@ -981,7 +952,6 @@ function ExerciseTrendTab() {
             <div className="flex justify-between items-center mb-3">
               <p className="text-sm font-black">{record.date}</p>
               <div className="text-right">
-                <p className="text-[9px] font-bold text-slate-400">{record.recordingMode === 'reps-only' ? '总次数' : '总容量'}</p>
                 <p className="text-sm font-black text-vibe-green">
                   {formatExerciseSummary(record, state.weightUnit)}
                 </p>
@@ -1323,22 +1293,19 @@ function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailM
     );
   };
 
-  const weekday = new Date(`${date}T12:00:00`).toLocaleDateString('zh-CN', { weekday: 'long' });
-
   if (!workout && !addingWorkout) {
     return (
       <div className="history-overlay fixed inset-0" onClick={onClose}>
         <section className="history-detail history-detail-empty" role="dialog" aria-modal="true" aria-labelledby="history-day-title" onClick={(event) => event.stopPropagation()}>
           <header className="history-detail-header">
             <div className="history-detail-topline">
-              <div><h3 id="history-day-title">{date}</h3><p className="history-detail-weekday">{weekday}</p></div>
+              <h3 id="history-day-title">{date}</h3>
               <button type="button" onClick={onClose} className="history-icon-button" aria-label="关闭训练详情"><i aria-hidden="true" className="fas fa-times"></i></button>
             </div>
           </header>
           <div className="history-empty-state">
             <span className="history-empty-icon"><i aria-hidden="true" className="fas fa-dumbbell"></i></span>
             <h4>这一天还没有训练</h4>
-            <p>也可以补记已经完成的训练。</p>
             <Button onClick={handleAddWorkout}><i aria-hidden="true" className="fas fa-plus"></i>添加训练</Button>
           </div>
         </section>
@@ -1350,9 +1317,6 @@ function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailM
 
   const dayWorkouts = getWorkoutsForDate(workouts, date);
   const isSavedWorkout = dayWorkouts.some((item) => item.id === workout.id);
-  const completedSets = workout.exercises.reduce((count, exercise) =>
-    count + exercise.sets.filter((set) => set.completed).length, 0
-  );
   const detailVolume = isEditing ? calculateTotalVolume() : workout.totalVolume;
   const sessionLabel = (item: DailyWorkout, index: number) => {
     const groups = [...new Set(item.exercises.map((exercise) =>
@@ -1373,7 +1337,6 @@ function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailM
             <ExerciseImage exercise={exercise} className="history-exercise-image" />
             <div className="history-exercise-title">
               <h4>{exercise.name}</h4>
-              <p>{exercise.muscleGroup}{exercise.category !== 'cardio' && exercise.sets.length > 0 ? ` · ${exercise.sets.length}组` : ''}</p>
             </div>
           </div>
           {exercise.category !== 'cardio' && exercise.sets.length > 0 && (
@@ -1404,7 +1367,6 @@ function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailM
             <div className="history-detail-topline">
               <div>
                 <h3 id="history-day-title">{date}</h3>
-                <p className="history-detail-weekday">{weekday}{isEditing ? ' · 编辑训练' : ''}</p>
               </div>
               <div className="history-detail-actions">
                 {!isEditing && <button type="button" onClick={() => setIsEditing(true)} className="history-icon-button" aria-label="编辑训练" title="编辑训练">
@@ -1438,15 +1400,9 @@ function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailM
             </div>}
 
             <div className="history-detail-summary">
-              <div className="history-volume">
-                <span>训练容量</span>
+              <div className="history-volume" role="group" aria-label="训练容量">
                 <strong>{detailVolume.toLocaleString()}<small>kg</small></strong>
               </div>
-              <p className="history-detail-meta">
-                <span>{workout.exercises.length} 个动作</span>
-                {completedSets > 0 && <span>{completedSets} 组完成</span>}
-                {workout.durationMinutes !== undefined && workout.durationMinutes > 0 && <span>{workout.durationMinutes} 分钟</span>}
-              </p>
             </div>
           </header>
 

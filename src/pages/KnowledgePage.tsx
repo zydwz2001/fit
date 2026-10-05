@@ -19,6 +19,7 @@ export function KnowledgePage() {
   const [newFolderColor, setNewFolderColor] = useState('amber');
   const [newFolderIcon, setNewFolderIcon] = useState('fa-folder');
   const [showMenu, setShowMenu] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 16 });
   const [showImportModal, setShowImportModal] = useState(false);
   const [importText, setImportText] = useState('');
   const importFileRef = useRef<HTMLInputElement>(null);
@@ -224,7 +225,11 @@ export function KnowledgePage() {
         <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-white">
           <h2 className="text-2xl font-bold">知识库</h2>
           <button
-            onClick={() => setShowMenu(!showMenu)}
+            onClick={(event) => {
+              const bounds = event.currentTarget.getBoundingClientRect();
+              setMenuPosition({ top: bounds.bottom + 8, right: Math.max(12, window.innerWidth - bounds.right) });
+              setShowMenu(!showMenu);
+            }}
             className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-slate-600"
             aria-label="打开知识库菜单"
           >
@@ -399,7 +404,7 @@ export function KnowledgePage() {
 
       {showMenu && (
         <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)}>
-          <div className="absolute top-16 right-4 bg-white rounded-vibe-xl shadow-lg p-2 w-48" onClick={(e) => e.stopPropagation()}>
+          <div className="fixed bg-white rounded-vibe-xl shadow-lg p-2 w-48" style={menuPosition} onClick={(e) => e.stopPropagation()}>
             <button
               onClick={handleExport}
               className="w-full h-10 flex items-center gap-3 px-3 text-sm font-bold text-slate-700 hover:bg-slate-50 rounded-vibe transition-colors"

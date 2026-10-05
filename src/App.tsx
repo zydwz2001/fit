@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { StatusBar, BottomNav } from '@/components';
+import { StatusBar, MainNav, BottomNav } from '@/components';
+import type { TrainingTab } from '@/components/BottomNav';
 import { TrainingPage, BodyPage, KnowledgePage } from '@/pages';
 import { AppProvider } from '@/contexts/AppContext';
 import { Capacitor } from '@capacitor/core';
@@ -8,6 +9,7 @@ import { handleAppBack } from '@/utils/navigation';
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState<'training' | 'body' | 'knowledge'>('training');
+  const [trainingTab, setTrainingTab] = useState<TrainingTab>('today');
   const isNativeApp = Capacitor.isNativePlatform();
 
   useEffect(() => {
@@ -66,11 +68,16 @@ function AppContent() {
     <div className={`phone-container ${isNativeApp ? 'native-app' : ''}`}>
       {!isNativeApp && <StatusBar />}
 
-      {activeTab === 'training' && <TrainingPage />}
-      {activeTab === 'body' && <BodyPage />}
-      {activeTab === 'knowledge' && <KnowledgePage />}
-
-      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+      <MainNav activeTab={activeTab} onTabChange={setActiveTab} />
+      <main className="app-content">
+        {activeTab === 'training' && <TrainingPage subTab={trainingTab} onSubTabChange={setTrainingTab} />}
+        {activeTab === 'body' && <BodyPage />}
+        {activeTab === 'knowledge' && <KnowledgePage />}
+      </main>
+      <BottomNav activeTab={activeTab === 'training' ? trainingTab : null} onTabChange={(tab) => {
+        setTrainingTab(tab);
+        setActiveTab('training');
+      }} />
     </div>
   );
 }

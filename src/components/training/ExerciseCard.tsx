@@ -2,7 +2,6 @@ import type { Exercise, Set as ExerciseSet } from '@/types';
 import { SetRow } from './SetRow';
 import { ExerciseImage } from './ExerciseImage';
 import { useApp } from '@/contexts/AppContext';
-import { calculateVolume } from '@/utils/constants';
 
 interface ExerciseCardProps {
   exercise: Exercise;
@@ -67,8 +66,6 @@ export function ExerciseCard({
   const isRepsOnly = exercise.recordingMode === 'reps-only';
   const isAdditionalWeight = exercise.recordingMode === 'additional-weight';
 
-  const volume = !isCardio ? calculateVolume(exercise, state.weightUnit) : 0;
-
   if (onSelect) {
     return (
       <div
@@ -92,7 +89,6 @@ export function ExerciseCard({
         )}
         <ExerciseImage exercise={exercise} className="h-20 w-20 mb-2" />
         <p className="text-[11px] font-black text-slate-800 text-center">{exercise.name}</p>
-        <p className="text-[9px] text-slate-400 font-bold mt-1">{exercise.muscleGroup}</p>
       </div>
     );
   }
@@ -112,12 +108,6 @@ export function ExerciseCard({
           <ExerciseImage exercise={exercise} />
           <div>
             <h3 className="font-bold text-slate-800 text-base">{exercise.name}</h3>
-            <div className="flex items-center gap-2">
-              <p className="text-xs font-semibold text-slate-500">{exercise.muscleGroup}</p>
-              {volume > 0 && (
-                <p className="text-xs font-bold text-vibe-green">{volume.toLocaleString()}</p>
-              )}
-            </div>
           </div>
         </div>
 
