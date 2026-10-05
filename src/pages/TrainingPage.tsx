@@ -17,6 +17,7 @@ import type { Set as ExerciseSet, Exercise, DailyWorkout } from '@/types';
 import { getLibraryExercises, formatExerciseSet, formatExerciseSummary } from '@/utils/exerciseCatalog';
 import { getWorkoutsForDate } from '@/utils/workoutImport';
 import './history.css';
+import { ExerciseTrendTab } from './ExerciseTrendTab';
 
 export function TrainingPage({ subTab, onSubTabChange: setSubTab }: {
   subTab: TrainingTabId;
@@ -855,125 +856,6 @@ function HistoryTab({ onShowDayDetail }: HistoryTabProps) {
     </div>
   );
 }
-function ExerciseTrendTab() {
-  const { state } = useApp();
-  const workouts = useMemo(
-    () => [
-      ...state.workoutHistory,
-      ...(state.dailyWorkout ? [state.dailyWorkout] : []),
-    ],
-    [state.workoutHistory, state.dailyWorkout]
-  );
-  const availableExercises = useMemo(
-    () => state.exerciseLibrary.filter(
-      (exercise) =>
-        exercise.category === 'strength' &&
-        workouts.some((workout) => workout.exercises.some(
-          (item) => item.id === exercise.id && item.sets.some((set) => set.completed)
-        ))
-    ),
-    [state.exerciseLibrary, workouts]
-  );
-  const [selectedExerciseId, setSelectedExerciseId] = useState(
-    () => availableExercises[0]?.id ?? ''
-  );
-  const resolvedExerciseId = availableExercises.some(
-    (exercise) => exercise.id === selectedExerciseId
-  )
-    ? selectedExerciseId
-    : (availableExercises[0]?.id ?? '');
-
-  const records = useMemo(() => {
-    if (!resolvedExerciseId) return [];
-    return workouts
-      .map((workout) => {
-        const exercise = workout.exercises.find((item) => item.id === resolvedExerciseId);
-        if (!exercise) return null;
-        const completedSets = exercise.sets.filter((set) => set.completed);
-        if (completedSets.length === 0) return null;
-        return {
-          workoutId: workout.id,
-          date: workout.date,
-          volume: calculateVolume(exercise, state.weightUnit),
-          useLeftRight: exercise.useLeftRight,
-          volumeMode: exercise.volumeMode,
-          recordingMode: exercise.recordingMode,
-          bodyWeightKg: exercise.bodyWeightKg,
-          sets: completedSets,
-        };
-      })
-      .filter((record): record is {
-        workoutId: string;
-        date: string;
-        volume: number;
-        useLeftRight: boolean;
-        volumeMode: 'assisted-bodyweight' | undefined;
-        recordingMode: Exercise['recordingMode'];
-        bodyWeightKg: number | undefined;
-        sets: ExerciseSet[];
-      } => record !== null)
-      .sort((a, b) => b.date.localeCompare(a.date));
-  }, [workouts, resolvedExerciseId, state.weightUnit]);
-
-  if (availableExercises.length === 0) {
-    return (
-      <div className="min-h-[400px] flex flex-col items-center justify-center text-center">
-        <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-          <i className="fas fa-chart-line text-slate-300 text-xl"></i>
-        </div>
-        <h3 className="font-black mb-2">暂无动作趋势</h3>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <div className="mb-5">
-        <select
-          aria-label="选择动作"
-          value={resolvedExerciseId}
-          onChange={(event) => setSelectedExerciseId(event.target.value)}
-          className="w-full h-10 bg-slate-100 rounded-vibe px-3 text-sm font-black outline-none"
-        >
-          {availableExercises.map((exercise) => (
-            <option key={exercise.id} value={exercise.id}>{exercise.name}</option>
-          ))}
-        </select>
-        {availableExercises.find((exercise) => exercise.id === resolvedExerciseId) && (
-          <div className="mt-3 flex justify-center">
-            <ExerciseImage exercise={availableExercises.find((exercise) => exercise.id === resolvedExerciseId)!} className="h-20 w-20" />
-          </div>
-        )}
-      </div>
-
-      <div className="space-y-3">
-        {records.map((record) => (
-          <Card key={`${record.workoutId}-${record.date}`} className="p-4">
-            <div className="flex justify-between items-center mb-3">
-              <p className="text-sm font-black">{record.date}</p>
-              <div className="text-right">
-                <p className="text-sm font-black text-vibe-green">
-                  {formatExerciseSummary(record, state.weightUnit)}
-                </p>
-              </div>
-            </div>
-            <div className="space-y-2 border-t border-slate-100 pt-3">
-              {record.sets.map((set, index) => (
-                <div key={set.id} className="flex justify-between items-center text-sm">
-                  <span className="font-bold text-slate-400">第{index + 1}组</span>
-                  <span className="font-black text-slate-700">
-                    {formatExerciseSet(record, set, state.weightUnit)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 interface ExerciseHistoryModalProps {
   exerciseId: string;
   onClose: () => void;
@@ -1063,12 +945,16 @@ function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailM
   const [expandedExercises, setExpandedExercises] = useState<Record<string, boolean>>({});
   const [addingWorkout, setAddingWorkout] = useState(false);
   const [libraryActiveGroup, setLibraryActiveGroup] = useState<string>('');
+  const [showMenu, setShowMenu] = useState(false);
+  const detailRef = React.useRef<HTMLElement>(null);
+  const libraryLayerRef = React.useRef<HTMLDivElement>(null);
+  const menuRef = React.useRef<HTMLDivElement>(null);
+  const menuButtonRef = React.useRef<HTMLButtonElement>(null);
 
-  useAppBack(() => {
-    if (!showLibrary) return false;
-    setShowLibrary(false);
-    return true;
-  }, 120);
+  const closeMenu = () => {
+    setShowMenu(false);
+    menuButtonRef.current?.focus();
+  };
 
   const handleAddWorkout = () => {
     setAddingWorkout(true);
@@ -1081,6 +967,7 @@ function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailM
       muscleGroups: [],
     });
     setIsEditing(true);
+    requestAnimationFrame(() => detailRef.current?.focus());
   };
 
   const handleDelete = () => {
@@ -1104,6 +991,7 @@ function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailM
 
     const original = workouts.find((item) => item.id === workout?.id);
     setWorkout(original ? JSON.parse(JSON.stringify(original)) : null);
+    requestAnimationFrame(() => detailRef.current?.querySelector<HTMLButtonElement>('[aria-label="编辑训练"]')?.focus());
   };
 
   const handleSaveWorkout = () => {
@@ -1117,6 +1005,7 @@ function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailM
     setWorkout(savedWorkout);
     setIsEditing(false);
     setAddingWorkout(false);
+    requestAnimationFrame(() => detailRef.current?.querySelector<HTMLButtonElement>('[aria-label="编辑训练"]')?.focus());
   };
 
   const handleCopyToToday = () => {
@@ -1134,6 +1023,75 @@ function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailM
       payload: { workout },
     });
     onCopyToToday();
+  };
+
+  const handleDetailBack = () => {
+    if (showLibrary) {
+      setShowLibrary(false);
+      requestAnimationFrame(() => detailRef.current?.querySelector<HTMLButtonElement>('.history-add-exercise')?.focus());
+    } else if (showMenu) {
+      closeMenu();
+    } else if (isEditing) {
+      handleCancelEdit();
+    } else {
+      onClose();
+    }
+    return true;
+  };
+
+  useAppBack(handleDetailBack, 120);
+
+  useEffect(() => {
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    detailRef.current?.focus();
+    return () => previousFocus?.focus();
+  }, []);
+
+  useEffect(() => {
+    if (showMenu) menuRef.current?.querySelector<HTMLButtonElement>('button')?.focus();
+  }, [showMenu]);
+
+  useEffect(() => {
+    if (showLibrary) libraryLayerRef.current?.querySelector<HTMLButtonElement>('button')?.focus();
+  }, [showLibrary]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        handleDetailBack();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const container = showLibrary ? libraryLayerRef.current : showMenu ? menuRef.current : detailRef.current;
+      const focusable = Array.from(container?.querySelectorAll<HTMLElement>(
+        'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]'
+      ) ?? []).filter((element) => element.tabIndex >= 0 && element.getClientRects().length > 0);
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!first) {
+        event.preventDefault();
+        container?.focus();
+      } else if (event.shiftKey && (document.activeElement === first || !focusable.includes(document.activeElement as HTMLElement))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !focusable.includes(document.activeElement as HTMLElement))) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  });
+
+  const handleMenuKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const items = Array.from(menuRef.current?.querySelectorAll<HTMLButtonElement>('button') ?? []);
+    const index = items.indexOf(document.activeElement as HTMLButtonElement);
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1
+      : (index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+    items[next]?.focus();
   };
 
   const toggleExpanded = (exerciseId: string) => {
@@ -1295,8 +1253,8 @@ function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailM
 
   if (!workout && !addingWorkout) {
     return (
-      <div className="history-overlay fixed inset-0" onClick={onClose}>
-        <section className="history-detail history-detail-empty" role="dialog" aria-modal="true" aria-labelledby="history-day-title" onClick={(event) => event.stopPropagation()}>
+      <div className="history-overlay history-detail-overlay fixed inset-0" onClick={onClose}>
+        <section ref={detailRef} tabIndex={-1} className="history-detail history-detail-empty" role="dialog" aria-modal="true" aria-labelledby="history-day-title" onClick={(event) => event.stopPropagation()}>
           <header className="history-detail-header">
             <div className="history-detail-topline">
               <h3 id="history-day-title">{date}</h3>
@@ -1322,7 +1280,7 @@ function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailM
     const groups = [...new Set(item.exercises.map((exercise) =>
       exercise.category === 'cardio' ? '有氧' : exercise.muscleGroup
     ).filter(Boolean))];
-    return `第 ${index + 1} 次训练${groups.length ? ` · ${groups.join(' / ')}` : ''}`;
+    return `第 ${index + 1} 次${groups.length ? ` · ${groups.join(' / ')}` : ''}`;
   };
 
   const renderSimpleView = () => (
@@ -1343,8 +1301,9 @@ function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailM
             <div className="history-set-list">
               {exercise.sets.map((set, index) => (
                 <div key={set.id} className={`history-set-row${set.completed ? '' : ' is-incomplete'}`}>
-                  <span className="history-set-label">第{index + 1}组{!set.completed && <small>未完成</small>}</span>
+                  <span className="history-set-label" aria-label={`第${index + 1}组`}>{String(index + 1).padStart(2, '0')}</span>
                   <span className="history-set-value">{formatExerciseSet(exercise, set, state.weightUnit)}</span>
+                  {!set.completed && <span className="history-set-status">未完成</span>}
                 </div>
               ))}
             </div>
@@ -1361,20 +1320,36 @@ function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailM
 
   return (
     <>
-      <div className="history-overlay fixed inset-0" onClick={onClose}>
-        <section className="history-detail" role="dialog" aria-modal="true" aria-labelledby="history-day-title" onClick={(event) => event.stopPropagation()}>
+      <div className="history-overlay history-detail-overlay fixed inset-0" onClick={handleDetailBack}>
+        <section ref={detailRef} tabIndex={-1} className={`history-detail${isEditing ? ' is-editing' : ''}`} role="dialog" aria-modal="true" aria-hidden={showLibrary || undefined} aria-labelledby="history-day-title" onClick={(event) => event.stopPropagation()}>
           <header className="history-detail-header">
             <div className="history-detail-topline">
-              <div>
+              <div className="history-detail-title">
                 <h3 id="history-day-title">{date}</h3>
+                <div className="history-volume" role="group" aria-label="训练容量">
+                  <span>{detailVolume.toLocaleString()}<span> kg</span></span>
+                </div>
               </div>
               <div className="history-detail-actions">
-                {!isEditing && <button type="button" onClick={() => setIsEditing(true)} className="history-icon-button" aria-label="编辑训练" title="编辑训练">
-                  <i aria-hidden="true" className="fas fa-pen"></i>
+                {!isEditing && <button type="button" onClick={() => {
+                  setIsEditing(true);
+                  requestAnimationFrame(() => detailRef.current?.focus());
+                }} className="history-edit-button" aria-label="编辑训练">
+                  编辑
                 </button>}
-                {isSavedWorkout && <button type="button" onClick={handleDelete} className="history-icon-button history-delete-button" aria-label="删除训练" title="删除训练">
-                  <i aria-hidden="true" className="far fa-trash-alt"></i>
-                </button>}
+                {!isEditing && (isSavedWorkout || workout.date !== getTodayString()) && <div className="history-menu-anchor">
+                  <button ref={menuButtonRef} type="button" onClick={() => setShowMenu(!showMenu)} className="history-icon-button" aria-label="训练操作" aria-haspopup="menu" aria-expanded={showMenu} aria-controls="history-actions-menu">
+                    <i aria-hidden="true" className="fas fa-ellipsis-h"></i>
+                  </button>
+                  {showMenu && <div ref={menuRef} id="history-actions-menu" className="history-actions-menu" role="menu" aria-label="训练操作" onKeyDown={handleMenuKeyDown}>
+                    {workout.date !== getTodayString() && <button type="button" role="menuitem" onClick={() => { closeMenu(); handleCopyToToday(); }}>
+                      <i aria-hidden="true" className="far fa-copy"></i>复制到今天
+                    </button>}
+                    {isSavedWorkout && <button type="button" role="menuitem" className="history-delete-button" onClick={() => { closeMenu(); handleDelete(); }}>
+                      <i aria-hidden="true" className="far fa-trash-alt"></i>删除训练
+                    </button>}
+                  </div>}
+                </div>}
                 <button type="button" onClick={onClose} className="history-icon-button" aria-label="关闭训练详情" title="关闭">
                   <i aria-hidden="true" className="fas fa-times"></i>
                 </button>
@@ -1398,12 +1373,6 @@ function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailM
               </select>
               <i aria-hidden="true" className="fas fa-chevron-down"></i>
             </div>}
-
-            <div className="history-detail-summary">
-              <div className="history-volume" role="group" aria-label="训练容量">
-                <strong>{detailVolume.toLocaleString()}<small>kg</small></strong>
-              </div>
-            </div>
           </header>
 
           <div className="history-detail-content">
@@ -1425,34 +1394,39 @@ function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailM
                     showControls={true}
                   />
                 ))}
-                <Button variant="secondary" className="w-full" onClick={() => setShowLibrary(true)}>
+                <Button variant="secondary" className="history-add-exercise w-full" onClick={() => setShowLibrary(true)}>
                   <i aria-hidden="true" className="fas fa-plus"></i>添加动作
                 </Button>
               </div>
             ) : renderSimpleView()}
           </div>
 
-          {(isEditing || workout.date !== getTodayString()) && (
+          {isEditing && (
             <footer className="history-detail-footer">
-              {isEditing ? <>
-                <Button variant="secondary" className="flex-1" onClick={handleCancelEdit}>取消</Button>
-                <Button className="flex-1" onClick={handleSaveWorkout}>保存</Button>
-              </> : <Button className="w-full" onClick={handleCopyToToday}>
-                <i aria-hidden="true" className="far fa-copy"></i>复制到今天
-              </Button>}
+              <Button variant="secondary" className="flex-1" onClick={handleCancelEdit}>取消</Button>
+              <Button className="flex-1" onClick={handleSaveWorkout}>保存</Button>
             </footer>
           )}
+          {showMenu && <button type="button" tabIndex={-1} className="history-menu-dismiss" aria-label="关闭训练操作" onClick={closeMenu} />}
         </section>
       </div>
 
       {showLibrary && (
-        <DayDetailLibraryModal
-          workout={workout}
-          activeGroup={libraryActiveGroup}
-          setActiveGroup={setLibraryActiveGroup}
-          onSelectExercise={handleSelectExercise}
-          onClose={() => setShowLibrary(false)}
-        />
+        <div ref={libraryLayerRef} role="dialog" aria-modal="true" aria-label="选择动作" tabIndex={-1}>
+          <DayDetailLibraryModal
+            workout={workout}
+            activeGroup={libraryActiveGroup}
+            setActiveGroup={setLibraryActiveGroup}
+            onSelectExercise={(exercise) => {
+              handleSelectExercise(exercise);
+              requestAnimationFrame(() => detailRef.current?.querySelector<HTMLButtonElement>('.history-add-exercise')?.focus());
+            }}
+            onClose={() => {
+              setShowLibrary(false);
+              requestAnimationFrame(() => detailRef.current?.querySelector<HTMLButtonElement>('.history-add-exercise')?.focus());
+            }}
+          />
+        </div>
       )}
     </>
   );
