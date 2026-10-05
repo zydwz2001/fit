@@ -60,6 +60,8 @@ export interface DailyWorkout {
     recordId: string;
     original: Record<string, unknown>;
   };
+  // Full source records preserve provenance and prevent their re-import after merging.
+  mergedFrom?: Omit<DailyWorkout, 'mergedFrom'>[];
 }
 
 export interface WorkoutTemplate {

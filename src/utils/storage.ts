@@ -1,6 +1,6 @@
 import type { AppState } from '@/types';
 import { BODY_METRIC_IMPORT_FORMAT, mergeBodyMetrics } from './bodyMetricImport';
-import { WORKOUT_IMPORT_FORMAT, withImportedWorkouts } from './workoutImport';
+import { WORKOUT_IMPORT_FORMAT, countNewWorkoutRecords, withImportedWorkouts } from './workoutImport';
 
 const STORAGE_KEY = 'vibe-fitness-data';
 
@@ -82,7 +82,10 @@ function isValidWorkout(value: unknown): value is AppState['workoutHistory'][num
     (value.cardioName === undefined || typeof value.cardioName === 'string') &&
     isOptionalFiniteNumber(value.durationMinutes) &&
     (value.source === undefined || (isRecord(value.source) && value.source.app === 'xunji' &&
-      typeof value.source.recordId === 'string' && isRecord(value.source.original)))
+      typeof value.source.recordId === 'string' && isRecord(value.source.original))) &&
+    (value.mergedFrom === undefined || (Array.isArray(value.mergedFrom) && value.mergedFrom.length >= 2 &&
+      value.mergedFrom.every((original) => isRecord(original) && original.mergedFrom === undefined && isValidWorkout(original)) &&
+      new Set(value.mergedFrom.map((original) => original.id)).size === value.mergedFrom.length))
   );
 }
 
@@ -296,7 +299,7 @@ export async function importData(jsonString: string, currentState?: AppState): P
     if (!currentState) return { success: false, message: '请等待当前数据加载完成后再导入训练记录。' };
     const data = withImportedWorkouts(currentState, workouts);
     if (!await saveData(data)) return { success: false, message: '存储空间不足，导入未完成。' };
-    return { success: true, kind: 'workouts', data, addedCount: data.workoutHistory.length - currentState.workoutHistory.length };
+    return { success: true, kind: 'workouts', data, addedCount: countNewWorkoutRecords(currentState.workoutHistory, workouts, currentState.dailyWorkout) };
   }
 
   if (!isValidBackup(parsed)) {

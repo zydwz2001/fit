@@ -477,6 +477,11 @@ describe('workout reducer', () => {
       totalVolume: 1030,
       muscleGroups: ['背', '有氧'],
       cardioName: '爬坡',
+      mergedFrom: [{
+        id: 'original-import', date: '2026-07-20', name: '原记录', exercises: [],
+        totalVolume: 0, muscleGroups: [],
+        source: { app: 'xunji', recordId: 'original-import', original: {} },
+      }],
     };
     const state = {
       ...createInitialState(),
@@ -490,6 +495,7 @@ describe('workout reducer', () => {
 
     expect(next.dailyWorkout?.date).toBe(getTodayString());
     expect(next.dailyWorkout?.id).not.toBe(historyWorkout.id);
+    expect(next.dailyWorkout?.mergedFrom).toBeUndefined();
     expect(next.dailyWorkout?.name).toBe(historyWorkout.name);
     expect(next.dailyWorkout?.totalVolume).toBe(0);
     expect(next.dailyWorkout?.exercises[0].sets.map((set) => set.completed)).toEqual([false, false]);

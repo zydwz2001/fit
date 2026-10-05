@@ -15,6 +15,7 @@ import { useAppBack } from '@/utils/navigation';
 import type { Set as ExerciseSet, Exercise, DailyWorkout } from '@/types';
 import { getLibraryExercises, formatExerciseSet, formatExerciseSummary } from '@/utils/exerciseCatalog';
 import { getWorkoutsForDate } from '@/utils/workoutImport';
+import './history.css';
 
 const SUB_TABS = [
   { id: 'today', label: '今日健身' },
@@ -713,207 +714,175 @@ function HistoryTab({ onShowDayDetail }: HistoryTabProps) {
   const { state } = useApp();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showMonthPicker, setShowMonthPicker] = useState(false);
-  const swipeStartX = React.useRef<number | null>(null);
+  const swipeStart = React.useRef<{ x: number; y: number } | null>(null);
 
   useAppBack(() => {
     if (!showMonthPicker) return false;
     setShowMonthPicker(false);
     return true;
   }, 100);
-  const workouts = useMemo(() => {
-    return [
-      ...state.workoutHistory,
-      ...(state.dailyWorkout ? [state.dailyWorkout] : []),
-    ];
-  }, [state.workoutHistory, state.dailyWorkout]);
+
+  const workouts = useMemo(() => [
+    ...state.workoutHistory,
+    ...(state.dailyWorkout ? [state.dailyWorkout] : []),
+  ], [state.workoutHistory, state.dailyWorkout]);
+
+  const monthPrefix = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`;
+  const monthWorkouts = workouts.filter((workout) => workout.date.startsWith(monthPrefix));
+  const trainingDays = new Set(monthWorkouts.map((workout) => workout.date)).size;
+  const monthVolume = monthWorkouts.reduce((sum, workout) => sum + workout.totalVolume, 0);
+  const today = getTodayString();
 
   const calendarDays = useMemo(() => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const days: (Date | null)[] = [];
-
-    const startDay = firstDay.getDay();
-    for (let i = 0; i < startDay; i++) {
-      days.push(null);
-    }
-
-    for (let i = 1; i <= lastDay.getDate(); i++) {
-      days.push(new Date(year, month, i));
-    }
-
+    const days: (Date | null)[] = Array(new Date(year, month, 1).getDay()).fill(null);
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    for (let day = 1; day <= lastDay; day++) days.push(new Date(year, month, day));
+    while (days.length % 7 !== 0) days.push(null);
     return days;
   }, [currentMonth]);
 
-  const getWorkoutForDay = (date: Date | null) => {
-    if (!date) return null;
-    const dateStr = formatDate(date);
-    const dayWorkouts = getWorkoutsForDate(workouts, dateStr);
+  const getWorkoutForDay = (date: Date) => {
+    const dayWorkouts = getWorkoutsForDate(workouts, formatDate(date));
     if (dayWorkouts.length === 0) return null;
+    const exercises = dayWorkouts.flatMap((workout) => workout.exercises);
+    const labels = exercises.map((exercise) =>
+      exercise.category === 'cardio' ? exercise.name : exercise.muscleGroup
+    );
+    if (labels.length === 0) {
+      dayWorkouts.forEach((workout) => {
+        labels.push(...workout.muscleGroups.filter((group) => group !== '有氧'));
+        if (workout.cardioName) labels.push(workout.cardioName);
+      });
+    }
     return {
-      ...dayWorkouts[0],
-      exercises: dayWorkouts.flatMap((workout) => workout.exercises),
+      labels: [...new Set(labels.filter(Boolean))],
       totalVolume: dayWorkouts.reduce((sum, workout) => sum + workout.totalVolume, 0),
       sessionCount: dayWorkouts.length,
     };
   };
 
-  const getWorkoutLabels = (workout: DailyWorkout) => {
-    const labels = workout.exercises.map((exercise) =>
-      exercise.category === 'cardio' ? exercise.name : exercise.muscleGroup
-    );
-
-    if (labels.length === 0) {
-      labels.push(...workout.muscleGroups.filter((group) => group !== '有氧'));
-      if (workout.cardioName) labels.push(workout.cardioName);
-    }
-
-    return [...new Set(labels.filter(Boolean))];
-  };
-
-  const prevMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
-  };
-
-  const nextMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
-  };
-
-  const selectMonth = (month: number) => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), month, 1));
-    setShowMonthPicker(false);
-  };
-
-  const selectYear = (year: number) => {
-    setCurrentMonth(new Date(year, currentMonth.getMonth(), 1));
-  };
-
-  const handleMonthTouchStart = (event: React.TouchEvent) => {
-    swipeStartX.current = event.touches[0]?.clientX ?? null;
+  const changeMonth = (offset: number) => {
+    setCurrentMonth((month) => new Date(month.getFullYear(), month.getMonth() + offset, 1));
   };
 
   const handleMonthTouchEnd = (event: React.TouchEvent) => {
-    if (swipeStartX.current === null) return;
-    const endX = event.changedTouches[0]?.clientX;
-    if (endX === undefined) return;
-    const distance = endX - swipeStartX.current;
-    swipeStartX.current = null;
-    if (Math.abs(distance) < 60) return;
-    if (distance > 0) prevMonth();
-    else nextMonth();
+    const start = swipeStart.current;
+    const end = event.changedTouches[0];
+    swipeStart.current = null;
+    if (!start || !end) return;
+    const horizontal = end.clientX - start.x;
+    const vertical = end.clientY - start.y;
+    if (Math.abs(horizontal) < 60 || Math.abs(horizontal) <= Math.abs(vertical)) return;
+    changeMonth(horizontal > 0 ? -1 : 1);
   };
 
+  const formatCalendarVolume = (volume: number) => volume >= 10000
+    ? `${Number((volume / 10000).toFixed(1))}万`
+    : Math.round(volume).toLocaleString();
+
   return (
-    <div onTouchStart={handleMonthTouchStart} onTouchEnd={handleMonthTouchEnd}>
-      <div className="flex justify-between items-center mb-6">
-        <button onClick={prevMonth} className="w-8 h-8 flex items-center justify-center text-slate-400">
-          <i className="fas fa-chevron-left"></i>
-        </button>
-        <button
-          onClick={() => setShowMonthPicker(true)}
-          className="text-xl font-black flex items-center gap-2 hover:text-vibe-green transition-colors"
+    <div className="history-view">
+      <section className="history-calendar" aria-label="训练月历">
+        <div className="history-month-nav">
+          <button type="button" onClick={() => changeMonth(-1)} className="history-icon-button" aria-label="上个月">
+            <i aria-hidden="true" className="fas fa-chevron-left"></i>
+          </button>
+          <button type="button" onClick={() => setShowMonthPicker(true)} className="history-month-title" aria-label="选择月份">
+            <span>{currentMonth.getFullYear()}年{currentMonth.getMonth() + 1}月</span>
+            <i aria-hidden="true" className="fas fa-chevron-down"></i>
+          </button>
+          <button type="button" onClick={() => changeMonth(1)} className="history-icon-button" aria-label="下个月">
+            <i aria-hidden="true" className="fas fa-chevron-right"></i>
+          </button>
+        </div>
+
+        <div className="history-month-summary">
+          <div><span>训练天数</span><strong>{trainingDays}<small>天</small></strong></div>
+          <div><span>累计容量</span><strong>{Math.round(monthVolume).toLocaleString()}<small>kg</small></strong></div>
+        </div>
+
+        <div
+          className="history-calendar-body"
+          onTouchStart={(event) => {
+            const touch = event.touches[0];
+            swipeStart.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
+          }}
+          onTouchEnd={handleMonthTouchEnd}
+          onTouchCancel={() => { swipeStart.current = null; }}
         >
-          {currentMonth.getFullYear()}年{currentMonth.getMonth() + 1}月
-          <i className="fas fa-chevron-down text-xs"></i>
-        </button>
-        <button onClick={nextMonth} className="w-8 h-8 flex items-center justify-center text-slate-400">
-          <i className="fas fa-chevron-right"></i>
-        </button>
-      </div>
-      <div className="grid grid-cols-7 gap-1 mb-4 border-b border-slate-100 pb-2">
-        {['日', '一', '二', '三', '四', '五', '六'].map((d) => (
-          <div key={d} className="text-[10px] font-black text-slate-300 text-center">
-            {d}
+          <div className="history-weekdays" aria-hidden="true">
+            {['日', '一', '二', '三', '四', '五', '六'].map((day) => <span key={day}>{day}</span>)}
           </div>
-        ))}
-      </div>
-      <div className="grid grid-cols-7 gap-1">
-        {calendarDays.map((date, i) => {
-          const workout = getWorkoutForDay(date);
-          const workoutLabels = workout ? getWorkoutLabels(workout) : [];
-          return (
-            <div
-              key={i}
-              className={`min-h-24 rounded-lg flex flex-col items-center justify-start p-1 cursor-pointer ${
-                workout ? 'bg-slate-50' : ''
-              } ${!date ? 'text-slate-200 pointer-events-none' : ''} hover:bg-slate-100 transition-colors`}
-              onClick={() => date && onShowDayDetail(formatDate(date), !!workout)}
-            >
-              <span className="text-xs font-bold">{date?.getDate()}</span>
-              {workout && workout.sessionCount > 1 && <span className="text-[9px] text-slate-500">{workout.sessionCount} 次训练</span>}
-              {workout && (
-                <div className="flex flex-col gap-1 mt-1 w-full min-w-0">
-                  <div className="flex flex-wrap justify-center gap-0.5 w-full">
-                    {(workoutLabels.length > 0 ? workoutLabels : ['训练']).map((label) => (
-                      <span
-                        key={label}
-                        className="grid h-4 max-w-full place-items-center rounded bg-blue-500 px-1 text-center text-[7px] leading-4 text-white break-all"
-                      >
-                        {label}
-                      </span>
-                    ))}
-                  </div>
-                  {workout.totalVolume > 0 && (
-                    <span className="grid h-4 place-items-center rounded bg-vibe-green px-0.5 text-center font-mono text-[clamp(6px,1.7vw,9px)] font-semibold leading-4 tracking-[-0.04em] text-white tabular-nums whitespace-nowrap">
-                      {Math.round(workout.totalVolume)}
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+          <div className="history-calendar-grid">
+            {calendarDays.map((date, index) => {
+              if (!date) return <div key={`blank-${index}`} className="history-day-empty" aria-hidden="true" />;
+              const dateString = formatDate(date);
+              const workout = getWorkoutForDay(date);
+              const labels = workout?.labels.length ? workout.labels.join('·') : '训练';
+              return (
+                <button
+                  key={dateString}
+                  type="button"
+                  className={`history-day${workout ? ' has-workout' : ''}${dateString === today ? ' is-today' : ''}`}
+                  aria-label={`${dateString}，${workout ? '有训练' : '无训练'}`}
+                  aria-current={dateString === today ? 'date' : undefined}
+                  onClick={() => onShowDayDetail(dateString, Boolean(workout))}
+                >
+                  <span className="history-day-number">{date.getDate()}</span>
+                  {workout && <>
+                    {workout.sessionCount > 1 && <span className="history-session-count" aria-label={`${workout.sessionCount}次训练`}>{workout.sessionCount}</span>}
+                    <span className="history-day-label" title={labels}>{labels}</span>
+                    {workout.totalVolume > 0 && <span className="history-day-volume" title={`${workout.totalVolume.toLocaleString()} kg`}>
+                      {formatCalendarVolume(workout.totalVolume)}
+                    </span>}
+                  </>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="history-calendar-footer">
+          <span><span className="history-legend-dot" />训练日</span>
+          <span>容量单位 kg</span>
+        </div>
+      </section>
+      {trainingDays === 0 && <p className="history-month-empty">本月还没有训练记录，点选日期即可添加。</p>}
 
       {showMonthPicker && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowMonthPicker(false)}>
-          <div className="bg-white w-full max-w-sm rounded-vibe-xl p-6" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-black">选择月份</h3>
-              <button onClick={() => setShowMonthPicker(false)} className="w-8 h-8 flex items-center justify-center text-slate-400">
-                <i className="fas fa-times"></i>
+        <div className="history-overlay fixed inset-0" onClick={() => setShowMonthPicker(false)}>
+          <section className="history-picker" role="dialog" aria-modal="true" aria-labelledby="history-month-picker-title" onClick={(event) => event.stopPropagation()}>
+            <div className="history-picker-heading">
+              <h3 id="history-month-picker-title">选择月份</h3>
+              <button type="button" onClick={() => setShowMonthPicker(false)} className="history-icon-button" aria-label="关闭月份选择">
+                <i aria-hidden="true" className="fas fa-times"></i>
               </button>
             </div>
-
-            <div className="flex justify-center items-center gap-4 mb-6">
-              <button
-                onClick={() => selectYear(currentMonth.getFullYear() - 1)}
-                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600"
-              >
-                <i className="fas fa-chevron-left"></i>
+            <div className="history-picker-year">
+              <button type="button" onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear() - 1, currentMonth.getMonth(), 1))} className="history-icon-button" aria-label="上一年">
+                <i aria-hidden="true" className="fas fa-chevron-left"></i>
               </button>
-              <span className="text-xl font-black">{currentMonth.getFullYear()}年</span>
-              <button
-                onClick={() => selectYear(currentMonth.getFullYear() + 1)}
-                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600"
-              >
-                <i className="fas fa-chevron-right"></i>
+              <strong>{currentMonth.getFullYear()}年</strong>
+              <button type="button" onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear() + 1, currentMonth.getMonth(), 1))} className="history-icon-button" aria-label="下一年">
+                <i aria-hidden="true" className="fas fa-chevron-right"></i>
               </button>
             </div>
-
-            <div className="grid grid-cols-4 gap-3">
-              {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((month) => (
-                <button
-                  key={month}
-                  onClick={() => selectMonth(month)}
-                  className={`h-12 rounded-vibe flex items-center justify-center font-bold transition-colors ${
-                    month === currentMonth.getMonth()
-                      ? 'bg-vibe-green text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  {month + 1}月
-                </button>
+            <div className="history-picker-months">
+              {Array.from({ length: 12 }, (_, month) => (
+                <button type="button" key={month} aria-pressed={month === currentMonth.getMonth()} onClick={() => {
+                  setCurrentMonth(new Date(currentMonth.getFullYear(), month, 1));
+                  setShowMonthPicker(false);
+                }}>{month + 1}月</button>
               ))}
             </div>
-          </div>
+          </section>
         </div>
       )}
     </div>
   );
 }
-
 function ExerciseTrendTab() {
   const { state } = useApp();
   const workouts = useMemo(
@@ -1170,10 +1139,12 @@ function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailM
   const handleSaveWorkout = () => {
     if (!workout) return;
 
+    const savedWorkout = { ...workout, totalVolume: calculateTotalVolume() };
     dispatch({
       type: 'SAVE_WORKOUT_RECORD',
-      payload: { workout },
+      payload: { workout: savedWorkout },
     });
+    setWorkout(savedWorkout);
     setIsEditing(false);
     setAddingWorkout(false);
   };
@@ -1352,147 +1323,134 @@ function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailM
     );
   };
 
+  const weekday = new Date(`${date}T12:00:00`).toLocaleDateString('zh-CN', { weekday: 'long' });
+
   if (!workout && !addingWorkout) {
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-        <div className="bg-white w-full max-w-sm rounded-vibe-xl p-6" onClick={(e) => e.stopPropagation()}>
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-black">{date}</h3>
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-slate-400">
-              <i className="fas fa-times"></i>
-            </button>
-          </div>
-
-          <div className="flex flex-col items-center justify-center py-8">
-            <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-              <i className="fas fa-dumbbell text-slate-300 text-2xl"></i>
+      <div className="history-overlay fixed inset-0" onClick={onClose}>
+        <section className="history-detail history-detail-empty" role="dialog" aria-modal="true" aria-labelledby="history-day-title" onClick={(event) => event.stopPropagation()}>
+          <header className="history-detail-header">
+            <div className="history-detail-topline">
+              <div><h3 id="history-day-title">{date}</h3><p className="history-detail-weekday">{weekday}</p></div>
+              <button type="button" onClick={onClose} className="history-icon-button" aria-label="关闭训练详情"><i aria-hidden="true" className="fas fa-times"></i></button>
             </div>
-            <h3 className="text-lg font-black text-slate-800 mb-2">该日无训练</h3>
-            <p className="text-slate-400 text-sm mb-6">添加训练记录</p>
-            <Button onClick={handleAddWorkout} className="px-8">
-              <i className="fas fa-plus mr-2"></i>
-              添加训练
-            </Button>
+          </header>
+          <div className="history-empty-state">
+            <span className="history-empty-icon"><i aria-hidden="true" className="fas fa-dumbbell"></i></span>
+            <h4>这一天还没有训练</h4>
+            <p>也可以补记已经完成的训练。</p>
+            <Button onClick={handleAddWorkout}><i aria-hidden="true" className="fas fa-plus"></i>添加训练</Button>
           </div>
-        </div>
+        </section>
       </div>
     );
   }
 
   if (!workout) return null;
 
+  const dayWorkouts = getWorkoutsForDate(workouts, date);
+  const isSavedWorkout = dayWorkouts.some((item) => item.id === workout.id);
+  const completedSets = workout.exercises.reduce((count, exercise) =>
+    count + exercise.sets.filter((set) => set.completed).length, 0
+  );
+  const detailVolume = isEditing ? calculateTotalVolume() : workout.totalVolume;
+  const sessionLabel = (item: DailyWorkout, index: number) => {
+    const groups = [...new Set(item.exercises.map((exercise) =>
+      exercise.category === 'cardio' ? '有氧' : exercise.muscleGroup
+    ).filter(Boolean))];
+    return `第 ${index + 1} 次训练${groups.length ? ` · ${groups.join(' / ')}` : ''}`;
+  };
+
   const renderSimpleView = () => (
-    <div className="space-y-4">
-      {workout.exercises.map((exercise) => {
-        const isCardio = exercise.category === 'cardio';
-        const exerciseVolume = calculateVolume(exercise, state.weightUnit);
-
-        return (
-          <div key={exercise.id} className="bg-slate-50 rounded-vibe p-4">
-            <div className="flex justify-between items-center mb-3">
-              <div className="flex items-center gap-3">
-                <ExerciseImage exercise={exercise} />
-                <div>
-                  <h4 className="font-black text-sm text-slate-800">{exercise.name}</h4>
-                  <p className="text-[10px] font-bold text-slate-400">{exercise.muscleGroup}</p>
-                </div>
-              </div>
-              {exerciseVolume > 0 && (
-                <span className="text-vibe-green text-sm font-black">{exerciseVolume.toLocaleString()}</span>
-              )}
+    <div className="history-exercises">
+      {workout.exercises.length === 0 && <div className="history-no-exercises">
+        <i aria-hidden="true" className="fas fa-clipboard-list"></i>
+        <p>这条训练未记录具体动作</p>
+      </div>}
+      {workout.exercises.map((exercise) => (
+        <article key={exercise.id} className="history-exercise">
+          <div className="history-exercise-heading">
+            <ExerciseImage exercise={exercise} className="history-exercise-image" />
+            <div className="history-exercise-title">
+              <h4>{exercise.name}</h4>
+              <p>{exercise.muscleGroup}{exercise.category !== 'cardio' && exercise.sets.length > 0 ? ` · ${exercise.sets.length}组` : ''}</p>
             </div>
-
-            {!isCardio && exercise.sets.length > 0 && (
-              <div className="space-y-2">
-                {exercise.sets.map((set, idx) => (
-                  <div key={set.id} className="flex justify-between items-center text-sm">
-                    <span className="text-slate-400 font-bold">第{idx + 1}组{set.completed ? '' : '（未完成）'}</span>
-                    <span className="text-slate-600">
-                      {formatExerciseSet(exercise, set, state.weightUnit)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-            {exercise.notes?.map((note, index) => <p key={index} className="mt-2 text-xs text-slate-500 whitespace-pre-wrap">{note}</p>)}
-            {isCardio && (
-              <div className="text-[10px] font-bold text-slate-500">
-                {exercise.durationMinutes ? (
-                  <span>{exercise.durationMinutes} 分钟</span>
-                ) : (
-                  <span className="text-slate-300">未填写时长</span>
-                )}
-              </div>
-            )}
           </div>
-        );
-      })}
+          {exercise.category !== 'cardio' && exercise.sets.length > 0 && (
+            <div className="history-set-list">
+              {exercise.sets.map((set, index) => (
+                <div key={set.id} className={`history-set-row${set.completed ? '' : ' is-incomplete'}`}>
+                  <span className="history-set-label">第{index + 1}组{!set.completed && <small>未完成</small>}</span>
+                  <span className="history-set-value">{formatExerciseSet(exercise, set, state.weightUnit)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {exercise.notes?.map((note, index) => <p key={index} className="history-exercise-note">{note}</p>)}
+          {exercise.category === 'cardio' && <p className="history-cardio-duration">
+            <i aria-hidden="true" className="far fa-clock"></i>
+            {exercise.durationMinutes ? `${exercise.durationMinutes} 分钟` : '未填写时长'}
+          </p>}
+        </article>
+      ))}
     </div>
   );
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-        <div className="bg-white w-full max-w-sm rounded-vibe-xl max-h-[85vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
-          <div className="p-6 pb-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-black">{workout.date}</h3>
-              <div className="flex gap-2">
-                {!isEditing && hasWorkout && (
-                  <button onClick={() => setIsEditing(true)} className="w-8 h-8 flex items-center justify-center text-slate-400">
-                    <i className="fas fa-edit"></i>
-                  </button>
-                )}
-                {hasWorkout && (
-                  <button onClick={handleDelete} className="w-8 h-8 flex items-center justify-center text-red-400">
-                    <i className="fas fa-trash"></i>
-                  </button>
-                )}
-                <button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-slate-400">
-                  <i className="fas fa-times"></i>
+      <div className="history-overlay fixed inset-0" onClick={onClose}>
+        <section className="history-detail" role="dialog" aria-modal="true" aria-labelledby="history-day-title" onClick={(event) => event.stopPropagation()}>
+          <header className="history-detail-header">
+            <div className="history-detail-topline">
+              <div>
+                <h3 id="history-day-title">{date}</h3>
+                <p className="history-detail-weekday">{weekday}{isEditing ? ' · 编辑训练' : ''}</p>
+              </div>
+              <div className="history-detail-actions">
+                {!isEditing && <button type="button" onClick={() => setIsEditing(true)} className="history-icon-button" aria-label="编辑训练" title="编辑训练">
+                  <i aria-hidden="true" className="fas fa-pen"></i>
+                </button>}
+                {isSavedWorkout && <button type="button" onClick={handleDelete} className="history-icon-button history-delete-button" aria-label="删除训练" title="删除训练">
+                  <i aria-hidden="true" className="far fa-trash-alt"></i>
+                </button>}
+                <button type="button" onClick={onClose} className="history-icon-button" aria-label="关闭训练详情" title="关闭">
+                  <i aria-hidden="true" className="fas fa-times"></i>
                 </button>
               </div>
             </div>
 
-            <p className="mt-2 text-sm text-slate-600">{workout.name}</p>
-            {getWorkoutsForDate(workouts, date).length > 1 && (
-              <select aria-label="当天训练记录" value={workout.id} disabled={isEditing}
+            {dayWorkouts.length > 1 && <div className="history-session-picker">
+              <select
+                aria-label="当天训练记录"
+                value={workout.id}
+                disabled={isEditing}
                 onChange={(event) => {
-                  const selected = workouts.find((item) => item.id === event.target.value);
-                  if (selected) setWorkout(JSON.parse(JSON.stringify(selected)));
-                }} className="mt-3 h-10 w-full rounded-xl bg-slate-100 px-2 text-sm">
-                {getWorkoutsForDate(workouts, date).map((item, index) => <option key={item.id} value={item.id}>{index + 1}. {item.name}</option>)}
+                  const selected = dayWorkouts.find((item) => item.id === event.target.value);
+                  if (selected) {
+                    setWorkout(JSON.parse(JSON.stringify(selected)));
+                    setExpandedExercises({});
+                  }
+                }}
+              >
+                {dayWorkouts.map((item, index) => <option key={item.id} value={item.id}>{sessionLabel(item, index)}</option>)}
               </select>
-            )}
-            {workout.source && (
-              <p className="mt-2 text-xs text-slate-500">
-                训记原记录
-                {typeof workout.source.original.displayedVolumeKg === 'number' && ` · 容量 ${workout.source.original.displayedVolumeKg} kg`}
-                {workout.durationMinutes !== undefined && ` · ${workout.durationMinutes} 分钟`}
-                {workout.exercises.length === 0 && ' · 未包含动作'}
+              <i aria-hidden="true" className="fas fa-chevron-down"></i>
+            </div>}
+
+            <div className="history-detail-summary">
+              <div className="history-volume">
+                <span>训练容量</span>
+                <strong>{detailVolume.toLocaleString()}<small>kg</small></strong>
+              </div>
+              <p className="history-detail-meta">
+                <span>{workout.exercises.length} 个动作</span>
+                {completedSets > 0 && <span>{completedSets} 组完成</span>}
+                {workout.durationMinutes !== undefined && workout.durationMinutes > 0 && <span>{workout.durationMinutes} 分钟</span>}
               </p>
-            )}
+            </div>
+          </header>
 
-            {(!isEditing || !hasWorkout) && (
-              <div className="mt-4">
-                <p className="text-[9px] font-black text-slate-400 uppercase">{workout.source ? '可计算容量（已完成非热身组）' : 'Total Volume'}</p>
-                <p className="text-2xl font-black text-vibe-green">
-                  {workout.totalVolume.toLocaleString()}
-                </p>
-              </div>
-            )}
-
-            {isEditing && (
-              <div className="mt-4">
-                <p className="text-[9px] font-black text-slate-400 uppercase">Total Volume</p>
-                <p className="text-2xl font-black text-vibe-green">
-                  {calculateTotalVolume().toLocaleString()}
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div className="flex-1 overflow-y-auto px-6 pb-4">
+          <div className="history-detail-content">
             {isEditing ? (
               <div className="space-y-4">
                 {workout.exercises.map((exercise) => (
@@ -1511,44 +1469,27 @@ function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailM
                     showControls={true}
                   />
                 ))}
-              </div>
-            ) : (
-              renderSimpleView()
-            )}
-
-            {isEditing && (
-              <div className="mt-4">
                 <Button variant="secondary" className="w-full" onClick={() => setShowLibrary(true)}>
-                  <i className="fas fa-plus mr-2"></i>
-                  添加动作
+                  <i aria-hidden="true" className="fas fa-plus"></i>添加动作
                 </Button>
               </div>
-            )}
+            ) : renderSimpleView()}
           </div>
 
           {(isEditing || workout.date !== getTodayString()) && (
-            <div className="p-6 pt-0 flex gap-3 border-t border-slate-50">
-              {isEditing ? (
-                <>
-                  <Button variant="secondary" className="flex-1" onClick={handleCancelEdit}>
-                    取消
-                  </Button>
-                  <Button className="flex-1" onClick={handleSaveWorkout}>
-                    保存
-                  </Button>
-                </>
-              ) : (
-                <Button className="w-full" onClick={handleCopyToToday}>
-                  <i className="fas fa-copy mr-2"></i>
-                  复制到今天
-                </Button>
-              )}
-            </div>
+            <footer className="history-detail-footer">
+              {isEditing ? <>
+                <Button variant="secondary" className="flex-1" onClick={handleCancelEdit}>取消</Button>
+                <Button className="flex-1" onClick={handleSaveWorkout}>保存</Button>
+              </> : <Button className="w-full" onClick={handleCopyToToday}>
+                <i aria-hidden="true" className="far fa-copy"></i>复制到今天
+              </Button>}
+            </footer>
           )}
-        </div>
+        </section>
       </div>
 
-      {showLibrary && workout && (
+      {showLibrary && (
         <DayDetailLibraryModal
           workout={workout}
           activeGroup={libraryActiveGroup}
@@ -1560,7 +1501,6 @@ function DayDetailModal({ date, hasWorkout, onClose, onCopyToToday }: DayDetailM
     </>
   );
 }
-
 interface DayDetailLibraryModalProps {
   workout: DailyWorkout;
   activeGroup: string;

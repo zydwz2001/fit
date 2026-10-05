@@ -14,6 +14,8 @@ import { loadData, saveData } from '@/utils/storage';
 import { createInitialState } from '@/utils/initialState';
 import { mergeBodyMetrics } from '@/utils/bodyMetricImport';
 import { withImportedWorkouts } from '@/utils/workoutImport';
+import { mergeCrossSourceWorkoutHistory } from '@/utils/workoutHistoryMerge';
+import { migrateSavedWorkoutHistory } from '@/utils/workoutHistoryMigration';
 
 interface AppContextType {
   state: AppState;
@@ -818,6 +820,7 @@ export function appReducer(state: AppState, action: Action): AppState {
       const workout = normalizeWorkout({
         ...sourceWorkout,
         source: undefined,
+        mergedFrom: undefined,
         id: generateId(),
         date: getTodayString(),
         exercises,
@@ -951,8 +954,10 @@ export function appReducer(state: AppState, action: Action): AppState {
         exerciseLibrary: state.exerciseLibrary.map((exercise) => exercise.id === action.payload.exerciseId
           ? { ...exercise, hidden: action.payload.hidden } : exercise),
       };
-    case 'IMPORT_APP_STATE':
-      return mergeWithInitialState(action.payload);
+    case 'IMPORT_APP_STATE': {
+      const history = mergeCrossSourceWorkoutHistory(action.payload.workoutHistory ?? []).workoutHistory;
+      return mergeWithInitialState({ ...action.payload, workoutHistory: history });
+    }
     case 'IMPORT_BODY_METRICS':
       return { ...state, bodyMetrics: mergeBodyMetrics(state.bodyMetrics, action.payload), bodyUnlocked: false };
     case 'IMPORT_WORKOUT_HISTORY':
@@ -1000,7 +1005,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       try {
         const saved = await loadData();
         if (saved) {
-          const validData = { ...saved };
+          const validData = { ...migrateSavedWorkoutHistory(saved) };
 
           if (validData.dailyWorkout) {
             if (!validData.dailyWorkout.exercises || !Array.isArray(validData.dailyWorkout.exercises)) {
